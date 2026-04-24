@@ -1,0 +1,24 @@
+{
+  "login": {
+    "request": {
+      "email": "user@test.com",
+      "password": "123456"
+    },
+    "response": {
+      "id": 1,
+      "nombre": "User",
+      "email": "user@test.com",
+      "puntos": 100,
+      "token": "JWT_TOKEN"
+    }
+  },
+  "userProfile": {
+    "response": {
+      "id": 1,
+      "nombre": "User",
+      "email": "user@test.com",
+      "puntos": 100,
+      "qrCode": "USER_1_abc123"
+    }
+  }
+}
