@@ -1,0 +1,59 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/r/dashboard"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Gestión de Promociones</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content color="light">
+  <div class="form-container ion-padding">
+    <h2>Nueva Promoción</h2>
+    <p>Completa los datos para publicar una nueva oferta.</p>
+
+    <form [formGroup]="promoForm" (ngSubmit)="onSubmit()">
+      <ion-list lines="none" class="ion-margin-bottom">
+        <ion-item class="custom-item">
+          <ion-label position="stacked">Nombre de la Promoción</ion-label>
+          <ion-input type="text" formControlName="nombre" placeholder="Ej: Café de Bienvenida"></ion-input>
+        </ion-item>
+
+        <ion-item class="custom-item">
+          <ion-label position="stacked">Descripción Detallada</ion-label>
+          <ion-textarea formControlName="descripcion" placeholder="Explica en qué consiste la promo..." [autoGrow]="true"></ion-textarea>
+        </ion-item>
+
+        <ion-item class="custom-item">
+          <ion-label position="stacked">Puntos Requeridos</ion-label>
+          <ion-input type="number" formControlName="puntosRequeridos" placeholder="Ej: 100"></ion-input>
+        </ion-item>
+
+        <ion-item class="custom-item">
+          <ion-label position="stacked">URL de la Imagen</ion-label>
+          <ion-input type="url" formControlName="imagenUrl" placeholder="https://miweb.com/imagen.jpg"></ion-input>
+          <ion-button slot="end" fill="clear" (click)="showPreview()" class="preview-btn">
+            <ion-icon name="eye-outline" slot="start"></ion-icon>
+            Vista Previa
+          </ion-button>
+        </ion-item>
+      </ion-list>
+
+      <!-- Preview Image -->
+      <div class="preview-container ion-margin-bottom" *ngIf="previewUrl">
+        <h3 class="ion-padding-start">Previsualización:</h3>
+        <ion-card class="preview-card">
+          <ion-img [src]="previewUrl" alt="Vista previa promocional"></ion-img>
+          <ion-card-header>
+            <ion-card-title>{{ promoForm.get('nombre')?.value || 'Título de ejemplo' }}</ion-card-title>
+          </ion-card-header>
+        </ion-card>
+      </div>
+
+      <ion-button expand="block" type="submit" [disabled]="promoForm.invalid || isSubmitting" color="success" class="submit-btn ion-margin-top">
+        <ion-spinner slot="start" *ngIf="isSubmitting"></ion-spinner>
+        {{ isSubmitting ? 'Publicando...' : 'Guardar Promoción' }}
+      </ion-button>
+    </form>
+  </div>
+</ion-content>

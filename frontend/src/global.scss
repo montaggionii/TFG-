@@ -1,0 +1,604 @@
+/* FidelyFood - Global Premium Light System */
+@import "@ionic/angular/css/core.css";
+@import "@ionic/angular/css/normalize.css";
+@import "@ionic/angular/css/structure.css";
+@import "@ionic/angular/css/typography.css";
+@import "@ionic/angular/css/display.css";
+@import "@ionic/angular/css/padding.css";
+@import "@ionic/angular/css/float-elements.css";
+@import "@ionic/angular/css/text-alignment.css";
+@import "@ionic/angular/css/text-transformation.css";
+@import "@ionic/angular/css/flex-utils.css";
+
+:root {
+  /* CORPORATE PALETTE */
+  --primary: #FF7A00;
+  --primary-rgb: 255, 122, 0;
+  --secondary: #FF5C45;
+  --secondary-rgb: 255, 92, 69;
+  --dark: #1C1C1E;
+  --light: #FAFAFA;
+  --white: #FFFFFF;
+  --accent: #FFC533;
+  --success: #34C759;
+  --error: #FF3B30;
+
+  /* GLOBAL THEME TOKENS */
+  --app-background: #FAFAFA;
+  --app-surface: #FFFFFF;
+  --app-card: #FFFFFF;
+  --app-card-soft: #F8FAFC;
+  --app-primary: #FF7A00;
+  --app-primary-rgb: 255, 122, 0;
+  --app-accent: #FFC533;
+  --app-text: #1C1C1E;
+  --app-text-secondary: #6B7280;
+  --app-text-muted: #9CA3AF;
+  --app-border: rgba(0, 0, 0, 0.06);
+  --app-border-strong: rgba(0, 0, 0, 0.12);
+  --app-success: #1F7A3A;
+  --app-success-bg: #EAF7EF;
+  --app-success-border: #2E8B57;
+  --app-error: #B42318;
+  --app-error-bg: #FDECEC;
+  --app-error-border: #D92D20;
+  --app-warning: #8A4B00;
+  --app-warning-bg: #FFF4D6;
+  --app-warning-border: #C27A00;
+  --app-info: #1D4ED8;
+  --app-info-bg: #EAF2FF;
+  --app-info-border: #2563EB;
+  --app-focus-ring: #005FCC;
+  --app-disabled-bg: #F3F4F6;
+  --app-disabled-text: #6B7280;
+  --app-selected-bg: rgba(255, 122, 0, 0.14);
+  --app-overlay: rgba(255, 255, 255, 0.92);
+  --app-glass: rgba(255, 255, 255, 0.82);
+  --app-input: #FFFFFF;
+  --app-modal: #F8FAFC;
+  --app-client-tabbar-height: 68px;
+  --app-client-tabbar-bottom-gap: 12px;
+  --app-client-tabbar-content-gap: 24px;
+  --app-client-tabbar-clearance: calc(
+    var(--app-client-tabbar-height) +
+    var(--app-client-tabbar-bottom-gap) +
+    var(--app-client-tabbar-content-gap) +
+    env(safe-area-inset-bottom)
+  );
+
+  /* GRADIENTS */
+  --primary-gradient: linear-gradient(135deg, #FF7A00, #FF9F33);
+  --reward-gradient: linear-gradient(135deg, #FFC533, #FFE082);
+  --surface-gradient: linear-gradient(180deg, #FFFFFF 0%, #FAFAFA 100%);
+
+  /* IONIC OVERRIDES */
+  --ion-color-primary: var(--primary);
+  --ion-color-primary-rgb: var(--primary-rgb);
+  --ion-color-dark: var(--app-text);
+  --ion-color-medium: var(--app-text-secondary);
+  --ion-color-success: var(--app-success);
+  --ion-color-danger: var(--app-error);
+  --ion-color-warning: var(--app-warning);
+  --ion-color-tertiary: var(--app-info);
+  --ion-background-color: var(--app-background);
+  --ion-text-color: var(--app-text);
+  --ion-font-family: 'Poppins', 'Inter', sans-serif;
+  --ion-item-background: var(--app-card);
+  --ion-card-background: var(--app-card);
+  --ion-toolbar-background: var(--app-surface);
+  --ion-toolbar-color: var(--app-text);
+
+  /* MODERN SHADOWS */
+  --soft-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  --card-shadow: 0 12px 32px rgba(0, 0, 0, 0.06);
+}
+
+img[appSafeRestaurantImage] {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.48), rgba(255, 255, 255, 0)),
+    linear-gradient(135deg, #f6ede7 0%, #f2d8ca 100%);
+  background-size: 220% 100%, 100% 100%;
+  transition: opacity 180ms ease, filter 180ms ease;
+}
+
+img[appSafeRestaurantImage].ff-image-loading {
+  opacity: 0.58;
+  animation: ff-image-skeleton 1.15s ease-in-out infinite;
+}
+
+img[appSafeRestaurantImage].ff-image-loaded {
+  opacity: 1;
+  animation: none;
+}
+
+img[appSafeRestaurantImage].ff-image-fallback {
+  object-fit: cover;
+  background: linear-gradient(135deg, #fff6f0 0%, #f1d4c5 100%);
+}
+
+@keyframes ff-image-skeleton {
+  from { background-position: 220% 0, 0 0; }
+  to { background-position: -220% 0, 0 0; }
+}
+
+:root[data-theme='dark'] {
+  --primary: #FF7A00;
+  --primary-rgb: 255, 122, 0;
+  --secondary: #FFC83D;
+  --secondary-rgb: 255, 200, 61;
+  --dark: #FFFFFF;
+  --light: #121212;
+  --white: #252525;
+  --accent: #FFC83D;
+  --success: #4CAF50;
+  --error: #FF5252;
+
+  --app-background: #121212;
+  --app-surface: #1E1E1E;
+  --app-card: #252525;
+  --app-card-soft: #1E1E1E;
+  --app-primary: #FF7A00;
+  --app-primary-rgb: 255, 122, 0;
+  --app-accent: #FFC83D;
+  --app-text: #FFFFFF;
+  --app-text-secondary: #BDBDBD;
+  --app-text-muted: #9E9E9E;
+  --app-border: rgba(255, 255, 255, 0.10);
+  --app-border-strong: rgba(255, 255, 255, 0.18);
+  --app-success: #7BD88F;
+  --app-success-bg: rgba(76, 175, 80, 0.18);
+  --app-success-border: #4CAF50;
+  --app-error: #FF8A8A;
+  --app-error-bg: rgba(255, 82, 82, 0.18);
+  --app-error-border: #FF5252;
+  --app-warning: #FFD166;
+  --app-warning-bg: rgba(255, 200, 61, 0.18);
+  --app-warning-border: #FFC83D;
+  --app-info: #93C5FD;
+  --app-info-bg: rgba(96, 165, 250, 0.18);
+  --app-info-border: #60A5FA;
+  --app-focus-ring: #FFC83D;
+  --app-disabled-bg: #2B2B2B;
+  --app-disabled-text: #BDBDBD;
+  --app-selected-bg: rgba(255, 122, 0, 0.22);
+  --app-overlay: rgba(30, 30, 30, 0.94);
+  --app-glass: rgba(37, 37, 37, 0.84);
+  --app-input: #1E1E1E;
+  --app-modal: #1E1E1E;
+
+  --primary-gradient: linear-gradient(135deg, #FF7A00, #FFC83D);
+  --reward-gradient: linear-gradient(135deg, #FFC83D, #FF7A00);
+  --surface-gradient: linear-gradient(180deg, #1E1E1E 0%, #121212 100%);
+
+  --ion-color-primary: var(--app-primary);
+  --ion-color-primary-rgb: var(--app-primary-rgb);
+  --ion-color-dark: var(--app-text);
+  --ion-color-medium: var(--app-text-secondary);
+  --ion-color-success: var(--app-success);
+  --ion-color-danger: var(--app-error);
+  --ion-color-warning: var(--app-warning);
+  --ion-color-tertiary: var(--app-info);
+  --ion-background-color: var(--app-background);
+  --ion-text-color: var(--app-text);
+  --ion-item-background: var(--app-card);
+  --ion-card-background: var(--app-card);
+  --ion-toolbar-background: var(--app-surface);
+  --ion-toolbar-color: var(--app-text);
+  --soft-shadow: 0 4px 14px rgba(0, 0, 0, 0.42);
+  --card-shadow: 0 18px 38px rgba(0, 0, 0, 0.5);
+}
+
+body {
+  font-family: var(--ion-font-family);
+  background-color: var(--app-background);
+  color: var(--app-text);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+ion-content::part(scroll) {
+  overflow-x: hidden;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+}
+
+/* COMPONENT DEFAULTS */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--app-text);
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  overflow-wrap: anywhere;
+}
+
+p {
+  color: var(--app-text-secondary);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+html,
+body,
+ion-app,
+ion-content,
+ion-header,
+ion-toolbar,
+ion-tab-bar,
+ion-item,
+ion-card,
+.premium-card,
+.glass-card,
+.setting-card,
+.security-card,
+.reward-item-pro,
+.transaction-item-pro,
+.explore-card,
+.detail-sheet,
+.modal-wrapper,
+.modal-glass-container,
+.receipt-card {
+  transition:
+    background-color 300ms ease,
+    color 300ms ease,
+    border-color 300ms ease,
+    box-shadow 300ms ease;
+}
+
+ion-content {
+  --background: var(--app-background);
+  color: var(--app-text);
+}
+
+ion-toolbar {
+  --background: var(--app-surface);
+  --color: var(--app-text);
+  --border-color: var(--app-border);
+}
+
+ion-list {
+  background: transparent;
+}
+
+ion-item {
+  --background: var(--app-card);
+  --color: var(--app-text);
+  --border-color: var(--app-border);
+}
+
+ion-input,
+ion-textarea,
+ion-select {
+  --color: var(--app-text);
+  --placeholder-color: var(--app-text-muted);
+}
+
+:where(a, button, [role='button'], [tabindex], ion-button, ion-item, ion-segment-button, ion-radio, ion-toggle, ion-checkbox, ion-input, ion-textarea, ion-select):focus-visible {
+  outline: 3px solid var(--app-focus-ring);
+  outline-offset: 3px;
+}
+
+ion-button::part(native):focus-visible,
+ion-fab-button::part(native):focus-visible,
+ion-segment-button::part(native):focus-visible {
+  outline: 3px solid var(--app-focus-ring);
+  outline-offset: 3px;
+}
+
+ion-button[disabled],
+button:disabled,
+.disabled,
+.locked-btn {
+  --background: var(--app-disabled-bg);
+  --color: var(--app-disabled-text);
+  opacity: 1;
+  filter: none;
+}
+
+ion-item.ion-invalid.ion-touched,
+.input-error,
+.field-error {
+  --border-color: var(--app-error-border);
+  border-color: var(--app-error-border) !important;
+}
+
+.form-error-text,
+ion-note[color='danger'] {
+  color: var(--app-error) !important;
+  font-weight: 700;
+}
+
+.a11y-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--app-border-strong);
+  border-left-width: 4px;
+  border-radius: 10px;
+  font-weight: 800;
+}
+
+.a11y-status--success {
+  color: var(--app-success);
+  background: var(--app-success-bg);
+  border-color: var(--app-success-border);
+}
+
+.a11y-status--error {
+  color: var(--app-error);
+  background: var(--app-error-bg);
+  border-color: var(--app-error-border);
+}
+
+.a11y-status--warning {
+  color: var(--app-warning);
+  background: var(--app-warning-bg);
+  border-color: var(--app-warning-border);
+}
+
+.a11y-status--info {
+  color: var(--app-info);
+  background: var(--app-info-bg);
+  border-color: var(--app-info-border);
+}
+
+/* CUSTOM GLASS / SURFACE UTILS */
+.premium-card {
+  background: var(--app-card);
+  border-radius: 16px;
+  box-shadow: var(--card-shadow);
+  border: 1px solid var(--app-border);
+}
+
+.tap-effect {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  &:active { transform: scale(0.96); }
+}
+
+.hover-lift {
+  transition: all 0.3s ease;
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* IONIC BUTTON OVERRIDES */
+ion-button {
+  --border-radius: 12px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+  min-height: 44px;
+
+  &.btn-gradient {
+    --background: var(--primary-gradient);
+    --box-shadow: 0 8px 20px rgba(255, 90, 60, 0.2);
+    color: white;
+  }
+}
+
+button,
+[role='button'],
+ion-item,
+ion-segment-button,
+ion-tab-button {
+  min-height: 44px;
+}
+
+ion-modal::part(content) {
+  max-width: min(94vw, 520px);
+  max-height: min(92vh, 760px);
+  overflow: hidden;
+}
+
+.modal-wrapper,
+.modal-glass-container,
+.modal-body,
+.modal-content-scrollable,
+.receipt-card {
+  max-width: 100%;
+  max-height: calc(100vh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+}
+
+.modal-body,
+.modal-content-scrollable {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (min-width: 768px) {
+  ion-modal::part(content) {
+    border-radius: 28px;
+  }
+}
+
+@media (max-width: 390px) {
+  h1 { font-size: clamp(1.55rem, 9vw, 2rem); }
+  h2 { font-size: clamp(1.25rem, 7vw, 1.6rem); }
+}
+
+/* ANIMATIONS */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-up {
+  animation: fadeInUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* 
+  ESTILOS PARA ESCÁNER NATIVO (Capacitor)
+  Cuando el escáner está activo, necesitamos que la App sea transparente
+  para ver la cámara que está "detrás".
+*/
+body.scanner-active {
+  background: transparent !important;
+  --background: transparent !important;
+  
+  ion-app, 
+  ion-content,
+  .ion-page,
+  app-root {
+    background: transparent !important;
+    --background: transparent !important;
+    visibility: visible;
+  }
+
+  /* Ocultamos elementos que no sean el escáner para enfoque total */
+  ion-header,
+  ion-footer,
+  ion-tab-bar {
+    display: none !important;
+  }
+}
+
+/* FORZADO GLOBAL PARA MODAL QR FIDELYAPP - LIGHT MODE */
+.qr-modal-premium {
+  --background: transparent !important;
+  --backdrop-opacity: 0.4 !important;
+  
+  &::part(content) {
+    backdrop-filter: blur(15px) !important;
+    background: var(--app-overlay) !important;
+    border-radius: 40px !important;
+    box-shadow: 0 -10px 40px rgba(0,0,0,0.1) !important;
+  }
+}
+
+:root[data-theme='dark'] {
+  .production-home,
+  .production-profile,
+  .security-page,
+  .settings-page,
+  .history-ion-list,
+  .marketplace-container,
+  .detail-content {
+    --background: var(--app-background) !important;
+    background: var(--app-background) !important;
+    color: var(--app-text);
+  }
+
+  .section-container,
+  .nearby-item-fintech,
+  .stat-badge,
+  .setting-card,
+  .security-status-card,
+  .security-card,
+  .glass-card,
+  .group-header,
+  .item-card,
+  .transaction-item-pro,
+  .explore-card,
+  .detail-sheet,
+  .uber-distance-panel,
+  .info-section,
+  .promotions-section,
+  .promo-card,
+  .receipt-card,
+  .language-option,
+  .modal-wrapper,
+  .modal-glass-container,
+  .loader-box,
+  .balance-card,
+  .history-list-pro,
+  .legal-card,
+  .privacy-card,
+  .terms-card {
+    background: var(--app-card) !important;
+    color: var(--app-text) !important;
+    border-color: var(--app-border) !important;
+    box-shadow: var(--soft-shadow) !important;
+  }
+
+  .modal-wrapper,
+  .modal-body,
+  .settings-modal::part(content),
+  .promo-action-modal::part(content) {
+    background: var(--app-modal) !important;
+  }
+
+  .custom-input,
+  .glass-input-item,
+  .language-option,
+  .search-box,
+  .filter-chip,
+  .log-entry,
+  .session-item {
+    --background: var(--app-input) !important;
+    background: var(--app-input) !important;
+    color: var(--app-text) !important;
+    border-color: var(--app-border) !important;
+  }
+
+  h1, h2, h3, h4, h5, h6,
+  .section-title,
+  .user-name,
+  .setting-text span,
+  .stat-info strong,
+  .rest-details h4,
+  .item-body h4,
+  .top-row h3,
+  .profile-titles h2,
+  .card-header h3,
+  .session-info strong,
+  .log-text strong {
+    color: var(--app-text) !important;
+  }
+
+  p,
+  small,
+  .sub-label,
+  .setting-text p,
+  .profile-titles p,
+  .card-header p,
+  .session-info p,
+  .log-text p,
+  .legal-footer p,
+  .date-header span,
+  .support-hint,
+  .save-hint {
+    color: var(--app-text-secondary) !important;
+  }
+
+  ion-tab-bar {
+    --background: rgba(30, 30, 30, 0.92) !important;
+    border-color: var(--app-border) !important;
+    box-shadow: 0 12px 34px rgba(0, 0, 0, 0.5) !important;
+  }
+
+  ion-tab-button {
+    --color: var(--app-text-muted) !important;
+    --color-selected: var(--app-primary) !important;
+  }
+
+  .full-page-loader {
+    background: rgba(18, 18, 18, 0.9) !important;
+  }
+
+  .qr-frame,
+  .qr-wrapper,
+  .large-qr-container,
+  canvas {
+    background: #FFFFFF;
+  }
+}

@@ -1,0 +1,87 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <ion-title>Dashboard admin</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="load()">
+        <ion-icon name="refresh-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="admin-page">
+  <ion-refresher slot="fixed" (ionRefresh)="load($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <div class="page-inner" *ngIf="!loading; else loadingTpl">
+    <section class="admin-hero">
+      <span class="eyebrow">FidelyFood Admin</span>
+      <h1>Control general</h1>
+      <p>Visión global de cuentas, actividad y estado operativo.</p>
+    </section>
+
+    <section class="metric-grid">
+      <article class="metric-card" *ngFor="let metric of metrics">
+        <ion-icon class="metric-icon" [name]="metric.icon"></ion-icon>
+        <span>{{ metric.label }}</span>
+        <strong>{{ metric.value }}</strong>
+      </article>
+    </section>
+
+    <section class="two-column">
+      <div class="panel">
+        <div class="panel-title">
+          <h2>Últimos negocios</h2>
+          <span class="soft-badge">Activos</span>
+        </div>
+        <div class="row" *ngFor="let item of dashboard?.recentBusinesses || []">
+          <div>
+            <strong>{{ item.nombre }}</strong>
+            <span>{{ item.email || 'Sin email' }}</span>
+          </div>
+          <span class="status-pill" [class.inactive]="!item.active">{{ item.active ? 'Activo' : 'Inactivo' }}</span>
+        </div>
+        <p class="empty" *ngIf="!(dashboard?.recentBusinesses?.length)">No hay negocios registrados.</p>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">
+          <h2>Últimos clientes</h2>
+          <span class="soft-badge">Comensales</span>
+        </div>
+        <div class="row" *ngFor="let item of dashboard?.recentClients || []">
+          <div>
+            <strong>{{ item.nombre }}</strong>
+            <span>{{ item.email || 'Sin email' }}</span>
+          </div>
+          <span class="status-pill" [class.inactive]="!item.active">{{ item.active ? 'Activo' : 'Inactivo' }}</span>
+        </div>
+        <p class="empty" *ngIf="!(dashboard?.recentClients?.length)">No hay clientes registrados.</p>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title">
+        <h2>Actividad reciente</h2>
+        <span class="soft-badge">Timeline</span>
+      </div>
+      <div class="activity-row" *ngFor="let item of dashboard?.recentActivity || []">
+        <span>{{ item.fecha | date:'short' }}</span>
+        <strong>{{ item.descripcion || item.tipo }}</strong>
+        <em>{{ item.cliente || 'Cliente' }} · {{ item.negocio || 'Sin negocio' }}</em>
+      </div>
+      <p class="empty" *ngIf="!(dashboard?.recentActivity?.length)">Todavía no hay actividad registrada.</p>
+    </section>
+  </div>
+
+  <ng-template #loadingTpl>
+    <div class="loading-state">
+      <ion-spinner name="crescent"></ion-spinner>
+      <p>Cargando panel interno...</p>
+    </div>
+  </ng-template>
+</ion-content>

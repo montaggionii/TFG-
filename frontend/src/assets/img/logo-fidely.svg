@@ -1,0 +1,44 @@
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Ultra-modern gradient: Indigo to Electric Blue -->
+    <linearGradient id="brand-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5" />
+      <stop offset="100%" stop-color="#0EA5E9" />
+    </linearGradient>
+    
+    <!-- Accent for the "Loyalty Jewel" -->
+    <linearGradient id="jewel-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#A855F7" />
+      <stop offset="100%" stop-color="#6366F1" />
+    </linearGradient>
+
+    <!-- Professional Shadow/Depth -->
+    <filter id="soft-shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="10" result="blur" />
+      <feOffset dx="0" dy="15" result="offsetBlur" />
+      <feFlood flood-color="#000" flood-opacity="0.4" result="colorBlur" />
+      <feComposite in="colorBlur" in2="offsetBlur" operator="in" result="shadow" />
+      <feComposite in="SourceGraphic" in2="shadow" operator="over" />
+    </filter>
+  </defs>
+
+  <g filter="url(#soft-shadow)">
+    <!-- The "Infinite F": A continuous loop representing loyalty and cycles of food -->
+    <!-- Vertical and curves combined in a single high-end shape -->
+    <path d="M70 60C70 48.9543 78.9543 40 90 40H140C151.046 40 160 48.9543 160 60V75C160 86.0457 151.046 95 140 95H100V120H135C146.046 120 155 128.954 155 140V145C155 156.046 146.046 165 135 165H100V180C100 191.046 91.0457 200 80 200H70V60Z" fill="url(#brand-grad)" />
+    
+    <!-- The "Fidely Crown": Representing the rewards and elite status -->
+    <path d="M145 40L155 25L165 40H145Z" fill="#FACC15" />
+
+    <!-- Stylized Fork Tines integrated into the F's middle bar as negative space -->
+    <rect x="110" y="130" width="3" height="25" rx="1.5" fill="white" fill-opacity="0.2" />
+    <rect x="120" y="130" width="3" height="25" rx="1.5" fill="white" fill-opacity="0.2" />
+    <rect x="130" y="130" width="3" height="25" rx="1.5" fill="white" fill-opacity="0.2" />
+
+    <!-- A glowing points-orb at the end of the F -->
+    <circle cx="160" cy="140" r="12" fill="url(#jewel-grad)" filter="blur(2px)">
+      <animate attributeName="r" values="10;14;10" dur="2.5s" repeatCount="indefinite" />
+    </circle>
+    <circle cx="160" cy="140" r="6" fill="white" fill-opacity="0.8" />
+  </g>
+</svg>

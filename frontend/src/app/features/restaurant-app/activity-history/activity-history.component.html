@@ -1,0 +1,159 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar class="glass-header">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/r/dashboard" text=""></ion-back-button>
+    </ion-buttons>
+    <ion-title>Historial de Actividad</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="loadStats()" class="refresh-btn">
+        <ion-icon name="refresh-outline" [class.rotating]="isLoading"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="activity-content">
+  
+  <div class="dashboard-wrapper">
+    
+    <!-- SKELETON LOADING -->
+    <div *ngIf="isLoading" class="skeleton-wrapper">
+      <div class="skeleton-calendar glass-card"></div>
+      <div class="skeleton-grid">
+        <div class="skeleton-card glass-card" *ngFor="let i of [1,2,3,4]"></div>
+      </div>
+      <div class="skeleton-chart glass-card"></div>
+    </div>
+
+    <div *ngIf="!isLoading" class="animate__animated animate__fadeIn">
+      
+      <!-- CALENDARIO / FILTRO -->
+      <div class="calendar-section glass-card animate__animated animate__fadeInDown">
+        <div class="section-header">
+          <ion-icon name="calendar-outline" color="primary"></ion-icon>
+          <h2>Explorar Historial</h2>
+        </div>
+        <ion-datetime 
+          presentation="date" 
+          size="cover" 
+          [(ngModel)]="selectedDate"
+          (ionChange)="onDateChange($event)"
+          class="custom-calendar"
+        ></ion-datetime>
+      </div>
+
+      <!-- RESUMEN DE MÉTRICAS -->
+      <div class="stats-grid">
+        <div class="stat-card glass-card animate__animated animate__zoomIn" style="animation-delay: 0.1s">
+          <div class="icon-box green">
+            <ion-icon name="cash-outline"></ion-icon>
+          </div>
+          <div class="stat-info">
+            <span class="label">Facturación</span>
+            <h3 class="value">{{ stats.facturacionTotal | number:'1.2-2' }}€</h3>
+            <span class="trend positive">
+              <ion-icon name="trending-up-outline"></ion-icon> En vivo
+            </span>
+          </div>
+        </div>
+
+        <div class="stat-card glass-card animate__animated animate__zoomIn" style="animation-delay: 0.2s">
+          <div class="icon-box orange">
+            <ion-icon name="star-outline"></ion-icon>
+          </div>
+          <div class="stat-info">
+            <span class="label">Puntos +</span>
+            <h3 class="value">{{ stats.puntosEntregados | number }}</h3>
+            <span class="trend">Generados</span>
+          </div>
+        </div>
+
+        <div class="stat-card glass-card animate__animated animate__zoomIn" style="animation-delay: 0.3s">
+          <div class="icon-box red">
+            <ion-icon name="gift-outline"></ion-icon>
+          </div>
+          <div class="stat-info">
+            <span class="label">Canjes</span>
+            <h3 class="value">{{ stats.puntosCanjeados | number }}</h3>
+            <span class="trend negative">Premios</span>
+          </div>
+        </div>
+
+        <div class="stat-card glass-card animate__animated animate__zoomIn" style="animation-delay: 0.4s">
+          <div class="icon-box blue">
+            <ion-icon name="people-outline"></ion-icon>
+          </div>
+          <div class="stat-info">
+            <span class="label">Clientes</span>
+            <h3 class="value">{{ stats.clientesAtendidos }}</h3>
+            <span class="trend positive">Fieles</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- GRÁFICO MOCK (FINTECH STYLE) -->
+      <div class="chart-section glass-card animate__animated animate__fadeInUp">
+        <div class="section-header">
+          <ion-icon name="trending-up-outline" color="primary"></ion-icon>
+          <h2>Rendimiento Diario</h2>
+        </div>
+        <div class="mock-chart">
+          <div class="bar-container" *ngFor="let val of [20, 45, 30, 70, 55, 90, 65]">
+            <div class="bar animate__animated animate__slideInUp" [style.height.%]="val"></div>
+          </div>
+        </div>
+        <div class="chart-labels">
+          <span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span>
+        </div>
+      </div>
+
+      <!-- LISTA DE ACTIVIDAD -->
+      <div class="history-section">
+        <div class="section-header-flex">
+          <div class="title-group">
+            <h2>Operaciones</h2>
+            <p>{{ filteredHistory.length }} registradas</p>
+          </div>
+          <ion-chip color="primary" mode="ios">
+            <ion-label>Filtrado</ion-label>
+          </ion-chip>
+        </div>
+
+        <div class="empty-state glass-card animate__animated animate__fadeIn" *ngIf="filteredHistory.length === 0">
+          <div class="empty-icon-box">
+            <ion-icon name="time-outline"></ion-icon>
+          </div>
+          <h3>Sin actividad aún</h3>
+          <p>No hay registros para la fecha seleccionada.</p>
+          <ion-button fill="outline" size="small" (click)="selectedDate = '2026-05-12T00:00:00'">Ver hoy</ion-button>
+        </div>
+
+        <ion-list class="history-list" lines="none">
+          <ion-item *ngFor="let item of filteredHistory; let i = index" 
+                    class="history-item glass-card animate__animated animate__fadeInRight"
+                    [style.animation-delay]="(i * 0.05) + 's'">
+            <div class="item-icon" [class]="item.tipo.toLowerCase()">
+              <ion-icon [name]="item.tipo === 'GANADOS' ? 'add-outline' : 'gift-outline'"></ion-icon>
+            </div>
+            <ion-label>
+              <div class="item-top">
+                <span class="client-name">{{ item.usuarioNombre || 'Cliente' }}</span>
+                <span class="item-time">{{ item.fecha | date:'HH:mm' }}</span>
+              </div>
+              <p class="item-desc">{{ item.descripcion }}</p>
+              <div class="item-footer">
+                <ion-badge [color]="getBadgeColor(item.tipo)">{{ getTypeLabel(item.tipo) }}</ion-badge>
+                <span class="item-amount" *ngIf="item.monto > 0">{{ item.monto | number:'1.2-2' }}€</span>
+              </div>
+            </ion-label>
+            <div class="item-points" [class.positive]="item.tipo === 'GANADOS'">
+              <span class="item-kind">{{ item.tipo === 'GANADOS' ? 'ABONO' : 'CANJE' }}</span>
+              {{ item.tipo === 'GANADOS' ? '+' : '-' }}{{ item.puntos }}
+            </div>
+          </ion-item>
+        </ion-list>
+      </div>
+
+    </div>
+  </div>
+</ion-content>

@@ -1,0 +1,107 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar mode="ios">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/u/perfil" [icon]="icons.chevronBackOutline" text="Volver"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Privacidad</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="privacy-page">
+  <div class="privacy-container ion-padding">
+    
+    <!-- HEADER LEGAL -->
+    <div class="legal-hero animate__animated animate__fadeIn">
+      <div class="icon-box">
+        <ion-icon [icon]="icons.shieldCheckmarkOutline"></ion-icon>
+      </div>
+      <h1>Tu privacidad es nuestra prioridad</h1>
+      <p>Última actualización: {{ lastUpdate }} • Versión {{ version }}</p>
+    </div>
+
+    <section class="legal-section animate__animated animate__fadeInUp">
+      <h3>Resumen de privacidad</h3>
+      <div class="legal-card">
+        <p>FidelyFood es una aplicación de fidelización gastronómica. Tratamos tus datos para que puedas identificarte en locales adheridos, acumular puntos, consultar movimientos y canjear recompensas de forma segura.</p>
+        <p>Esta política explica qué información usamos, por qué la usamos, cómo la protegemos y qué derechos tienes sobre ella.</p>
+      </div>
+    </section>
+
+    <section class="legal-section animate__animated animate__fadeInUp">
+      <h3>Política de Privacidad</h3>
+      <div class="privacy-card-list">
+        <div class="legal-card privacy-info-card" *ngFor="let section of privacySections">
+          <div class="section-icon">
+            <ion-icon [icon]="section.icon"></ion-icon>
+          </div>
+          <div>
+            <strong>{{ section.title }}</strong>
+            <p>{{ section.text }}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="legal-section animate__animated animate__fadeInUp">
+      <h3>Control de privacidad</h3>
+      <div class="legal-card settings-card">
+        <ion-list lines="full">
+          <ion-item>
+            <ion-label>
+              <h2>Cookies esenciales</h2>
+              <p>Necesarias para mantener la sesión y proteger el acceso.</p>
+            </ion-label>
+            <ion-toggle slot="end" [checked]="true" [disabled]="true"></ion-toggle>
+          </ion-item>
+          <ion-item>
+            <ion-label>
+              <h2>Geolocalización</h2>
+              <p>Permite ordenar restaurantes por cercanía y mostrar el mapa.</p>
+            </ion-label>
+            <ion-toggle slot="end" [(ngModel)]="privacySettings.location" (ionChange)="saveSettings()"></ion-toggle>
+          </ion-item>
+          <ion-item>
+            <ion-label>
+              <h2>Análisis de uso</h2>
+              <p>Ayuda a detectar errores y mejorar la experiencia.</p>
+            </ion-label>
+            <ion-toggle slot="end" [(ngModel)]="privacySettings.analytics" (ionChange)="saveSettings()"></ion-toggle>
+          </ion-item>
+          <ion-item>
+            <ion-label>
+              <h2>Comunicaciones promocionales</h2>
+              <p>Permite recibir novedades y ofertas de locales adheridos.</p>
+            </ion-label>
+            <ion-toggle slot="end" [(ngModel)]="privacySettings.marketing" (ionChange)="saveSettings()"></ion-toggle>
+          </ion-item>
+        </ion-list>
+      </div>
+    </section>
+
+    <!-- ACCIONES LEGALES -->
+    <div class="legal-actions animate__animated animate__fadeInUp">
+      <ion-button expand="block" fill="outline" (click)="downloadPDF()">
+        <ion-icon [icon]="icons.documentTextOutline" slot="start"></ion-icon>
+        Descargar Política (PDF)
+      </ion-button>
+      
+      <ion-button expand="block" fill="clear" color="medium">
+        <ion-icon [icon]="icons.mailOutline" slot="start"></ion-icon>
+        Contactar Delegado de Datos
+      </ion-button>
+
+      <div class="danger-zone">
+        <p>¿Deseas dejar de formar parte de FidelyFood?</p>
+        <ion-button expand="block" color="danger" fill="outline" (click)="confirmDeleteAccount()">
+          <ion-icon [icon]="icons.trashOutline" slot="start"></ion-icon>
+          Eliminar mi cuenta y mis datos
+        </ion-button>
+      </div>
+    </div>
+
+    <div class="legal-footer ion-text-center">
+      <p>FidelyFood © 2026 • Todos los derechos reservados</p>
+    </div>
+
+  </div>
+</ion-content>

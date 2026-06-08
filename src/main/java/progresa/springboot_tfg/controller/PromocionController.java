@@ -17,7 +17,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/promociones")
-@CrossOrigin(origins = "*")
+@CrossOrigin(originPatterns = "*")
 @Tag(name = "Promociones", description = "Gestión de promociones y aplicación de beneficios para usuarios")
 public class PromocionController {
 
@@ -37,6 +37,15 @@ public class PromocionController {
     @GetMapping
     public ResponseEntity<List<Promocion>> obtenerTodas() {
         return ResponseEntity.ok(promocionService.obtenerTodas());
+    }
+
+    @Operation(
+            summary = "Obtener promociones por restaurante",
+            description = "Devuelve las promociones asociadas a un restaurante concreto"
+    )
+    @GetMapping("/restaurante/{restauranteId}")
+    public ResponseEntity<List<Promocion>> obtenerPorRestaurante(@PathVariable Long restauranteId) {
+        return ResponseEntity.ok(promocionService.obtenerPorRestaurante(restauranteId));
     }
 
 

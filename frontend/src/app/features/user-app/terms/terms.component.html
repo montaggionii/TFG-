@@ -1,0 +1,150 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar mode="ios">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/u/perfil" [icon]="icons.chevronBackOutline" text="Volver"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Términos y Condiciones</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" [scrollEvents]="true" class="terms-page">
+  <div class="terms-container ion-padding">
+
+    <!-- HEADER -->
+    <div class="terms-hero animate__animated animate__fadeIn">
+      <div class="icon-box">
+        <ion-icon [icon]="icons.documentTextOutline"></ion-icon>
+      </div>
+      <h1>Contrato de Uso de FidelyFood</h1>
+      <p>Al utilizar FidelyFood, aceptas cumplir con estas reglas de uso diseñadas para proteger a restaurantes y usuarios.</p>
+      <div class="badge-legal">Última revisión: {{ lastUpdate }}</div>
+    </div>
+
+    <!-- ÍNDICE RÁPIDO (STICKY) -->
+    <div class="terms-index animate__animated animate__fadeIn">
+      <p>Índice de Secciones</p>
+      <div class="index-chips">
+        <div class="chip" *ngFor="let s of sections" (click)="scrollTo(s.id)">
+          <ion-icon [icon]="s.icon"></ion-icon>
+          {{ s.title }}
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTENIDO LEGAL EXTENSO -->
+    <div class="legal-content">
+      
+      <!-- SECCIÓN 1 -->
+      <section [id]="sections[0].id" class="content-section animate__animated animate__fadeInUp">
+        <div class="section-title">
+          <ion-icon [icon]="sections[0].icon"></ion-icon>
+          <h3>1. Uso Permitido de la Plataforma</h3>
+        </div>
+        <div class="text-block">
+          <p>FidelyFood es una plataforma tecnológica que facilita la acumulación de puntos de fidelidad en establecimientos de restauración asociados. El uso está limitado a personas físicas mayores de 16 años.</p>
+          <p>Queda estrictamente prohibido el uso de la plataforma para fines fraudulentos, incluyendo la manipulación de códigos QR o la creación de cuentas múltiples para eludir límites de promociones.</p>
+        </div>
+      </section>
+
+      <!-- SECCIÓN 2 -->
+      <section [id]="sections[1].id" class="content-section animate__animated animate__fadeInUp">
+        <div class="section-title">
+          <ion-icon [icon]="sections[1].icon"></ion-icon>
+          <h3>2. Registro de Cuenta</h3>
+        </div>
+        <div class="text-block">
+          <p>Para utilizar FidelyFood debes crear una cuenta con información veraz y mantener protegidas tus credenciales. Cada cuenta es personal e intransferible.</p>
+          <ul>
+            <li>El correo electrónico debe estar bajo tu control.</li>
+            <li>El código QR identifica tu cuenta ante restaurantes adheridos.</li>
+            <li>Debes comunicarnos cualquier acceso no autorizado o uso indebido.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section [id]="sections[2].id" class="content-section animate__animated animate__fadeInUp">
+        <div class="section-title">
+          <ion-icon [icon]="sections[2].icon"></ion-icon>
+          <h3>3. Sistema de Puntos</h3>
+        </div>
+        <div class="text-block">
+          <p>Los puntos se acumulan mediante operaciones validadas por restaurantes asociados, como compras, promociones activas o acciones autorizadas por el local.</p>
+          <ul>
+            <li>Los puntos no tienen valor monetario fuera de FidelyFood.</li>
+            <li>No pueden venderse, transferirse o convertirse en efectivo.</li>
+            <li>Cada restaurante puede definir reglas propias de acumulación, caducidad o gasto mínimo.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section [id]="sections[3].id" class="content-section animate__animated animate__fadeInUp">
+        <div class="section-title">
+          <ion-icon [icon]="sections[3].icon"></ion-icon>
+          <h3>4. Recompensas y Promociones</h3>
+        </div>
+        <div class="text-block">
+          <p>Las recompensas, canjes y promociones dependen de la disponibilidad y condiciones publicadas por cada restaurante. FidelyFood facilita el registro digital, pero el producto o servicio final lo presta el establecimiento.</p>
+          <p>Una vez validado un canje, los puntos utilizados se descuentan de tu saldo y el movimiento queda reflejado en tu historial.</p>
+        </div>
+      </section>
+
+      <section [id]="sections[4].id" class="content-section animate__animated animate__fadeInUp">
+        <div class="section-title">
+          <ion-icon [icon]="sections[4].icon"></ion-icon>
+          <h3>5. Limitaciones de Responsabilidad</h3>
+        </div>
+        <div class="text-block">
+          <p>FidelyFood trabaja para mantener la plataforma disponible y precisa, pero pueden existir interrupciones temporales por mantenimiento, conectividad, errores técnicos o cambios operativos de restaurantes.</p>
+          <p>No somos responsables de incidencias derivadas de información incorrecta aportada por el usuario, uso no autorizado de la cuenta o decisiones comerciales de establecimientos adheridos.</p>
+        </div>
+      </section>
+
+      <section [id]="sections[5].id" class="content-section animate__animated animate__fadeInUp">
+        <div class="section-title">
+          <ion-icon [icon]="sections[5].icon"></ion-icon>
+          <h3>6. Conductas Prohibidas</h3>
+        </div>
+        <div class="text-block">
+          <p>Para proteger a usuarios y restaurantes, queda prohibido manipular códigos QR, simular compras, crear cuentas falsas, automatizar canjes, explotar errores de la plataforma o intentar acceder a datos de terceros.</p>
+          <p>El incumplimiento puede provocar la suspensión de la cuenta, la anulación de puntos obtenidos de forma irregular y la comunicación de la incidencia al restaurante afectado.</p>
+        </div>
+      </section>
+
+      <section [id]="sections[6].id" class="content-section animate__animated animate__fadeInUp">
+        <div class="section-title">
+          <ion-icon [icon]="sections[6].icon"></ion-icon>
+          <h3>7. Modificaciones del Servicio</h3>
+        </div>
+        <div class="text-block">
+          <p>FidelyFood puede actualizar funcionalidades, condiciones de uso, políticas de seguridad o reglas operativas para mejorar el servicio o adaptarse a cambios legales.</p>
+          <p>Cuando una modificación sea relevante, la comunicaremos dentro de la aplicación o mediante los canales asociados a tu cuenta.</p>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ACEPTACIÓN FINAL -->
+    <div class="acceptance-box animate__animated animate__fadeInUp">
+      <ion-item lines="none" class="checkbox-item">
+        <ion-checkbox [(ngModel)]="accepted" (ionChange)="onAcceptChange()" labelPlacement="end">
+          He leído y acepto los términos y condiciones de uso de FidelyFood.
+        </ion-checkbox>
+      </ion-item>
+      
+      <ion-button expand="block" [disabled]="!accepted" class="btn-finish" routerLink="/u/perfil">
+        Confirmar y Continuar
+        <ion-icon [icon]="icons.checkmarkCircleOutline" slot="end"></ion-icon>
+      </ion-button>
+    </div>
+
+    <div class="footer-spacer"></div>
+
+  </div>
+</ion-content>
+
+<!-- BOTÓN IR ARRIBA -->
+<ion-fab vertical="bottom" horizontal="end" slot="fixed">
+  <ion-fab-button size="small" color="dark" (click)="scrollTo('uso')">
+    <ion-icon [icon]="icons.chevronUpOutline"></ion-icon>
+  </ion-fab-button>
+</ion-fab>

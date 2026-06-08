@@ -1,0 +1,38 @@
+<ion-split-pane contentId="admin-content" class="admin-shell">
+  <ion-menu contentId="admin-content" type="overlay" class="admin-menu">
+    <ion-content>
+      <div class="brand">
+        <div class="brand-logo">
+          <img src="assets/img/logo-fidely.svg" alt="FidelyFood" />
+        </div>
+        <div>
+          <strong>FidelyFood Admin</strong>
+          <span>Panel interno</span>
+        </div>
+      </div>
+
+      <div class="admin-status">
+        <span></span>
+        Acceso autorizado
+      </div>
+
+      <ion-list lines="none">
+        <ion-menu-toggle auto-hide="false" *ngFor="let item of navItems">
+          <ion-item button detail="false" [routerLink]="item.path" routerLinkActive="selected">
+            <ion-icon [name]="item.icon" slot="start"></ion-icon>
+            <ion-label>{{ item.label }}</ion-label>
+          </ion-item>
+        </ion-menu-toggle>
+      </ion-list>
+    </ion-content>
+
+    <ion-footer class="ion-no-border">
+      <ion-button expand="block" fill="clear" class="logout-button" (click)="logout()">
+        <ion-icon name="log-out-outline" slot="start"></ion-icon>
+        Salir
+      </ion-button>
+    </ion-footer>
+  </ion-menu>
+
+  <ion-router-outlet id="admin-content"></ion-router-outlet>
+</ion-split-pane>

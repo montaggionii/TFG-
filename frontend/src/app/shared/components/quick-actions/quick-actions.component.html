@@ -1,0 +1,25 @@
+<div class="quick-actions-refined">
+  <div class="action-item tap-effect" (click)="goTo('/u/mapa')">
+    <div class="icon-box secondary"><ion-icon [icon]="icons.addCircleOutline"></ion-icon></div>
+    <span class="label">Ganar</span>
+  </div>
+
+  <div class="action-item tap-effect" (click)="goTo('/u/recompensas')">
+    <div class="icon-box secondary"><ion-icon [icon]="icons.giftOutline"></ion-icon></div>
+    <span class="label">Premios</span>
+  </div>
+
+  <!-- FOCO PRINCIPAL -->
+  <div class="action-item main-focus tap-effect" (click)="openScanModal()">
+    <div class="icon-box primary">
+      <ion-icon [icon]="icons.qrCodeOutline"></ion-icon>
+      <div class="glow-effect"></div>
+    </div>
+    <span class="label highlighted">Mostrar QR</span>
+  </div>
+
+  <div class="action-item tap-effect" (click)="goTo('/u/historial')">
+    <div class="icon-box secondary"><ion-icon [icon]="icons.timeOutline"></ion-icon></div>
+    <span class="label">Historial</span>
+  </div>
+</div>

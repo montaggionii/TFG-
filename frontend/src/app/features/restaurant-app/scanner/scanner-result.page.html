@@ -1,0 +1,76 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/r/scanner"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Resultado</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="result-content" [fullscreen]="true">
+  <!-- BACKGROUND BLUR BLOCKS -->
+  <div class="blur-bg">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
+  <div class="user-card animate__animated animate__fadeInUp" *ngIf="usuario">
+    <div class="user-header">
+      <div class="avatar">
+        <img *ngIf="usuario.fotoPerfil" [src]="usuario.fotoPerfil" class="result-profile-img">
+        <ion-icon *ngIf="!usuario.fotoPerfil" name="person-outline"></ion-icon>
+      </div>
+      <div class="info">
+        <h2>{{ usuario.nombre }}</h2>
+        <p>{{ usuario.email }}</p>
+      </div>
+    </div>
+
+    <div class="points-stats">
+      <div class="stat">
+        <span class="label">Puntos Actuales</span>
+        <span class="value">{{ usuario.puntos }}</span>
+      </div>
+    </div>
+
+    <div class="points-form">
+      <h3>Sumar Puntos</h3>
+      <p>Introduce el importe consumido por el cliente.</p>
+
+      <ion-item class="input-item">
+        <ion-icon name="cash-outline" slot="start" color="primary"></ion-icon>
+        <ion-input
+          type="number"
+          inputmode="decimal"
+          placeholder="0.00"
+          [(ngModel)]="montoConsumido"
+          (ionInput)="calcularPuntos()"
+          min="1"
+          step="0.01">
+        </ion-input>
+        <span slot="end" class="currency-symbol">€</span>
+      </ion-item>
+
+      <div class="points-summary" *ngIf="montoConsumido && montoConsumido > 0">
+        <ion-icon name="information-circle-outline"></ion-icon>
+        <p>El cliente ha consumido {{ montoConsumido | number:'1.2-2' }}€ &rarr; recibirá <strong>{{ puntosCalculados }} puntos</strong></p>
+      </div>
+
+      <ion-button
+        expand="block"
+        color="primary"
+        shape="round"
+        class="submit-btn"
+        (click)="asignarPuntos()"
+        [disabled]="isSubmitting || !montoConsumido || montoConsumido <= 0">
+        <ion-icon name="add-outline" slot="start"></ion-icon>
+        CONFIRMAR PUNTOS
+      </ion-button>
+    </div>
+  </div>
+
+  <div class="empty-state" *ngIf="!usuario">
+    <p>No se recibieron datos del usuario. Vuelve a escanear.</p>
+    <ion-button routerLink="/r/scanner" expand="block">Volver</ion-button>
+  </div>
+</ion-content>

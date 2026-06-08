@@ -1,0 +1,219 @@
+.privacy-page {
+  --background: #f8fafc;
+}
+
+.privacy-container {
+  max-width: min(600px, 100%);
+  margin: 0 auto;
+  padding: 0 clamp(12px, 4vw, 20px) var(--app-client-tabbar-clearance);
+}
+
+// HERO
+.legal-hero {
+  text-align: center;
+  padding: clamp(24px, 7vw, 32px) 0;
+  
+  .icon-box {
+    width: 64px;
+    height: 64px;
+    background: rgba(var(--ion-color-primary-rgb), 0.1);
+    color: var(--ion-color-primary);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    margin: 0 auto 16px;
+  }
+
+  h1 {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--ion-color-dark);
+    margin: 0;
+    letter-spacing: -0.5px;
+  }
+
+  p {
+    margin: 8px 0 0;
+    font-size: 0.85rem;
+    color: #94a3b8;
+    font-weight: 600;
+  }
+}
+
+// SECTIONS
+.legal-section {
+  margin-bottom: 28px;
+
+  h3 {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    margin-left: 8px;
+  }
+}
+
+.legal-card {
+  background: white;
+  border-radius: 24px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.02);
+
+  p {
+    margin: 0 0 12px;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: #475569;
+    font-weight: 500;
+    
+    &:last-child { margin-bottom: 0; }
+    strong { color: var(--ion-color-primary); font-weight: 700; }
+  }
+
+  &.settings-card {
+    padding: 0;
+    overflow: hidden;
+
+    ion-list {
+      background: transparent;
+      padding: 0;
+    }
+
+    ion-item {
+      --padding-start: 20px;
+      --padding-end: 20px;
+      --inner-padding-top: 12px;
+      --inner-padding-bottom: 12px;
+      --background: transparent;
+
+      h2 { font-weight: 700; font-size: 1rem; color: var(--ion-color-dark); }
+      p { font-size: 0.8rem; color: #94a3b8; margin-top: 2px; }
+    }
+  }
+}
+
+.privacy-card-list {
+  display: grid;
+  gap: 12px;
+}
+
+.privacy-info-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  align-items: flex-start;
+
+  .section-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 16px;
+    background: rgba(var(--ion-color-primary-rgb), 0.1);
+    color: var(--ion-color-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+  }
+
+  strong {
+    display: block;
+    color: var(--ion-color-dark);
+    font-size: 0.98rem;
+    font-weight: 900;
+    margin-bottom: 5px;
+  }
+}
+
+// GRID
+.legal-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+
+  .grid-item {
+    background: white;
+    padding: 16px;
+    border-radius: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    ion-icon { font-size: 20px; color: var(--ion-color-primary); }
+    span { font-weight: 800; font-size: 0.85rem; color: var(--ion-color-dark); }
+    p { margin: 0; font-size: 0.75rem; color: #94a3b8; font-weight: 500; line-height: 1.3; }
+  }
+}
+
+@media (max-width: 390px) {
+  .legal-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .legal-card {
+    padding: 18px;
+  }
+}
+
+// SECURITY HIGHLIGHT
+.security-highlight {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+  .highlight-item {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+
+    ion-icon {
+      font-size: 22px;
+      color: var(--ion-color-success);
+      padding-top: 2px;
+    }
+
+    strong { display: block; font-size: 0.95rem; color: var(--ion-color-dark); margin-bottom: 4px; }
+    p { margin: 0; font-size: 0.85rem; color: #64748b; line-height: 1.4; }
+  }
+}
+
+// ACTIONS
+.legal-actions {
+  margin-top: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  ion-button {
+    --border-radius: 16px;
+    font-weight: 700;
+    height: 52px;
+  }
+
+  .danger-zone {
+    margin-top: 24px;
+    padding: 24px;
+    background: #fff1f2;
+    border-radius: 24px;
+    border: 1px dashed #fecdd3;
+    text-align: center;
+
+    p { font-size: 0.85rem; font-weight: 700; color: #be123c; margin-bottom: 16px; }
+    ion-button { --color: #be123c; --border-color: #fecdd3; }
+  }
+}
+
+.legal-footer {
+  padding: 40px 0;
+  p { font-size: 0.75rem; color: #cbd5e1; font-weight: 600; letter-spacing: 0.5px; }
+}
+
+.custom-toast {
+  --border-radius: 16px;
+  font-weight: 700;
+}

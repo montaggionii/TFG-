@@ -1,0 +1,475 @@
+.loyalty-card-premium {
+  position: relative;
+  width: 100%;
+  min-height: 0;
+  background:
+    linear-gradient(116deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 34%),
+    linear-gradient(135deg, #1a2536 0%, #111827 48%, #201b28 100%);
+  border-radius: clamp(22px, 4vw, 30px);
+  box-shadow: 0 22px 42px rgba(15, 23, 42, 0.24);
+  padding: clamp(18px, 3vw, 24px);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  margin-bottom: 28px;
+
+  .card-glow {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(100deg, rgba(var(--primary-rgb), 0.16) 0%, rgba(var(--primary-rgb), 0) 42%),
+      linear-gradient(180deg, rgba(255, 197, 51, 0) 0%, rgba(255, 197, 51, 0.12) 100%);
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .card-sheen {
+    position: absolute;
+    inset: 1px;
+    border-radius: inherit;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0) 24%, rgba(255, 255, 255, 0.08) 100%);
+    opacity: 0.72;
+    pointer-events: none;
+    z-index: 1;
+  }
+}
+
+.card-content {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(18px, 3vw, 24px);
+  min-width: 0;
+}
+
+.pass-topline {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+
+  .brand-tag {
+    color: rgba(255, 255, 255, 0.48);
+    font-size: clamp(0.64rem, 2.4vw, 0.72rem);
+    font-weight: 900;
+    letter-spacing: 0;
+    text-transform: uppercase;
+  }
+
+}
+
+.pass-layout {
+  display: grid;
+  grid-template-columns: minmax(230px, 1.05fr) minmax(230px, 1fr) minmax(158px, 0.7fr);
+  align-items: stretch;
+  gap: clamp(16px, 2.8vw, 26px);
+  flex: 1;
+  min-width: 0;
+}
+
+.identity-column {
+  display: flex;
+  align-items: center;
+  gap: clamp(13px, 2.6vw, 18px);
+  min-width: 0;
+  align-self: center;
+
+  .card-avatar {
+    width: clamp(116px, 15vw, 154px);
+    height: clamp(116px, 15vw, 154px);
+    border-radius: 50%;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.14);
+    border: 6px solid rgba(255, 255, 255, 0.18);
+    box-shadow:
+      0 16px 34px rgba(0, 0, 0, 0.28),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+    flex: 0 0 auto;
+
+    .avatar-img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+    }
+  }
+
+  .user-main {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .user-name {
+    margin: 0;
+    color: #ffffff;
+    font-size: clamp(1.32rem, 3.2vw, 1.9rem);
+    font-weight: 900;
+    letter-spacing: 0;
+    line-height: 1.08;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    overflow-wrap: break-word;
+    word-break: normal;
+    hyphens: none;
+  }
+
+  .member-meta {
+    margin: 10px 0 0;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+}
+
+.points-column {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(14px, 2.5vw, 18px);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+
+  .points-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: rgba(255, 255, 255, 0.68);
+    font-size: 0.72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+
+    ion-icon {
+      color: var(--primary);
+      font-size: 16px;
+    }
+  }
+
+  .points-display {
+    display: flex;
+    flex-direction: column;
+    margin-top: 8px;
+
+    .number {
+      color: #ffffff;
+      font-size: clamp(2.8rem, 6.6vw, 4.8rem);
+      font-weight: 950;
+      line-height: 0.92;
+      letter-spacing: 0;
+      text-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+      filter: drop-shadow(0 2px 16px rgba(var(--primary-rgb), 0.18));
+    }
+
+    .label {
+      margin-top: 8px;
+      color: rgba(255, 255, 255, 0.55);
+      font-size: clamp(0.66rem, 2vw, 0.76rem);
+      font-weight: 900;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+  }
+
+  .benefit-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+
+    span {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      min-height: 28px;
+      padding: 0 9px;
+      border-radius: 999px;
+      color: rgba(255, 255, 255, 0.78);
+      background: rgba(255, 255, 255, 0.09);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 0.68rem;
+      font-weight: 850;
+      white-space: normal;
+
+      ion-icon {
+        color: #ffdc78;
+        font-size: 13px;
+      }
+    }
+  }
+
+  .card-footer {
+    margin-top: 12px;
+
+    .cta-btn {
+      --padding-start: 0;
+      --padding-end: 0;
+      --color: #ff9f33;
+      height: 30px;
+      min-height: 30px;
+      font-weight: 900;
+      font-size: 0.82rem;
+      text-transform: none;
+      margin: 0;
+    }
+  }
+}
+
+.qr-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-width: 0;
+
+  .qr-wrapper {
+    position: relative;
+    width: min(100%, clamp(154px, 18vw, 190px));
+    padding: clamp(10px, 1.8vw, 14px);
+    background: #ffffff;
+    border-radius: 24px;
+    box-shadow:
+      0 18px 34px rgba(0, 0, 0, 0.24),
+      0 0 0 1px rgba(255, 255, 255, 0.42);
+    cursor: pointer;
+    transition: transform 0.22s ease, box-shadow 0.22s ease;
+
+    &:hover {
+      transform: translateY(-3px) scale(1.01);
+    }
+
+    .qr-glow-effect {
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      box-shadow: 0 0 28px rgba(var(--primary-rgb), 0.18);
+      animation: qrPulse 3s infinite ease-in-out;
+    }
+
+    .qr-canvas {
+      display: block;
+      width: 100% !important;
+      aspect-ratio: 1 / 1;
+      height: auto !important;
+      border-radius: 8px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .qr-expand-hint {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      background: var(--primary-gradient);
+      color: white;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      z-index: 10;
+      border: 2px solid var(--dark);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+  }
+
+  .scan-label {
+    color: rgba(255, 255, 255, 0.58);
+    font-size: 0.68rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0;
+    text-align: center;
+  }
+}
+
+@media (max-width: 720px) {
+  .pass-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(148px, 0.42fr);
+    align-items: stretch;
+  }
+
+  .points-column {
+    grid-column: 1 / -1;
+    order: 3;
+  }
+
+  .qr-side {
+    justify-self: end;
+    align-self: center;
+  }
+}
+
+@media (max-width: 560px) {
+  .loyalty-card-premium {
+    padding: clamp(16px, 5vw, 20px);
+  }
+
+  .pass-layout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .identity-column {
+    align-items: center;
+
+    .card-avatar {
+      width: clamp(104px, 32vw, 132px);
+      height: clamp(104px, 32vw, 132px);
+      border-width: 5px;
+    }
+  }
+
+  .qr-side {
+    justify-self: stretch;
+
+    .qr-wrapper {
+      width: min(100%, 190px);
+    }
+  }
+
+  .points-column {
+    padding: 14px;
+
+    .benefit-row span {
+      white-space: normal;
+    }
+  }
+}
+
+@media (max-width: 360px) {
+  .identity-column {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+// MODAL QR PREMIUM - CONTENIDO INTERNO (LIGHT THEME)
+.modal-glass-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(16px, 5vw, 24px);
+  color: #1a1a1a;
+
+  .modal-header {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 10px;
+    ion-icon { font-size: 32px; color: #1a1a1a; opacity: 0.4; }
+  }
+
+  .modal-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 32px;
+
+    .user-badge-mini {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: rgba(0, 0, 0, 0.04);
+      padding: 12px 24px;
+      border-radius: 20px;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+
+      .mini-avatar {
+        width: 50px;
+        height: 50px;
+        background: var(--primary-gradient);
+        border-radius: 50%;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 1.4rem;
+        color: white;
+        text-transform: uppercase;
+        box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.2);
+
+        img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+      }
+
+      .mini-text {
+        h3 { margin: 0; font-size: 1.2rem; font-weight: 800; color: #111; }
+        p { margin: 2px 0 0; font-size: 0.85rem; color: #666; font-weight: 500; }
+      }
+    }
+
+    .large-qr-container {
+      position: relative;
+      padding: clamp(16px, 5vw, 28px);
+      background: #FFFFFF;
+      border-radius: 36px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.06);
+      border: 1px solid rgba(0, 0, 0, 0.04);
+
+      .qr-frame {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+      }
+    }
+
+    .instruction-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      max-width: 280px;
+      text-align: center;
+      background: rgba(var(--primary-rgb), 0.05);
+      padding: 18px;
+      border-radius: 18px;
+
+      ion-icon { font-size: 20px; color: var(--primary); }
+      p { margin: 0; font-size: 0.85rem; line-height: 1.5; color: #444; font-weight: 500; }
+    }
+  }
+
+  .modal-footer {
+    padding: 0 16px calc(24px + env(safe-area-inset-bottom));
+    .close-modal-btn {
+      --background: var(--primary-gradient);
+      --border-radius: 20px;
+      height: 60px;
+      font-weight: 800;
+      font-size: 1.1rem;
+      --box-shadow: 0 10px 25px rgba(var(--primary-rgb), 0.3);
+    }
+  }
+}
+
+@media (max-width: 390px) {
+  .loyalty-card-premium {
+    border-radius: 26px;
+  }
+
+  .modal-glass-container .modal-body {
+    gap: 20px;
+
+    .user-badge-mini {
+      width: 100%;
+      padding: 10px 14px;
+    }
+  }
+}
+
+@keyframes qrPulse {
+  0% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.02); }
+  100% { opacity: 0.3; transform: scale(1); }
+}

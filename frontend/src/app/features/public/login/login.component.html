@@ -1,0 +1,84 @@
+<ion-content class="login-page">
+  <div class="login-container animate__animated animate__fadeIn">
+
+    <!-- Card Principal -->
+    <div class="login-card">
+
+      <!-- Logo Destacado -->
+      <div class="brand-header">
+        <img src="assets/img/logo_fidelyfood.png" alt="FidelyFood Logo" class="main-logo" />
+      </div>
+
+      <!-- Mensaje de Bienvenida -->
+      <div class="welcome-header">
+        <h2>¡Bienvenido de nuevo!</h2>
+        <p *ngIf="!isRestaurantMode">Acumula puntos en tus restaurantes favoritos</p>
+        <p *ngIf="isRestaurantMode">Gestiona tu programa de fidelización</p>
+      </div>
+
+      <!-- 3. ROLE SELECTOR: Switch moderno -->
+      <div class="role-selector">
+        <div class="pill-track">
+          <div class="selection-indicator" [class.to-right]="isRestaurantMode"></div>
+          <button type="button"
+                  class="role-btn"
+                  [class.active]="!isRestaurantMode"
+                  (click)="isRestaurantMode ? toggleLoginType() : null">
+            Cliente
+          </button>
+          <button type="button"
+                  class="role-btn"
+                  [class.active]="isRestaurantMode"
+                  (click)="!isRestaurantMode ? toggleLoginType() : null">
+            Negocio
+          </button>
+        </div>
+      </div>
+
+      <!-- 4. FORMULARIO: Estilo limpio y moderno -->
+      <form [formGroup]="loginForm" (ngSubmit)="doLogin()" class="auth-form">
+        <div class="input-group">
+          <ion-label>Correo Electrónico</ion-label>
+          <div class="field-wrapper">
+            <ion-icon name="mail-outline"></ion-icon>
+            <ion-input type="email"
+                       formControlName="email"
+                       placeholder="ejemplo@email.com"
+                       class="custom-input"></ion-input>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <ion-label>Contraseña</ion-label>
+          <div class="field-wrapper">
+            <ion-icon name="lock-closed-outline"></ion-icon>
+            <ion-input type="password"
+                       formControlName="password"
+                       placeholder="••••••••"
+                       class="custom-input"></ion-input>
+          </div>
+        </div>
+
+        <!-- 5. BOTÓN PRINCIPAL: Gradiente Premium -->
+        <ion-button expand="block" type="submit" [disabled]="loginForm.invalid" class="submit-btn main-gradient-btn">
+          <span>Entrar al Sistema</span>
+          <ion-icon name="arrow-forward-outline" slot="end"></ion-icon>
+        </ion-button>
+      </form>
+
+      <!-- 6. ENLACES: Footer -->
+      <div class="footer-links">
+        <p *ngIf="!isRestaurantMode" class="register-text">
+          ¿No tienes cuenta? <a routerLink="/register-user">Crea una ahora</a>
+        </p>
+
+        <p *ngIf="isRestaurantMode" class="register-text">
+          ¿Quieres sumar tu negocio? <a routerLink="/register-restaurant"> REGISTRATE</a>
+        </p>
+
+        <a class="forgot-link">¿Olvidaste tu contraseña?</a>
+      </div>
+
+    </div>
+  </div>
+</ion-content>

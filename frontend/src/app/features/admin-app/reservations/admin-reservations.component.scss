@@ -1,0 +1,27 @@
+@import '../shared-admin';
+
+.filters {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) 180px 200px 170px;
+
+  ion-select,
+  ion-input {
+    min-height: 46px;
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    --padding-start: 12px;
+    --padding-end: 12px;
+    background: #fff;
+    font-weight: 750;
+  }
+}
+
+.empty-reservations {
+  min-height: 280px;
+}
+
+@media (max-width: 880px) {
+  .filters {
+    grid-template-columns: 1fr;
+  }
+}

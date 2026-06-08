@@ -1,0 +1,57 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/login" text="" icon="arrow-back-outline"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Únete a FidelyFood</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <div class="header-section ion-text-center">
+    <div class="logo-container">
+      <img src="assets/img/logo_fidelyfood.png" alt="FidelyFood Logo" />
+    </div>
+    <h1>Nuevo Cliente</h1>
+    <p>Crea tu cuenta gratis y empieza a sumar puntos en tus locales favoritos</p>
+  </div>
+
+  <div class="form-container">
+    <form [formGroup]="registerForm" (ngSubmit)="doRegister()" class="input-stack">
+      
+      <div class="glass-input-item animate__animated animate__fadeInUp">
+        <ion-icon name="person-outline" class="field-icon"></ion-icon>
+        <div class="input-content">
+          <ion-label position="stacked">Nombre Completo</ion-label>
+          <ion-input type="text" formControlName="nombre" placeholder="Tu nombre y apellidos"></ion-input>
+        </div>
+      </div>
+
+      <div class="glass-input-item animate__animated animate__fadeInUp" style="animation-delay: 0.1s">
+        <ion-icon name="mail-outline" class="field-icon"></ion-icon>
+        <div class="input-content">
+          <ion-label position="stacked">Email</ion-label>
+          <ion-input type="email" formControlName="email" placeholder="ejemplo@correo.com"></ion-input>
+        </div>
+      </div>
+      
+      <div class="glass-input-item animate__animated animate__fadeInUp" style="animation-delay: 0.2s">
+        <ion-icon name="lock-closed-outline" class="field-icon"></ion-icon>
+        <div class="input-content">
+          <ion-label position="stacked">Contraseña (Mín. 6 caracteres)</ion-label>
+          <ion-input type="password" formControlName="password" placeholder="••••••••"></ion-input>
+        </div>
+      </div>
+
+      <div class="action-footer ion-padding-top animate__animated animate__fadeInUp" style="animation-delay: 0.3s">
+        <ion-button expand="block" type="submit" [disabled]="registerForm.invalid" class="register-btn">
+          Registrarse ahora
+        </ion-button>
+        
+        <div class="login-link">
+          ¿Ya eres usuario? <a routerLink="/login">Inicia Sesión</a>
+        </div>
+      </div>
+    </form>
+  </div>
+</ion-content>

@@ -1,0 +1,200 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-title>Centro de Negocio</ion-title>
+    <ion-buttons slot="end">
+      <div class="completion-pill" [style.background]="'linear-gradient(90deg, #3b82f6 ' + profileCompletion + '%, rgba(255,255,255,0.1) ' + profileCompletion + '%)'">
+        Perfil {{ profileCompletion }}%
+      </div>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="settings-page">
+  <div class="blur-bg">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+  </div>
+
+  <div class="settings-container" *ngIf="isLoaded">
+    <form [formGroup]="settingsForm">
+      
+      <!-- IDENTIDAD Y LOGO -->
+      <div class="glass-card main-profile-card">
+        <div class="image-upload-section">
+          <div class="avatar-wrapper" (click)="triggerFileSelect()">
+            <div class="avatar-inner" [class.uploading]="isUploadingImage">
+              <!-- Priorizamos previewImage para respuesta instantánea -->
+              <img *ngIf="profileImageSource" 
+                   [appSafeRestaurantImage]="profileImageSource" 
+                   [alt]="settingsForm.get('nombre')?.value || 'Imagen del local'"
+                   class="profile-img">
+              
+              <div *ngIf="!profileImageSource" class="placeholder-avatar">
+                <ion-icon name="business-outline"></ion-icon>
+              </div>
+              <div class="upload-overlay">
+                <ion-spinner *ngIf="isUploadingImage" name="crescent"></ion-spinner>
+                <ion-icon *ngIf="!isUploadingImage" name="camera-outline"></ion-icon>
+              </div>
+            </div>
+            <div class="upload-badge"><ion-icon name="pencil"></ion-icon></div>
+          </div>
+          <input type="file" id="file-input" (change)="onFileSelected($event)" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" style="display: none">
+          
+          <div class="profile-titles">
+            <ion-badge mode="ios" color="primary">ID: #{{ restaurantId }}</ion-badge>
+            <h2>{{ settingsForm.get('nombre')?.value || 'Nombre del local' }}</h2>
+            <p>Configura la identidad visual de tu marca</p>
+          </div>
+        </div>
+
+        <ion-list lines="none" class="glass-list">
+          <ion-item class="glass-input-item">
+            <ion-label position="stacked">Nombre Comercial</ion-label>
+            <ion-input formControlName="nombre" placeholder="Ej: Pizzería Roma"></ion-input>
+            <ion-icon name="business-outline" slot="start"></ion-icon>
+          </ion-item>
+
+          <ion-item class="glass-input-item">
+            <ion-label position="stacked">Descripción de Ventas</ion-label>
+            <ion-textarea formControlName="descripcion" rows="3" placeholder="Describe tu especialidad..."></ion-textarea>
+            <ion-icon name="chatbox-ellipses-outline" slot="start"></ion-icon>
+          </ion-item>
+
+          <div class="input-grid">
+            <ion-item class="glass-input-item">
+              <ion-label position="stacked">Email de Contacto</ion-label>
+              <ion-input formControlName="email" type="email" placeholder="email@ejemplo.com"></ion-input>
+              <ion-icon name="mail-outline" slot="start"></ion-icon>
+            </ion-item>
+            <ion-item class="glass-input-item">
+              <ion-label position="stacked">Teléfono</ion-label>
+              <ion-input formControlName="telefono" type="tel"></ion-input>
+              <ion-icon name="call-outline" slot="start"></ion-icon>
+            </ion-item>
+          </div>
+
+          <ion-item class="glass-input-item">
+            <ion-label position="stacked">Categoría</ion-label>
+            <ion-select formControlName="tipo" interface="popover">
+              <ion-select-option value="Restaurante">Restaurante</ion-select-option>
+              <ion-select-option value="Bar">Bar</ion-select-option>
+              <ion-select-option value="Cafetería">Cafetería</ion-select-option>
+              <ion-select-option value="TakeAway">Para llevar</ion-select-option>
+            </ion-select>
+            <ion-icon name="restaurant-outline" slot="start"></ion-icon>
+          </ion-item>
+        </ion-list>
+      </div>
+
+      <!-- GEOLOCALIZACIÓN -->
+      <div class="glass-card location-card">
+        <div class="card-header">
+          <div class="header-text">
+            <h3>Punto de Entrega / Ubicación</h3>
+            <p>📍 Esta es la ubicación donde los clientes encontrarán tu restaurante</p>
+          </div>
+        </div>
+
+        <ion-item class="glass-input-item address-box">
+          <div class="input-row">
+            <div class="input-main">
+              <ion-label position="stacked">Dirección Pública</ion-label>
+              <ion-input formControlName="direccion" placeholder="Calle, número..."></ion-input>
+            </div>
+          </div>
+          <ion-icon name="map-outline" slot="start"></ion-icon>
+        </ion-item>
+
+        <div class="input-grid location-fields">
+          <ion-item class="glass-input-item">
+            <ion-label position="stacked">C. Postal</ion-label>
+            <ion-input formControlName="codigoPostal" placeholder="46001"></ion-input>
+            <ion-icon name="pin-outline" slot="start"></ion-icon>
+          </ion-item>
+          <ion-item class="glass-input-item">
+            <ion-label position="stacked">Ciudad</ion-label>
+            <ion-input formControlName="ciudad" placeholder="Valencia"></ion-input>
+            <ion-icon name="location-outline" slot="start"></ion-icon>
+          </ion-item>
+          <button type="button" (click)="buscarDireccion()" class="map-search-btn-v2 tap-effect">
+            <ion-icon name="search-outline"></ion-icon>
+            Validar
+          </button>
+        </div>
+      </div>
+
+      <!-- APARIENCIA GLOBAL -->
+      <div class="glass-card appearance-card">
+        <div class="card-header">
+          <div class="header-text">
+            <h3>Apariencia</h3>
+            <p>Elige el tema visual de FidelyFood para esta sesión.</p>
+          </div>
+        </div>
+
+        <ion-segment
+          mode="ios"
+          class="theme-segment"
+          [value]="themeService.preference"
+          (ionChange)="setThemePreference($event.detail.value)">
+          <ion-segment-button *ngFor="let option of themeOptions" [value]="option.value">
+            <ion-icon [name]="getThemeIcon(option.value)"></ion-icon>
+            <ion-label>{{ option.label }}</ion-label>
+          </ion-segment-button>
+        </ion-segment>
+
+        <div class="theme-options-list">
+          <button
+            type="button"
+            class="theme-option-row"
+            *ngFor="let option of themeOptions"
+            [class.active]="themeService.preference === option.value"
+            (click)="setThemePreference(option.value)">
+            <ion-icon [name]="getThemeIcon(option.value)"></ion-icon>
+            <span>
+              <strong>{{ option.label }}</strong>
+              <small>{{ option.description }}</small>
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <!-- BOTÓN MAESTRO DE GUARDADO -->
+      <div class="main-save-container animate__animated animate__fadeInUp">
+        <ion-button (click)="saveAllChanges()" expand="block" class="master-save-btn" [disabled]="isSaving">
+          <ion-spinner *ngIf="isSaving" name="crescent" slot="start"></ion-spinner>
+          <ion-icon *ngIf="!isSaving" name="save-outline" slot="start"></ion-icon>
+          {{ isSaving ? 'Sincronizando todo...' : 'Guardar todos los cambios' }}
+        </ion-button>
+        <p class="save-hint">Se actualizará tu perfil y ubicación simultáneamente</p>
+      </div>
+
+    </form>
+
+    <!-- SECCIÓN DE SEGURIDAD / SALIDA -->
+    <div class="glass-card logout-card animate__animated animate__fadeInUp">
+      <div class="card-header">
+        <div class="header-text">
+          <h3>Seguridad del Sistema</h3>
+          <p>Gestiona tu sesión activa en este dispositivo</p>
+        </div>
+      </div>
+      
+      <div class="btn-container">
+        <ion-button (click)="logout()" expand="block" fill="clear" class="logout-btn">
+          <ion-icon name="log-out-outline" slot="start"></ion-icon>
+          Cerrar Sesión del Negocio
+        </ion-button>
+      </div>
+    </div>
+  </div>
+
+  <div class="full-page-loader" *ngIf="!isLoaded">
+    <div class="loader-box">
+      <ion-spinner name="crescent"></ion-spinner>
+      <h3>FidelyApp Business</h3>
+      <p>Sincronizando tus datos...</p>
+    </div>
+  </div>
+</ion-content>

@@ -1,0 +1,168 @@
+<ion-content [fullscreen]="true" class="map-page-content">
+  <div class="main-container">
+    
+    <!-- Sección Mapa (Ocupa todo) -->
+    <div class="map-section">
+      <app-map 
+        [center]="userLocation || { lat: 39.4699, lng: -0.3763 }" 
+        [markers]="mapMarkers"
+        [radioKm]="radioKm"
+        (mapReady)="onMapReady($event)"
+        (onMarkerClick)="handleMarkerClick($event)">
+      </app-map>
+
+      <!-- Botón Volver Flotante -->
+      <ion-fab vertical="top" horizontal="start" slot="fixed" class="fab-back">
+        <ion-fab-button size="small" (click)="goBack()">
+          <ion-icon name="chevron-back-outline"></ion-icon>
+        </ion-fab-button>
+      </ion-fab>
+
+      <!-- Título Flotante Glassmorphism -->
+      <div class="floating-header">
+        <div class="map-search-control">
+          <ion-icon name="search-outline"></ion-icon>
+          <input
+            type="search"
+            [(ngModel)]="searchQuery"
+            (input)="onSearchChange()"
+            [placeholder]="'map.searchPlaceholder' | ffTranslate"
+            [attr.aria-label]="'map.searchPlaceholder' | ffTranslate">
+          <button
+            *ngIf="searchQuery"
+            type="button"
+            class="clear-search"
+            (click)="clearSearch()"
+            [attr.aria-label]="'map.clearSearch' | ffTranslate">
+            <ion-icon name="close-circle-outline"></ion-icon>
+          </button>
+        </div>
+      </div>
+
+      <div class="radius-selector" [class.expanded]="showFilterPanel">
+        <div class="radius-summary">
+          <div class="radius-title">
+            <ion-icon name="navigate-outline"></ion-icon>
+            <span>{{ 'map.radarRadius' | ffTranslate }}</span>
+          </div>
+          <strong>
+            <span>{{ 'map.currentRadius' | ffTranslate }}</span>
+            {{ radioKm | number:'1.0-1' }} km
+          </strong>
+        </div>
+
+        <ion-range 
+          class="radius-range"
+          min="1" 
+          max="10" 
+          step="0.5" 
+          debounce="80"
+          [(ngModel)]="radioKm" 
+          (ionChange)="filtrarPorDistancia()"
+          color="primary"
+          [attr.aria-label]="'map.radarRadius' | ffTranslate">
+        </ion-range>
+
+        <div class="radius-meta">
+          <span>{{ 'map.minRadius' | ffTranslate }}: 1 km</span>
+          <p>{{ 'map.foundRestaurants' | ffTranslate:{ count: restaurantesFiltrados.length } }}</p>
+          <span>{{ 'map.maxRadius' | ffTranslate }}: 10 km</span>
+        </div>
+      </div>
+
+      <!-- BOTÓN DE FILTRO FLOTANTE (DERECHA) -->
+      <ion-fab vertical="top" horizontal="end" slot="fixed" class="fab-filters">
+        <ion-fab-button size="small" (click)="toggleFilter()" [color]="showFilterPanel ? 'primary' : 'light'">
+          <ion-icon name="options-outline"></ion-icon>
+        </ion-fab-button>
+      </ion-fab>
+    </div>
+
+    <!-- Hoja de Detalles (Bottom Sheet) -->
+    <div class="detail-sheet" [class.show]="showDetailSheet">
+      <div class="sheet-content" *ngIf="selectedRestaurant">
+        <div class="sheet-handle" (click)="closeDetailSheet()"></div>
+        
+        <div class="restaurant-info">
+          <div class="logo-circle">
+            <img [appSafeRestaurantImage]="selectedRestaurant" [alt]="selectedRestaurant.nombre">
+          </div>
+          <div class="text-info">
+            <div class="title-row">
+              <h2>{{ selectedRestaurant.nombre }}</h2>
+              <div class="rating-badge">
+                <ion-icon name="star"></ion-icon>
+                <span>{{ selectedRestaurant.rating }}</span>
+              </div>
+            </div>
+            <p class="type">{{ selectedRestaurant.tipo || ('common.gourmet' | ffTranslate) }}</p>
+            <p class="address">{{ selectedRestaurant.direccion }}</p>
+          </div>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat-item clickable" (click)="abrirGoogleMaps($event)">
+            <ion-icon name="location-outline" color="primary"></ion-icon>
+            <span>{{ 'map.distance' | ffTranslate:{ distance: (selectedRestaurant.distanciaNum | number:'1.1-1') } }}</span>
+            <ion-icon name="navigate-outline" class="mini-nav"></ion-icon>
+          </div>
+          <div class="stat-item clickable" (click)="verPromociones($event)">
+            <ion-icon name="gift-outline" color="primary"></ion-icon>
+            <span>{{ 'map.promosToday' | ffTranslate }}</span>
+          </div>
+        </div>
+
+        <ion-button expand="block" (click)="irADetalle()" class="main-action">
+          {{ 'map.viewRestaurant' | ffTranslate }}
+          <ion-icon name="arrow-forward-outline" slot="end"></ion-icon>
+        </ion-button>
+      </div>
+    </div>
+
+    <!-- Carrusel de Tarjetas Premium (Explore Experience) -->
+    <div class="explore-carousel-container" *ngIf="!showDetailSheet">
+      <div class="empty-map-results" *ngIf="restaurantesFiltrados.length === 0">
+        <ion-icon name="search-outline"></ion-icon>
+        <div>
+          <h3>{{ 'map.noResults.title' | ffTranslate }}</h3>
+          <p>{{ 'map.noResults.subtitle' | ffTranslate }}</p>
+        </div>
+        <button type="button" *ngIf="searchQuery" (click)="clearSearch()">
+          {{ 'map.clearSearch' | ffTranslate }}
+        </button>
+      </div>
+
+      <div class="carousel-scroll" *ngIf="restaurantesFiltrados.length > 0">
+        <div class="explore-card animate__animated animate__fadeInRight" 
+             *ngFor="let r of restaurantesFiltrados; let i = index" 
+             [style.animation-delay]="(i * 0.1) + 's'"
+             (click)="irADetalle(r)">
+          
+          <div class="card-image-box">
+            <img [appSafeRestaurantImage]="r" [alt]="r.nombre">
+            <div class="card-distance">
+              <ion-icon name="location"></ion-icon>
+              {{ r.distanciaNum | number:'1.1-1' }} km
+            </div>
+          </div>
+          
+          <div class="card-content-box">
+            <div class="top-row">
+              <h4>{{ r.nombre }}</h4>
+              <div class="mini-rating">
+                <ion-icon name="star"></ion-icon>
+                {{ r.rating || '4.5' }}
+              </div>
+            </div>
+            <p class="tipo-tag">{{ r.tipo || ('common.gourmet' | ffTranslate) }}</p>
+            <div class="card-footer-cta">
+              <span>{{ 'map.viewLocal' | ffTranslate }}</span>
+              <ion-icon name="chevron-forward"></ion-icon>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</ion-content>

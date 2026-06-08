@@ -1,0 +1,34 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-title>Escanear Cliente</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="futuristic-scanner">
+  <!-- BACKGROUND BLUR BLOCKS -->
+  <div class="blur-bg">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
+
+  <div class="header-info animate__animated animate__fadeInDown">
+    <div class="icon-pulse">
+      <ion-icon name="qr-code-outline"></ion-icon>
+    </div>
+    <h2>Identificador Cliente</h2>
+    <p>Apunta la cámara al código QR del cliente para procesar su visita.</p>
+  </div>
+
+  <div class="scanner-wrapper">
+    <app-qr-scanner-ui
+      [autoStart]="true"
+      (qrScanned)="onQrDetected($event)">
+    </app-qr-scanner-ui>
+  </div>
+
+  <div class="scan-hint">
+    <ion-icon name="information-circle-outline"></ion-icon>
+    <span>Asegúrate de que haya buena iluminación</span>
+  </div>
+</ion-content>

@@ -1,6 +1,7 @@
 package progresa.springboot_tfg.entity;
 
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 
 @Entity
@@ -18,6 +19,11 @@ public class Promocion {
 
     @Column(nullable = false)
     private int puntosOtorgados;
+
+    private String imagen;
+
+    @Column(nullable = false)
+    private String tipo = "SUMA";
 
     @ManyToOne
     @JoinColumn(name = "restaurante_id", nullable = false)
@@ -55,6 +61,32 @@ public class Promocion {
 
     public void setPuntosOtorgados(int puntosOtorgados) {
         this.puntosOtorgados = puntosOtorgados;
+    }
+
+    @JsonProperty("puntosNecesarios")
+    public int getPuntosNecesarios() {
+        return puntosOtorgados;
+    }
+
+    @JsonProperty("puntosNecesarios")
+    public void setPuntosNecesarios(int puntosNecesarios) {
+        this.puntosOtorgados = puntosNecesarios;
+    }
+
+    public String getImagen() {
+        return imagen;
+    }
+
+    public void setImagen(String imagen) {
+        this.imagen = imagen;
+    }
+
+    public String getTipo() {
+        return tipo;
+    }
+
+    public void setTipo(String tipo) {
+        this.tipo = tipo;
     }
 
     public Restaurante getRestaurante() {

@@ -2,6 +2,7 @@ package progresa.springboot_tfg.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -42,15 +43,25 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/",
                                 "/ping",
+                                "/uploads/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
                         ).permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
 
+                        .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
+
+                        .requestMatchers(HttpMethod.POST, "/api/usuarios/identificar-qr").hasAuthority("ROLE_RESTAURANT")
                         .requestMatchers("/api/usuarios/**").hasAuthority("ROLE_USER")
                         .requestMatchers("/api/movimientos/**").hasAuthority("ROLE_USER")
-                        .requestMatchers("/api/recompensas/**").hasAuthority("ROLE_USER")
+                        .requestMatchers("/api/puntos/**").hasAnyAuthority("ROLE_USER", "ROLE_RESTAURANT")
+                        .requestMatchers("/api/canjes/**").hasAuthority("ROLE_USER")
+
+                        .requestMatchers(HttpMethod.GET, "/api/restaurantes/**").hasAnyAuthority("ROLE_USER", "ROLE_RESTAURANT")
+                        .requestMatchers(HttpMethod.GET, "/api/promociones/**").hasAnyAuthority("ROLE_USER", "ROLE_RESTAURANT")
+                        .requestMatchers(HttpMethod.GET, "/api/recompensas/**").hasAnyAuthority("ROLE_USER", "ROLE_RESTAURANT")
+                        .requestMatchers("/api/recompensas/**").hasAuthority("ROLE_RESTAURANT")
 
                         .requestMatchers("/api/restaurantes/**").hasAuthority("ROLE_RESTAURANT")
                         .requestMatchers("/api/promociones/**").hasAuthority("ROLE_RESTAURANT")

@@ -1,0 +1,353 @@
+<ion-content class="production-profile">
+  
+  <div class="loader-overlay" *ngIf="isLoading">
+    <ion-spinner name="crescent" color="primary"></ion-spinner>
+    <p>{{ 'profile.loading' | ffTranslate }}</p>
+  </div>
+
+  <div class="production-grid ion-padding animate__animated animate__fadeIn" *ngIf="!isLoading && user">
+    
+    <!-- PERFIL COMPACTO -->
+    <div class="profile-hero-fintech animate__animated animate__fadeInDown">
+      <div class="hero-content">
+        <div class="avatar-container" (click)="triggerFileInput()">
+          <div class="avatar-glow"></div>
+          <div class="avatar-circle">
+            <img [src]="photoPreview || user.fotoPerfil" 
+                 class="profile-img"
+                 [alt]="user.nombre || 'Foto de perfil'"
+                 (error)="onImageError()">
+          </div>
+          <div class="edit-overlay" *ngIf="!isUploading">
+            <ion-icon [icon]="icons.cameraOutline"></ion-icon>
+          </div>
+          <div class="upload-loader" *ngIf="isUploading">
+            <ion-spinner name="crescent"></ion-spinner>
+          </div>
+          <div class="verified-badge">
+            <ion-icon [icon]="icons.shieldCheckmarkOutline"></ion-icon>
+          </div>
+        </div>
+
+        <!-- Hidden Input (Sin filtro para evitar bloqueos de macOS) -->
+        <input type="file" #fileInput accept="image/*" (change)="onFileSelected($event)" style="display: none;">
+
+        <div class="user-info">
+          <p>{{ user.email }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECCIÓN WALLET -->
+    <section class="section-container animate__animated animate__fadeInUp">
+      <app-section-header [title]="'profile.wallet.title' | ffTranslate" [subtitle]="'profile.wallet.subtitle' | ffTranslate"></app-section-header>
+      <app-user-card [user]="user" [showCta]="false"></app-user-card>
+    </section>
+
+    <!-- ESTADÍSTICAS (PREMIUM BADGES) -->
+    <div class="stats-row animate__animated animate__fadeInUp">
+      <div class="stat-badge purple hover-lift">
+        <div class="icon-box"><ion-icon [icon]="icons.gift"></ion-icon></div>
+        <div class="stat-info">
+          <strong>{{ stats.premios }}</strong>
+          <span>{{ 'profile.stats.prizes' | ffTranslate }}</span>
+        </div>
+      </div>
+      <div class="stat-badge orange hover-lift">
+        <div class="icon-box"><ion-icon [icon]="icons.star"></ion-icon></div>
+        <div class="stat-info">
+          <strong>{{ stats.puntos | number }}</strong>
+          <span>{{ 'common.points' | ffTranslate }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- AJUSTES (TARJETAS 3D INTERACTIVAS) -->
+    <section class="settings-section animate__animated animate__fadeInUp">
+      <app-section-header [title]="'profile.settings.title' | ffTranslate" [subtitle]="'profile.settings.subtitle' | ffTranslate"></app-section-header>
+      
+      <div class="settings-grid">
+        <div class="setting-card hover-lift tap-effect" (click)="openEditProfile()">
+          <div class="icon-glass blue"><ion-icon [icon]="icons.personCircleOutline"></ion-icon></div>
+          <div class="setting-text">
+            <span>{{ 'actions.editProfile' | ffTranslate }}</span>
+            <p>{{ 'profile.settings.edit.subtitle' | ffTranslate }}</p>
+          </div>
+          <ion-icon class="arrow-icon" [icon]="icons.chevronForwardOutline"></ion-icon>
+        </div>
+
+        <div class="setting-card hover-lift tap-effect" (click)="isNotificationsOpen = true">
+          <div class="icon-glass green"><ion-icon [icon]="icons.notificationsOutline"></ion-icon></div>
+          <div class="setting-text">
+            <span>{{ 'actions.notifications' | ffTranslate }}</span>
+            <p>{{ 'profile.settings.notifications.subtitle' | ffTranslate }}</p>
+          </div>
+          <ion-icon class="arrow-icon" [icon]="icons.chevronForwardOutline"></ion-icon>
+        </div>
+
+        <div class="setting-card hover-lift tap-effect" routerLink="/u/security">
+          <div class="icon-glass purple"><ion-icon [icon]="icons.shieldCheckmarkOutline"></ion-icon></div>
+          <div class="setting-text">
+            <span>{{ 'actions.security' | ffTranslate }}</span>
+            <p>{{ 'profile.settings.security.subtitle' | ffTranslate }}</p>
+          </div>
+          <ion-icon class="arrow-icon" [icon]="icons.chevronForwardOutline"></ion-icon>
+        </div>
+
+        <div class="setting-card hover-lift tap-effect" (click)="isSupportOpen = true">
+          <div class="icon-glass gray"><ion-icon [icon]="icons.helpCircleOutline"></ion-icon></div>
+          <div class="setting-text">
+            <span>{{ 'actions.support' | ffTranslate }}</span>
+            <p>{{ 'profile.settings.support.subtitle' | ffTranslate }}</p>
+          </div>
+          <ion-icon class="arrow-icon" [icon]="icons.chevronForwardOutline"></ion-icon>
+        </div>
+
+        <div class="setting-card hover-lift tap-effect" (click)="isLanguageOpen = true">
+          <div class="icon-glass orange"><ion-icon [icon]="icons.languageOutline"></ion-icon></div>
+          <div class="setting-text">
+            <span>{{ 'profile.settings.language.title' | ffTranslate }}</span>
+            <p>{{ currentLanguageLabel }}</p>
+          </div>
+          <ion-icon class="arrow-icon" [icon]="icons.chevronForwardOutline"></ion-icon>
+        </div>
+
+        <div class="setting-card hover-lift tap-effect" (click)="isAppearanceOpen = true">
+          <div class="icon-glass dark"><ion-icon [icon]="icons.moonOutline"></ion-icon></div>
+          <div class="setting-text">
+            <span>{{ 'profile.settings.appearance.title' | ffTranslate }}</span>
+            <p>{{ currentThemeLabel }}</p>
+          </div>
+          <ion-icon class="arrow-icon" [icon]="icons.chevronForwardOutline"></ion-icon>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- MODALES DE AJUSTES -->
+    <!-- ============================================================ -->
+
+    <!-- 1. EDITAR PERFIL -->
+    <ion-modal [isOpen]="isEditProfileOpen" (didDismiss)="isEditProfileOpen = false" class="settings-modal">
+      <ng-template>
+        <div class="modal-wrapper">
+          <div class="modal-header">
+            <div class="header-indicator"></div>
+            <h3>{{ 'actions.editProfile' | ffTranslate }}</h3>
+            <ion-button fill="clear" (click)="isEditProfileOpen = false">
+              <ion-icon [icon]="icons.closeOutline"></ion-icon>
+            </ion-button>
+          </div>
+          <div class="modal-body ion-padding">
+            <div class="form-group">
+              <label>{{ 'profile.edit.fullName' | ffTranslate }}</label>
+              <ion-item lines="none" class="custom-input">
+                <ion-input [(ngModel)]="editData.nombre" [placeholder]="'profile.edit.namePlaceholder' | ffTranslate"></ion-input>
+              </ion-item>
+            </div>
+            <div class="form-group">
+              <label>{{ 'profile.edit.email' | ffTranslate }}</label>
+              <ion-item lines="none" class="custom-input">
+                <ion-input [(ngModel)]="editData.email" type="email" placeholder="tu@email.com"></ion-input>
+              </ion-item>
+            </div>
+            <ion-button expand="block" class="btn-save" (click)="saveProfile()">
+              {{ 'profile.edit.save' | ffTranslate }}
+            </ion-button>
+          </div>
+        </div>
+      </ng-template>
+    </ion-modal>
+
+    <!-- 2. NOTIFICACIONES -->
+    <ion-modal [isOpen]="isNotificationsOpen" (didDismiss)="isNotificationsOpen = false" class="settings-modal">
+      <ng-template>
+        <div class="modal-wrapper">
+          <div class="modal-header">
+            <div class="header-indicator"></div>
+            <h3>{{ 'actions.notifications' | ffTranslate }}</h3>
+            <ion-button fill="clear" (click)="isNotificationsOpen = false">
+              <ion-icon [icon]="icons.closeOutline"></ion-icon>
+            </ion-button>
+          </div>
+          <div class="modal-body">
+            <ion-list lines="full">
+              <ion-item lines="full">
+                <ion-label>
+                  <h2>{{ 'profile.notifications.push.title' | ffTranslate }}</h2>
+                  <p>{{ 'profile.notifications.push.subtitle' | ffTranslate }}</p>
+                </ion-label>
+                <ion-toggle [(ngModel)]="notifPrefs.push" color="primary"></ion-toggle>
+              </ion-item>
+              <ion-item lines="full">
+                <ion-label>
+                  <h2>{{ 'nav.promotions' | ffTranslate }}</h2>
+                  <p>{{ 'profile.notifications.promos.subtitle' | ffTranslate }}</p>
+                </ion-label>
+                <ion-toggle [(ngModel)]="notifPrefs.promos" color="primary"></ion-toggle>
+              </ion-item>
+              <ion-item lines="full">
+                <ion-label>
+                  <h2>{{ 'profile.notifications.redeems.title' | ffTranslate }}</h2>
+                  <p>{{ 'profile.notifications.redeems.subtitle' | ffTranslate }}</p>
+                </ion-label>
+                <ion-toggle [(ngModel)]="notifPrefs.canjes" color="primary"></ion-toggle>
+              </ion-item>
+              <ion-item lines="full">
+                <ion-label>
+                  <h2>{{ 'profile.notifications.points.title' | ffTranslate }}</h2>
+                  <p>{{ 'profile.notifications.points.subtitle' | ffTranslate }}</p>
+                </ion-label>
+                <ion-toggle [(ngModel)]="notifPrefs.puntos" color="primary"></ion-toggle>
+              </ion-item>
+            </ion-list>
+            <div class="ion-padding">
+              <ion-button expand="block" class="btn-save" (click)="saveNotifPrefs()">
+                {{ 'profile.notifications.save' | ffTranslate }}
+              </ion-button>
+            </div>
+          </div>
+        </div>
+      </ng-template>
+    </ion-modal>
+
+    <!-- 3. IDIOMA -->
+    <ion-modal [isOpen]="isLanguageOpen" (didDismiss)="isLanguageOpen = false" class="settings-modal">
+      <ng-template>
+        <div class="modal-wrapper">
+          <div class="modal-header">
+            <div class="header-indicator"></div>
+            <h3>{{ 'profile.language.modal.title' | ffTranslate }}</h3>
+            <ion-button fill="clear" (click)="isLanguageOpen = false">
+              <ion-icon [icon]="icons.closeOutline"></ion-icon>
+            </ion-button>
+          </div>
+          <div class="modal-body">
+            <p class="language-subtitle">{{ 'profile.language.modal.subtitle' | ffTranslate }}</p>
+            <ion-list lines="none" class="language-list">
+              <ion-item
+                *ngFor="let language of languageOptions"
+                button
+                detail="false"
+                class="language-option"
+                [class.selected]="currentLanguage === language.code"
+                (click)="setLanguage(language.code)">
+                <ion-label>
+                  <h2>{{ language.label }}</h2>
+                  <p>{{ language.nativeName }}</p>
+                </ion-label>
+                <ion-icon
+                  *ngIf="currentLanguage === language.code"
+                  [icon]="icons.checkmarkCircleOutline"
+                  color="primary"
+                  slot="end">
+                </ion-icon>
+              </ion-item>
+            </ion-list>
+          </div>
+        </div>
+      </ng-template>
+    </ion-modal>
+
+    <!-- 3B. APARIENCIA -->
+    <ion-modal [isOpen]="isAppearanceOpen" (didDismiss)="isAppearanceOpen = false" class="settings-modal">
+      <ng-template>
+        <div class="modal-wrapper">
+          <div class="modal-header">
+            <div class="header-indicator"></div>
+            <h3>{{ 'profile.appearance.modal.title' | ffTranslate }}</h3>
+            <ion-button fill="clear" (click)="isAppearanceOpen = false">
+              <ion-icon [icon]="icons.closeOutline"></ion-icon>
+            </ion-button>
+          </div>
+          <div class="modal-body">
+            <p class="language-subtitle">{{ 'profile.appearance.modal.subtitle' | ffTranslate }}</p>
+            <ion-radio-group [value]="themeService.preference" (ionChange)="setThemePreference($event.detail.value)">
+              <ion-list lines="none" class="language-list">
+                <ion-item
+                  *ngFor="let option of themeOptions"
+                  button
+                  detail="false"
+                  class="language-option"
+                  [class.selected]="themeService.preference === option.value"
+                  (click)="setThemePreference(option.value)">
+                  <ion-icon [icon]="getThemeIcon(option.value)" slot="start"></ion-icon>
+                  <ion-label>
+                    <h2>{{ option.label }}</h2>
+                    <p>{{ option.description }}</p>
+                  </ion-label>
+                  <ion-radio slot="end" [value]="option.value"></ion-radio>
+                </ion-item>
+              </ion-list>
+            </ion-radio-group>
+          </div>
+        </div>
+      </ng-template>
+    </ion-modal>
+
+    <!-- 4. SOPORTE -->
+    <ion-modal [isOpen]="isSupportOpen" (didDismiss)="isSupportOpen = false" class="settings-modal">
+      <ng-template>
+        <div class="modal-wrapper">
+          <div class="modal-header">
+            <div class="header-indicator"></div>
+            <h3>{{ 'profile.support.title' | ffTranslate }}</h3>
+            <ion-button fill="clear" (click)="isSupportOpen = false">
+              <ion-icon [icon]="icons.closeOutline"></ion-icon>
+            </ion-button>
+          </div>
+          <div class="modal-body">
+            <div class="support-hero">
+              <ion-icon [icon]="icons.helpCircleOutline"></ion-icon>
+              <h4>{{ 'profile.support.hero' | ffTranslate }}</h4>
+            </div>
+            
+            <ion-list lines="full">
+              <ion-item *ngFor="let faq of faqs" (click)="faq.open = !faq.open" button detail="false">
+                <ion-label>
+                  <h2 class="faq-q">{{ faq.qKey | ffTranslate }}</h2>
+                  <p *ngIf="faq.open" class="faq-a animate__animated animate__fadeIn">{{ faq.aKey | ffTranslate }}</p>
+                </ion-label>
+                <ion-icon [name]="faq.open ? 'chevron-up-outline' : 'chevron-down-outline'" slot="end"></ion-icon>
+              </ion-item>
+            </ion-list>
+
+            <div class="support-actions ion-padding">
+              <p class="support-hint">{{ 'profile.support.missing' | ffTranslate }}</p>
+              <ion-button expand="block" fill="outline" class="btn-wa" (click)="contactSupport('wa')">
+                <ion-icon name="logo-whatsapp" slot="start"></ion-icon>
+                {{ 'profile.support.whatsapp' | ffTranslate }}
+              </ion-button>
+              <ion-button expand="block" fill="clear" class="btn-mail" (click)="contactSupport('mail')">
+                <ion-icon name="mail-outline" slot="start"></ion-icon>
+                {{ 'profile.support.email' | ffTranslate }}
+              </ion-button>
+            </div>
+            <div class="app-version ion-text-center">
+              <p>FidelyApp v3.2.0 (Build 44030)</p>
+            </div>
+          </div>
+        </div>
+      </ng-template>
+    </ion-modal>
+
+    <!-- BOTÓN DE CERRAR SESIÓN AISLADO -->
+    <div class="logout-container animate__animated animate__fadeInUp">
+      <button class="btn-destructive tap-effect" (click)="logout()">
+        <ion-icon [icon]="icons.logOutOutline"></ion-icon>
+        <span>{{ 'actions.logout' | ffTranslate }}</span>
+      </button>
+    </div>
+
+    <!-- FOOTER LEGAL -->
+    <div class="legal-footer ion-text-center">
+      <p>FidelyApp v3.2.0 • Pro Edition</p>
+      <p class="legal-links">
+        <span routerLink="/privacy">{{ 'profile.legal.privacy' | ffTranslate }}</span> • 
+        <span routerLink="/terms">{{ 'profile.legal.terms' | ffTranslate }}</span> • 
+        <span routerLink="/security-info">{{ 'actions.security' | ffTranslate }}</span>
+      </p>
+    </div>
+
+  </div>
+</ion-content>

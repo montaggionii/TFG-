@@ -1,0 +1,104 @@
+<div class="loyalty-card-premium animate__animated animate__fadeIn">
+  <div class="card-glow"></div>
+  <div class="card-sheen"></div>
+  
+  <div class="card-content">
+    <div class="pass-topline">
+      <span class="brand-tag">FIDELYFOOD PASS</span>
+    </div>
+
+    <div class="pass-layout">
+      <section class="identity-column" aria-label="Identidad del usuario">
+        <div class="card-avatar animate__animated animate__zoomIn">
+          <img [src]="user?.fotoPerfil" [alt]="user?.nombre || 'Foto de perfil'" (error)="onPhotoError($event)" class="avatar-img">
+        </div>
+
+        <div class="user-main">
+          <h2 class="user-name">{{ user?.nombre || ('userCard.fallbackName' | ffTranslate) }}</h2>
+          <p class="member-meta">Miembro FidelyFood</p>
+        </div>
+      </section>
+
+      <section class="points-column" aria-label="Puntos acumulados">
+        <div class="points-kicker">
+          <ion-icon name="wallet-outline"></ion-icon>
+          <span>Saldo disponible</span>
+        </div>
+
+        <div class="points-display">
+          <span class="number">{{ user?.puntos || 0 }}</span>
+          <span class="label">{{ 'userCard.accumulatedPoints' | ffTranslate }}</span>
+        </div>
+
+        <div class="benefit-row">
+          <span>
+            <ion-icon name="gift-outline"></ion-icon>
+            Beneficios activos
+          </span>
+          <span>Próxima recompensa</span>
+        </div>
+
+        <div class="card-footer" *ngIf="showCta">
+          <ion-button fill="clear" [routerLink]="['/u/recompensas']" class="cta-btn">
+            {{ 'userCard.benefits' | ffTranslate }}
+            <ion-icon slot="end" name="chevron-forward-outline"></ion-icon>
+          </ion-button>
+        </div>
+      </section>
+
+      <section class="qr-side" aria-label="Código QR del usuario">
+        <div class="qr-wrapper tap-effect" (click)="abrirQR()">
+          <div class="qr-glow-effect"></div>
+          <canvas #qrCanvas class="qr-canvas"></canvas>
+          <div class="qr-expand-hint">
+            <ion-icon name="expand-outline"></ion-icon>
+          </div>
+        </div>
+        <span class="scan-label">{{ 'userCard.scanAtRestaurant' | ffTranslate }}</span>
+      </section>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL QR AMPLIADO (UX PREMIUM) -->
+<ion-modal [isOpen]="isModalOpen" (didDismiss)="isModalOpen = false" class="qr-modal-premium">
+  <ng-template>
+    <div class="modal-glass-container">
+      <div class="modal-header">
+        <ion-button fill="clear" (click)="isModalOpen = false">
+          <ion-icon slot="icon-only" name="close-outline"></ion-icon>
+        </ion-button>
+      </div>
+
+      <div class="modal-body animate__animated animate__zoomIn">
+        <div class="user-badge-mini">
+          <div class="mini-avatar">
+            <img [src]="user?.fotoPerfil" [alt]="user?.nombre || 'Foto de perfil'" (error)="onPhotoError($event)">
+          </div>
+          <div class="mini-text">
+            <h3>{{ user?.nombre }}</h3>
+            <p>ID: {{ user?.id }}</p>
+          </div>
+        </div>
+
+        <div class="large-qr-container">
+          <div class="qr-frame">
+            <canvas #largeQrCanvas class="large-qr-canvas"></canvas>
+          </div>
+          <div class="scan-animation"></div>
+        </div>
+
+        <div class="instruction-box">
+          <ion-icon name="flashlight-outline"></ion-icon>
+          <p>{{ 'userCard.qrInstruction' | ffTranslate }}</p>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <ion-button expand="block" mode="ios" class="close-modal-btn" (click)="isModalOpen = false">
+          {{ 'common.understood' | ffTranslate }}
+        </ion-button>
+      </div>
+    </div>
+  </ng-template>
+</ion-modal>

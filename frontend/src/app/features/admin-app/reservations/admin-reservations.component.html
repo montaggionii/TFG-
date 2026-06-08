@@ -1,0 +1,67 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-buttons slot="start"><ion-menu-button></ion-menu-button></ion-buttons>
+    <ion-title>Reservas</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="load()"><ion-icon name="refresh-outline" slot="icon-only"></ion-icon></ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="admin-page">
+  <div class="page-inner">
+    <section class="header-block">
+      <span class="eyebrow">Operaciones</span>
+      <h1>Gestión de reservas</h1>
+      <p>Listado global preparado para filtros por negocio, fecha, estado y cliente.</p>
+    </section>
+
+    <div class="filters">
+      <ion-searchbar [(ngModel)]="query" placeholder="Buscar cliente, email, teléfono o negocio"></ion-searchbar>
+      <ion-select [(ngModel)]="status" placeholder="Estado" interface="popover">
+        <ion-select-option value="">Todos</ion-select-option>
+        <ion-select-option value="PENDING">Pendiente</ion-select-option>
+        <ion-select-option value="CONFIRMED">Confirmada</ion-select-option>
+        <ion-select-option value="CANCELLED">Cancelada</ion-select-option>
+      </ion-select>
+      <ion-select [(ngModel)]="business" placeholder="Negocio" interface="popover">
+        <ion-select-option value="">Todos</ion-select-option>
+        <ion-select-option *ngFor="let option of businessOptions" [value]="option.id">{{ option.name }}</ion-select-option>
+      </ion-select>
+      <ion-input type="date" [(ngModel)]="date"></ion-input>
+    </div>
+
+    <div class="table-wrap" *ngIf="filtered.length; else emptyState">
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Cliente</th>
+            <th>Negocio</th>
+            <th>Personas</th>
+            <th>Estado</th>
+            <th>Contacto</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of filtered">
+            <td data-label="Fecha">{{ item.date | date:'short' }}</td>
+            <td data-label="Cliente">{{ item.clientName }}</td>
+            <td data-label="Negocio">{{ item.businessName }}</td>
+            <td data-label="Personas">{{ item.people || '-' }}</td>
+            <td data-label="Estado"><span class="status-pill">{{ item.status }}</span></td>
+            <td data-label="Contacto">{{ item.clientEmail || item.clientPhone || '-' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <ng-template #emptyState>
+      <section class="panel empty-state-card empty-reservations">
+        <ion-icon name="calendar-outline"></ion-icon>
+        <h2>No hay reservas disponibles</h2>
+        <p>Cuando existan reservas registradas aparecerán aquí con sus filtros y datos de contacto.</p>
+      </section>
+    </ng-template>
+  </div>
+</ion-content>

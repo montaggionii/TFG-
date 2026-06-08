@@ -13,7 +13,7 @@ import progresa.springboot_tfg.service.CompraService;
 
 @RestController
 @RequestMapping("/api/compras")
-@CrossOrigin(origins = "*")
+@CrossOrigin(originPatterns = "*")
 @Tag(name = "Compras", description = "Gestión de compras y acumulación de puntos")
 public class CompraController {
 

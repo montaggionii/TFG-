@@ -1,0 +1,80 @@
+:host {
+  --primary: var(--app-primary);
+  --bg-color: var(--app-background);
+  --card-bg: var(--app-card);
+  --text-title: var(--app-text);
+  --text-primary: var(--app-text);
+  --text-secondary: var(--app-text-secondary);
+}
+
+.futuristic-scanner {
+  --background: var(--bg-color);
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+}
+
+.header-info {
+  text-align: center;
+  padding: clamp(28px, 7vw, 40px) clamp(16px, 5vw, 24px) 20px;
+  position: relative;
+  z-index: 2;
+
+  .icon-pulse {
+    width: 80px;
+    height: 80px;
+    background: var(--app-card);
+    border-radius: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto 20px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+    border: 1px solid var(--app-border);
+
+    ion-icon {
+      font-size: 40px;
+      color: var(--primary);
+    }
+  }
+
+  h2 {
+    font-weight: 800;
+    font-size: 1.6rem;
+    color: var(--text-title);
+    margin: 0;
+    letter-spacing: -0.5px;
+  }
+
+  p {
+    margin: 10px 0 0;
+    color: var(--text-secondary);
+    font-weight: 500;
+    line-height: 1.5;
+    font-size: 0.95rem;
+  }
+}
+
+.scanner-wrapper {
+  padding: 0 clamp(16px, 5vw, 24px) calc(112px + env(safe-area-inset-bottom));
+  position: relative;
+  z-index: 2;
+  animation: fadeInUp 0.8s ease;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.scan-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 30px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+
+  ion-icon {
+    color: var(--primary);
+    font-size: 18px;
+  }
+}

@@ -1,0 +1,77 @@
+.form-container {
+  max-width: min(600px, 100%);
+  margin: 0 auto;
+  padding: 0 clamp(12px, 4vw, 20px) calc(112px + env(safe-area-inset-bottom));
+
+  h2 {
+    font-weight: 800;
+    color: var(--ion-color-dark);
+    margin-bottom: 5px;
+  }
+
+  p {
+    color: var(--ion-color-medium);
+    margin-bottom: 25px;
+  }
+}
+
+.custom-item {
+  --background: var(--app-card);
+  --border-radius: 12px;
+  --padding-start: 16px;
+  --padding-bottom: 10px;
+  margin-bottom: 15px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+
+  ion-label {
+    font-weight: 600;
+    color: var(--ion-color-primary);
+    margin-bottom: 10px !important;
+  }
+
+  ion-input, ion-textarea {
+    font-size: 16px;
+    --color: var(--app-text);
+  }
+}
+
+.preview-btn {
+  font-size: 12px;
+  text-transform: none;
+  font-weight: 600;
+}
+
+.preview-container {
+  h3 {
+    font-size: 14px;
+    color: var(--ion-color-medium);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+
+  .preview-card {
+    border-radius: 16px;
+    overflow: hidden;
+    margin: 0;
+    
+    ion-img {
+      max-height: 200px;
+      object-fit: cover;
+    }
+  }
+}
+
+.submit-btn {
+  --border-radius: 12px;
+  height: 56px;
+  font-weight: 700;
+  font-size: 18px;
+  margin-top: 30px;
+}
+
+@media (max-width: 390px) {
+  .submit-btn {
+    font-size: 1rem;
+  }
+}

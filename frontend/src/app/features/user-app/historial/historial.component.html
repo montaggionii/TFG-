@@ -1,0 +1,100 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/u/home" text=""></ion-back-button>
+    </ion-buttons>
+    <ion-title>{{ 'history.title' | ffTranslate }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="cargarHistorial($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <div class="ion-text-center ion-padding" *ngIf="isLoading">
+    <ion-spinner name="crescent" color="primary"></ion-spinner>
+    <p>{{ 'history.loading' | ffTranslate }}</p>
+  </div>
+
+  <div class="content-wrapper" *ngIf="!isLoading">
+    <!-- DASHBOARD RESUMEN FINTECH -->
+    <div class="dashboard-section animate__animated animate__fadeInDown" *ngIf="historial.length > 0">
+      <div class="balance-card">
+        <div class="card-bg-decoration"></div>
+        <div class="balance-info">
+          <span class="label">{{ 'history.balance' | ffTranslate }}</span>
+          <h2 class="amount">{{ balance }} <span class="pts">{{ 'common.pts' | ffTranslate }}</span></h2>
+        </div>
+        <div class="balance-icon">
+          <ion-icon name="wallet-outline"></ion-icon>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-box earned">
+          <div class="icon-wrap"><ion-icon name="trending-up-outline"></ion-icon></div>
+          <div class="stat-text">
+            <span class="stat-label">{{ 'history.earned' | ffTranslate }}</span>
+            <span class="stat-value">+{{ totalGanado }}</span>
+          </div>
+        </div>
+        <div class="stat-box redeemed">
+          <div class="icon-wrap"><ion-icon name="trending-down-outline"></ion-icon></div>
+          <div class="stat-text">
+            <span class="stat-label">{{ 'history.redeemed' | ffTranslate }}</span>
+            <span class="stat-value">-{{ totalCanjeado }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ESTADO VACÍO EMOCIONAL -->
+    <div class="empty-state animate__animated animate__fadeIn" *ngIf="historial.length === 0">
+      <div class="empty-icon-wrap">
+        <ion-icon name="receipt-outline"></ion-icon>
+      </div>
+      <h2>{{ 'history.empty.title' | ffTranslate }}</h2>
+      <p>{{ 'history.empty.subtitle' | ffTranslate }}</p>
+      <ion-button expand="block" mode="ios" class="main-action-btn" routerLink="/u/home">
+        {{ 'history.empty.action' | ffTranslate }}
+      </ion-button>
+    </div>
+
+    <!-- LISTA ESTILO FINTECH -->
+    <div class="history-list-pro animate__animated animate__fadeInUp" *ngIf="historial.length > 0">
+      <div class="section-header">
+        <h3 class="section-title">{{ 'history.latest' | ffTranslate }}</h3>
+      </div>
+
+      <ion-list class="history-ion-list" lines="none">
+        <div class="history-group" *ngFor="let mov of historial">
+          <div class="date-header">
+             <span>{{ mov.fecha | date:'d MMMM, y' }}</span>
+          </div>
+
+          <ion-item class="transaction-item-pro">
+            <div class="item-icon" [class.earned]="esGanancia(mov.tipo)" [class.redeemed]="esCanje(mov.tipo)">
+              <ion-icon [name]="esGanancia(mov.tipo) ? 'trending-up-outline' : 'trending-down-outline'"></ion-icon>
+            </div>
+            
+            <div class="item-details">
+              <div class="top-row">
+                <h3>{{ mov.descripcion || (esGanancia(mov.tipo) ? ('history.purchase' | ffTranslate) : ('actions.redeem' | ffTranslate)) }}</h3>
+                <span class="points-badge" [class.positive]="esGanancia(mov.tipo)" [class.negative]="esCanje(mov.tipo)">
+                  {{ esGanancia(mov.tipo) ? '+' : '-' }}{{ mov.puntos }}
+                </span>
+              </div>
+              <div class="bottom-row">
+                <p>#{{ mov.id }}</p>
+                <div class="type-badge" [class.type-earn]="esGanancia(mov.tipo)" [class.type-redeem]="esCanje(mov.tipo)">
+                  {{ esGanancia(mov.tipo) ? ('history.credit' | ffTranslate) : ('actions.redeem' | ffTranslate) }}
+                </div>
+              </div>
+            </div>
+          </ion-item>
+        </div>
+      </ion-list>
+    </div>
+  </div>
+</ion-content>

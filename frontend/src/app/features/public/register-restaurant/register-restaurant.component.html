@@ -1,0 +1,89 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/login" text="" icon="arrow-back-outline"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Registrar Negocio</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <div class="header-section ion-text-center">
+    <div class="logo-container">
+      <img src="assets/img/logo_fidelyfood.png" alt="FidelyFood Logo" />
+    </div>
+    <h1>Registro Restaurante</h1>
+    <p>Únete a la red FidelyFood y fideliza a tus clientes</p>
+  </div>
+
+  <div class="form-container">
+    <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="input-stack">
+      
+      <div class="glass-input-item animate__animated animate__fadeInUp">
+        <ion-icon name="business-outline" class="field-icon"></ion-icon>
+        <div class="input-content">
+          <ion-label position="stacked">Nombre del Establecimiento</ion-label>
+          <ion-input formControlName="nombre" type="text" placeholder="Ej: Pizzería Roma"></ion-input>
+        </div>
+      </div>
+
+      <div class="glass-input-item animate__animated animate__fadeInUp" style="animation-delay: 0.1s">
+        <ion-icon name="mail-outline" class="field-icon"></ion-icon>
+        <div class="input-content">
+          <ion-label position="stacked">Correo Electrónico Corporativo</ion-label>
+          <ion-input formControlName="email" type="email" placeholder="contacto@restaurante.com"></ion-input>
+        </div>
+      </div>
+
+      <div class="glass-input-item animate__animated animate__fadeInUp" style="animation-delay: 0.2s">
+        <ion-icon name="lock-closed-outline" class="field-icon"></ion-icon>
+        <div class="input-content">
+          <ion-label position="stacked">Contraseña (Mín. 6 caracteres)</ion-label>
+          <ion-input formControlName="password" type="password" placeholder="••••••••"></ion-input>
+        </div>
+      </div>
+
+      <div class="glass-input-item animate__animated animate__fadeInUp" style="animation-delay: 0.3s">
+        <ion-icon name="location-outline" class="field-icon"></ion-icon>
+        <div class="input-content">
+          <ion-label position="stacked">Dirección</ion-label>
+          <ion-input formControlName="direccion" type="text" placeholder="Calle, Número, Local"></ion-input>
+        </div>
+      </div>
+
+      <div class="glass-input-item animate__animated animate__fadeInUp" style="animation-delay: 0.35s">
+        <ion-icon name="pin-outline" class="field-icon"></ion-icon>
+        <div class="input-content">
+          <ion-label position="stacked">Código Postal</ion-label>
+          <ion-input formControlName="codigoPostal" type="text" placeholder="Ej: 46001"></ion-input>
+        </div>
+      </div>
+
+      <div class="glass-input-item animate__animated animate__fadeInUp" style="animation-delay: 0.4s">
+        <ion-icon name="map-outline" class="field-icon"></ion-icon>
+        <div class="input-content">
+          <ion-label position="stacked">Ciudad</ion-label>
+          <ion-input formControlName="ciudad" type="text" placeholder="Ej: Valencia"></ion-input>
+        </div>
+      </div>
+
+      <div class="glass-input-item animate__animated animate__fadeInUp" style="animation-delay: 0.5s">
+        <ion-icon name="call-outline" class="field-icon"></ion-icon>
+        <div class="input-content">
+          <ion-label position="stacked">Teléfono de contacto</ion-label>
+          <ion-input formControlName="telefono" type="tel" placeholder="600 000 000"></ion-input>
+        </div>
+      </div>
+
+      <div class="action-footer ion-padding-top animate__animated animate__fadeInUp" style="animation-delay: 0.6s">
+        <ion-button expand="block" type="submit" [disabled]="registerForm.invalid" class="register-btn">
+          Crear Cuenta de Restaurante
+        </ion-button>
+        
+        <div class="login-link">
+          ¿Ya tienes cuenta? <a (click)="goToLogin()">Iniciar Sesión</a>
+        </div>
+      </div>
+    </form>
+  </div>
+</ion-content>

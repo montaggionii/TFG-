@@ -1,0 +1,86 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-buttons slot="start"><ion-menu-button></ion-menu-button></ion-buttons>
+    <ion-title>Estadísticas</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="load()"><ion-icon name="refresh-outline" slot="icon-only"></ion-icon></ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="admin-page">
+  <div class="page-inner">
+    <section class="header-block">
+      <span class="eyebrow">Analítica</span>
+      <h1>Estadísticas generales</h1>
+      <p>Datos agregados de actividad, altas y rendimiento de la plataforma.</p>
+    </section>
+
+    <section class="stats-grid">
+      <article class="panel chart-panel">
+        <div class="panel-title">
+          <h2>Clientes registrados por día</h2>
+          <span class="soft-badge">Altas</span>
+        </div>
+        <div class="bar-row" *ngFor="let item of entries(stats?.clientsByDay)">
+          <span>{{ item.key }}</span>
+          <div><i [style.width.%]="(item.value / max(stats?.clientsByDay)) * 100"></i></div>
+          <strong>{{ item.value }}</strong>
+        </div>
+        <div class="mini-empty" *ngIf="!entries(stats?.clientsByDay).length">Sin datos suficientes</div>
+      </article>
+
+      <article class="panel chart-panel">
+        <div class="panel-title">
+          <h2>Negocios registrados por día</h2>
+          <span class="soft-badge">Locales</span>
+        </div>
+        <div class="bar-row" *ngFor="let item of entries(stats?.businessesByDay)">
+          <span>{{ item.key }}</span>
+          <div><i [style.width.%]="(item.value / max(stats?.businessesByDay)) * 100"></i></div>
+          <strong>{{ item.value }}</strong>
+        </div>
+        <div class="mini-empty" *ngIf="!entries(stats?.businessesByDay).length">Sin datos suficientes</div>
+      </article>
+
+      <article class="panel chart-panel">
+        <div class="panel-title">
+          <h2>Actividad por día</h2>
+          <span class="soft-badge">Movimientos</span>
+        </div>
+        <div class="bar-row" *ngFor="let item of entries(stats?.movementsByDay)">
+          <span>{{ item.key }}</span>
+          <div><i [style.width.%]="(item.value / max(stats?.movementsByDay)) * 100"></i></div>
+          <strong>{{ item.value }}</strong>
+        </div>
+        <div class="mini-empty" *ngIf="!entries(stats?.movementsByDay).length">Sin movimientos todavía</div>
+      </article>
+
+      <article class="panel chart-panel">
+        <div class="panel-title">
+          <h2>Actividad por negocio</h2>
+          <span class="soft-badge">Ranking</span>
+        </div>
+        <div class="bar-row" *ngFor="let item of entries(stats?.movementsByRestaurant)">
+          <span>{{ item.key }}</span>
+          <div><i [style.width.%]="(item.value / max(stats?.movementsByRestaurant)) * 100"></i></div>
+          <strong>{{ item.value }}</strong>
+        </div>
+        <div class="mini-empty" *ngIf="!entries(stats?.movementsByRestaurant).length">Sin datos por negocio</div>
+      </article>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title">
+        <h2>Actividad reciente</h2>
+        <span class="soft-badge">Últimos eventos</span>
+      </div>
+      <div class="activity-row" *ngFor="let item of stats?.recentActivity || []">
+        <span>{{ item.fecha | date:'short' }}</span>
+        <strong>{{ item.descripcion || item.tipo }}</strong>
+        <em>{{ item.cliente || 'Cliente' }} · {{ item.negocio || 'Sin negocio' }}</em>
+      </div>
+      <p class="empty" *ngIf="!(stats?.recentActivity?.length)">No hay actividad reciente.</p>
+    </section>
+  </div>
+</ion-content>

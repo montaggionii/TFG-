@@ -1,0 +1,138 @@
+<ion-content class="production-home">
+  <ion-refresher slot="fixed" (ionRefresh)="refrescar($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <div class="loader-overlay" *ngIf="isLoading; else contentUI">
+    <ion-spinner name="crescent" color="primary"></ion-spinner>
+    <p>{{ 'home.loading' | ffTranslate }}</p>
+  </div>
+
+  <ng-template #contentUI>
+    <div class="production-grid ion-padding">
+      
+      <!-- COLUMNA PRINCIPAL -->
+      <div class="main-column">
+        <!-- 1. TARJETA DE USUARIO PREMIUM -->
+        <app-user-card [user]="user"></app-user-card>
+
+        <!-- 2. BANNERS PROMOCIONALES (NUEVO) -->
+        <section class="section-container animate__animated animate__fadeInUp" *ngIf="promotionalBanners && promotionalBanners.length > 0">
+          <app-section-header [title]="'home.sections.news.title' | ffTranslate" [subtitle]="'home.sections.news.subtitle' | ffTranslate"></app-section-header>
+          
+          <div class="hero-banners-container">
+            <div class="banner-card tap-effect" *ngFor="let banner of promotionalBanners" [ngClass]="banner.bgClass" [routerLink]="banner.route">
+              <div class="banner-icon">
+                <ion-icon [name]="banner.icon"></ion-icon>
+              </div>
+              <div class="banner-content">
+                <small *ngIf="banner.eyebrowKey">{{ banner.eyebrowKey | ffTranslate }}</small>
+                <h3>{{ banner.title || ((banner.titleKey || '') | ffTranslate) }}</h3>
+                <p>{{ banner.subtitle || ((banner.subtitleKey || '') | ffTranslate:banner.subtitleParams) }}</p>
+                <span class="banner-action">{{ banner.actionKey | ffTranslate }}</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. PREMIOS DESTACADOS (STUNNING PREMIUM CARDS) -->
+        <section class="section-container animate__animated animate__fadeInUp animate__delay-1s" *ngIf="featuredRewards && featuredRewards.length > 0">
+          <app-section-header 
+            [title]="'home.sections.rewards.title' | ffTranslate" 
+            [subtitle]="'home.sections.rewards.subtitle' | ffTranslate" 
+            [actionText]="'home.sections.rewards.action' | ffTranslate"
+            (onAction)="goTo('/u/recompensas')">
+          </app-section-header>
+          
+          <div class="rewards-premium-carousel">
+            <div class="premium-reward-card tap-effect" 
+                 *ngFor="let reward of featuredRewards" 
+                 [routerLink]="['/u/restaurante', reward.restaurantId]">
+              
+              <div class="card-visual">
+                <img [appSafeRestaurantImage]="reward.imageUrl" [alt]="reward.restaurantName">
+                <div class="visual-gradient"></div>
+                <div class="reward-points-pill">
+                  <span class="pill-kind">{{ reward.points > 0 ? 'ABONO' : 'PREMIO' }}</span>
+                  {{ reward.points > 0 ? reward.points : 'REGALO' }} {{ reward.points > 0 ? 'PTS' : '' }}
+                </div>
+              </div>
+
+              <div class="card-content">
+                <div class="rest-info">
+                  <ion-icon name="restaurant-outline"></ion-icon>
+                  <span>{{ reward.restaurantName | ffTranslate }}</span>
+                </div>
+                <h4 class="reward-title">{{ reward.title }}</h4>
+                <div class="card-footer">
+                  <span class="view-label">{{ 'home.card.viewRestaurant' | ffTranslate }}</span>
+                  <div class="arrow-box">
+                    <ion-icon name="arrow-forward-outline"></ion-icon>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- COLUMNA SECUNDARIA (LOCALES SUGERIDOS) -->
+      <div class="side-column">
+        <section class="section-container animate__animated animate__fadeIn animate__delay-1s" *ngIf="nearbyRestaurants && nearbyRestaurants.length > 0">
+          <app-section-header 
+            [title]="'home.sections.nearby.title' | ffTranslate" 
+            [subtitle]="'home.sections.nearby.subtitle' | ffTranslate"
+            [actionText]="'home.sections.nearby.action' | ffTranslate"
+            (onAction)="goTo('/u/mapa')">
+          </app-section-header>
+
+          <div class="nearby-feed">
+            <app-card customClass="nearby-item-fintech hover-lift tap-effect" 
+                      *ngFor="let rest of nearbyRestaurants | slice:0:3; let i = index" 
+                      [routerLink]="['/u/restaurante', rest.id]">
+              <div class="rest-media">
+                <img [appSafeRestaurantImage]="rest" [alt]="rest.nombre">
+                <div class="media-glow"></div>
+              </div>
+
+              <div class="rest-details">
+                <div class="rest-top">
+                  <span class="discovery-tag" [class.closest]="i === 0">
+                    <ion-icon [name]="i === 0 ? 'navigate-circle-outline' : 'flame-outline'"></ion-icon>
+                    {{ getNearbyTagKey(i) | ffTranslate }}
+                  </span>
+                  <span class="dist-tag">
+                    <ion-icon name="location-outline"></ion-icon>
+                    {{ rest.distanceText }}
+                  </span>
+                </div>
+
+                <h4>{{ rest.nombre }}</h4>
+
+                <div class="rest-badges">
+                  <span class="badge points" *ngIf="rest.ptsPerEuro">
+                    <span class="badge-kind">ABONO</span>
+                    +{{ rest.ptsPerEuro }} {{ 'home.nearby.pointsPerPurchase' | ffTranslate }}
+                  </span>
+                  <span class="badge active">{{ 'home.badge.loyaltyActive' | ffTranslate }}</span>
+                </div>
+              </div>
+
+              <div class="rest-action">
+                <span>{{ 'home.nearby.open' | ffTranslate }}</span>
+                <ion-icon name="arrow-forward-outline"></ion-icon>
+              </div>
+            </app-card>
+          </div>
+          
+          <ion-button expand="block" fill="outline" class="view-map-btn tap-effect" [routerLink]="['/u/mapa']">
+            <ion-icon slot="start" name="map-outline"></ion-icon>
+            {{ 'home.map.exploreAll' | ffTranslate }}
+          </ion-button>
+        </section>
+      </div>
+
+    </div>
+
+  </ng-template>
+</ion-content>

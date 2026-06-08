@@ -1,0 +1,25 @@
+<ion-tabs>
+  <ion-tab-bar slot="bottom" class="glass-tabs">
+    
+    <ion-tab-button tab="home">
+      <ion-icon [icon]="icons.homeOutline"></ion-icon>
+      <ion-label>{{ 'nav.home' | ffTranslate }}</ion-label>
+    </ion-tab-button>
+
+    <ion-tab-button tab="mapa">
+      <ion-icon [icon]="icons.mapOutline"></ion-icon>
+      <ion-label>{{ 'nav.map' | ffTranslate }}</ion-label>
+    </ion-tab-button>
+
+    <ion-tab-button tab="historial">
+      <ion-icon [icon]="icons.timeOutline"></ion-icon>
+      <ion-label>{{ 'nav.history' | ffTranslate }}</ion-label>
+    </ion-tab-button>
+
+    <ion-tab-button tab="perfil">
+      <ion-icon [icon]="icons.personOutline"></ion-icon>
+      <ion-label>{{ 'nav.profile' | ffTranslate }}</ion-label>
+    </ion-tab-button>
+
+  </ion-tab-bar>
+</ion-tabs>

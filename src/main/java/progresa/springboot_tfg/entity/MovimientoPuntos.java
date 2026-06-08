@@ -24,6 +24,12 @@ public class MovimientoPuntos {
     @JoinColumn(name = "usuario_id", nullable = false)
     private Usuario usuario;
 
+    @ManyToOne
+    @JoinColumn(name = "restaurante_id")
+    private Restaurante restaurante;
+
+    private Double monto;
+
     public MovimientoPuntos() {
         this.fecha = LocalDateTime.now();
     }
@@ -77,5 +83,21 @@ public class MovimientoPuntos {
 
     public void setUsuario(Usuario usuario) {
         this.usuario = usuario;
+    }
+
+    public Restaurante getRestaurante() {
+        return restaurante;
+    }
+
+    public void setRestaurante(Restaurante restaurante) {
+        this.restaurante = restaurante;
+    }
+
+    public Double getMonto() {
+        return monto;
+    }
+
+    public void setMonto(Double monto) {
+        this.monto = monto;
     }
 }

@@ -1,0 +1,261 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar mode="ios">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/u/perfil" [icon]="icons.chevronBackOutline" [text]="'common.back' | ffTranslate"></ion-back-button>
+    </ion-buttons>
+    <ion-title>{{ 'security.title' | ffTranslate }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="security-page">
+  <div class="security-container ion-padding">
+    <div class="security-loading" *ngIf="isLoading">
+      <ion-spinner name="crescent" color="primary"></ion-spinner>
+      <p>Cargando seguridad de la cuenta...</p>
+    </div>
+
+    <!-- STATUS CARD -->
+    <div class="security-status-card animate__animated animate__fadeIn" *ngIf="!isLoading">
+      <div class="status-icon success">
+        <ion-icon [icon]="icons.shieldCheckmarkOutline"></ion-icon>
+      </div>
+      <div class="status-info">
+        <h2>{{ 'security.status.title' | ffTranslate }}</h2>
+        <p>{{ 'security.status.subtitle' | ffTranslate }}</p>
+      </div>
+      <div class="security-score">
+        <svg viewBox="0 0 36 36" class="circular-chart green">
+          <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+          <path class="circle" stroke-dasharray="90, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+          <text x="18" y="20.35" class="percentage">90%</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 0: INFORMACIÓN DE ACCESO -->
+    <section class="security-section animate__animated animate__fadeInUp" *ngIf="!isLoading">
+      <div class="section-header">
+        <ion-icon [icon]="icons.lockClosedOutline"></ion-icon>
+        <h3>Información de acceso</h3>
+      </div>
+      <div class="security-card access-info-card">
+        <div class="access-row">
+          <div class="access-icon">
+            <ion-icon [icon]="icons.mailOutline"></ion-icon>
+          </div>
+          <div>
+            <span>Correo asociado</span>
+            <strong>{{ user?.email || 'No disponible' }}</strong>
+          </div>
+        </div>
+        <div class="access-row">
+          <div class="access-icon">
+            <ion-icon [icon]="icons.calendarOutline"></ion-icon>
+          </div>
+          <div>
+            <span>Fecha de registro</span>
+            <strong>{{ user?.fechaRegistro || user?.createdAt || 'No disponible' }}</strong>
+          </div>
+        </div>
+        <div class="access-row">
+          <div class="access-icon">
+            <ion-icon [icon]="icons.timeOutline"></ion-icon>
+          </div>
+          <div>
+            <span>Último acceso</span>
+            <strong>{{ user?.ultimoAcceso || user?.lastLogin || 'No disponible' }}</strong>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECCIÓN 1: CONTRASEÑA -->
+    <section class="security-section animate__animated animate__fadeInUp" *ngIf="!isLoading">
+      <div class="section-header">
+        <ion-icon [icon]="icons.keyOutline"></ion-icon>
+        <h3>{{ 'security.password.title' | ffTranslate }}</h3>
+      </div>
+      <div class="security-card">
+        <div class="form-group">
+          <label>Contraseña actual</label>
+          <ion-item lines="none" class="custom-input" [class.invalid]="passwordTouched && !securityData.current">
+            <ion-input
+              [(ngModel)]="securityData.current"
+              type="password"
+              placeholder="Introduce tu contraseña actual"
+              (ionBlur)="passwordTouched = true">
+            </ion-input>
+          </ion-item>
+        </div>
+
+        <div class="form-group">
+          <label>{{ 'security.password.new' | ffTranslate }}</label>
+          <ion-item lines="none" class="custom-input" [class.invalid]="passwordTouched && securityData.new && securityData.new.length < 8">
+            <ion-input
+              [(ngModel)]="securityData.new"
+              type="password"
+              [placeholder]="'security.password.newPlaceholder' | ffTranslate"
+              (ionBlur)="passwordTouched = true">
+            </ion-input>
+          </ion-item>
+          
+          <!-- Strength Meter -->
+          <div class="strength-meter-container" *ngIf="securityData.new">
+            <div class="meter-bar">
+              <div class="fill" [style.width]="getPasswordStrength().width" [style.background-color]="getPasswordStrength().color"></div>
+            </div>
+            <span [style.color]="getPasswordStrength().color">{{ getPasswordStrength().label }}</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>{{ 'security.password.confirm' | ffTranslate }}</label>
+          <ion-item lines="none" class="custom-input" [class.invalid]="passwordTouched && securityData.confirm && securityData.new !== securityData.confirm">
+            <ion-input
+              [(ngModel)]="securityData.confirm"
+              type="password"
+              [placeholder]="'security.password.confirmPlaceholder' | ffTranslate"
+              (ionBlur)="passwordTouched = true">
+            </ion-input>
+          </ion-item>
+        </div>
+
+        <div class="validation-list" *ngIf="passwordErrors.length > 0">
+          <p *ngFor="let error of passwordErrors">{{ error }}</p>
+        </div>
+
+        <ion-button expand="block" class="btn-save" (click)="savePassword()" [disabled]="!canSubmitPassword">
+          <ion-spinner *ngIf="isSavingPassword" name="crescent"></ion-spinner>
+          <span *ngIf="!isSavingPassword">{{ 'security.password.save' | ffTranslate }}</span>
+        </ion-button>
+      </div>
+    </section>
+
+    <!-- SECCIÓN 2: SESIONES ACTIVAS -->
+    <section class="security-section animate__animated animate__fadeInUp" *ngIf="!isLoading">
+      <div class="section-header">
+        <ion-icon [icon]="icons.phonePortraitOutline"></ion-icon>
+        <h3>{{ 'security.sessions.title' | ffTranslate }}</h3>
+      </div>
+      <div class="security-card sessions-list">
+        <div class="session-item" *ngFor="let session of sessions">
+          <div class="device-icon">
+            <ion-icon [icon]="session.icon"></ion-icon>
+          </div>
+          <div class="session-info">
+            <strong>{{ session.device }}</strong>
+            <p>{{ session.location }} • {{ session.ip }}</p>
+            <span class="status-badge" *ngIf="session.active">{{ 'security.sessions.current' | ffTranslate }}</span>
+          </div>
+          <ion-button fill="clear" color="danger" *ngIf="!session.active">
+            <ion-icon [icon]="icons.powerOutline" slot="icon-only"></ion-icon>
+          </ion-button>
+        </div>
+        
+        <div class="session-actions ion-padding-top">
+          <ion-button fill="outline" color="danger" expand="block" (click)="closeAllSessions()">
+            {{ 'security.sessions.closeOthers' | ffTranslate }}
+          </ion-button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECCIÓN 3: LOGS DE ACTIVIDAD -->
+    <section class="security-section animate__animated animate__fadeInUp" *ngIf="!isLoading">
+      <div class="section-header">
+        <ion-icon [icon]="icons.alertCircleOutline"></ion-icon>
+        <h3>{{ 'security.activity.title' | ffTranslate }}</h3>
+      </div>
+      <div class="security-card logs-container">
+        <div class="log-entry" *ngFor="let log of activityLogs">
+          <div class="log-icon" [ngClass]="log.color">
+            <ion-icon [icon]="log.icon"></ion-icon>
+          </div>
+          <div class="log-text">
+            <strong>{{ log.titleKey | ffTranslate }}</strong>
+            <p>{{ log.dateKey ? (log.dateKey | ffTranslate) : log.date }}</p>
+          </div>
+          <ion-icon [icon]="icons.chevronBackOutline" class="arrow-rev"></ion-icon>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECCIÓN 4: ALERTAS -->
+    <section class="security-section animate__animated animate__fadeInUp" *ngIf="!isLoading">
+      <div class="section-header">
+        <ion-icon [icon]="icons.notificationsOutline"></ion-icon>
+        <h3>{{ 'security.alerts.title' | ffTranslate }}</h3>
+      </div>
+      <div class="security-card">
+        <ion-list lines="full">
+          <ion-item>
+            <ion-label>
+              <h2>{{ 'security.alerts.login.title' | ffTranslate }}</h2>
+              <p>{{ 'security.alerts.login.subtitle' | ffTranslate }}</p>
+            </ion-label>
+            <ion-toggle slot="end" [(ngModel)]="alertsConfig.login" (ionChange)="onAlertChange()"></ion-toggle>
+          </ion-item>
+          <ion-item>
+            <ion-label>
+              <h2>{{ 'security.alerts.suspicious.title' | ffTranslate }}</h2>
+              <p>{{ 'security.alerts.suspicious.subtitle' | ffTranslate }}</p>
+            </ion-label>
+            <ion-toggle slot="end" [(ngModel)]="alertsConfig.suspicious" (ionChange)="onAlertChange()"></ion-toggle>
+          </ion-item>
+          <ion-item>
+            <ion-label>
+              <h2>{{ 'security.alerts.rewards.title' | ffTranslate }}</h2>
+              <p>{{ 'security.alerts.rewards.subtitle' | ffTranslate }}</p>
+            </ion-label>
+            <ion-toggle slot="end" [(ngModel)]="alertsConfig.rewards" (ionChange)="onAlertChange()"></ion-toggle>
+          </ion-item>
+        </ion-list>
+      </div>
+    </section>
+
+    <!-- SECCIÓN 5: FUNCIONES FUTURAS -->
+    <section class="security-section animate__animated animate__fadeInUp" *ngIf="!isLoading">
+      <div class="section-header">
+        <ion-icon [icon]="icons.shieldCheckmarkOutline"></ion-icon>
+        <h3>Seguridad de la cuenta</h3>
+      </div>
+      <div class="security-card future-grid">
+        <div class="future-item">
+          <ion-icon [icon]="icons.fingerPrintOutline"></ion-icon>
+          <div>
+            <strong>Autenticación de dos factores</strong>
+            <p>Próximamente</p>
+          </div>
+        </div>
+        <div class="future-item">
+          <ion-icon [icon]="icons.phonePortraitOutline"></ion-icon>
+          <div>
+            <strong>Dispositivos conectados</strong>
+            <p>Próximamente</p>
+          </div>
+        </div>
+        <div class="future-item">
+          <ion-icon [icon]="icons.logInOutline"></ion-icon>
+          <div>
+            <strong>Sesiones activas avanzadas</strong>
+            <p>Próximamente</p>
+          </div>
+        </div>
+        <div class="future-item">
+          <ion-icon [icon]="icons.keyOutline"></ion-icon>
+          <div>
+            <strong>Recuperación de cuenta</strong>
+            <p>Próximamente</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="security-footer ion-text-center ion-padding" *ngIf="!isLoading">
+      <ion-icon [icon]="icons.fingerPrintOutline"></ion-icon>
+      <p>{{ 'security.biometric' | ffTranslate }}</p>
+      <p class="build-info">FidelyShield™ Engine v1.2</p>
+    </div>
+
+  </div>
+</ion-content>

@@ -15,7 +15,7 @@ import progresa.springboot_tfg.service.UsuarioService;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*")
+@CrossOrigin(originPatterns = "*")
 @Tag(name = "Auth", description = "Operaciones de autenticación para usuarios y restaurantes")
 public class AuthController {
 
@@ -58,6 +58,17 @@ public class AuthController {
             @RequestBody RestauranteLoginRequestDTO loginDTO) {
 
         return ResponseEntity.ok(restauranteService.login(loginDTO));
+    }
+
+    @Operation(
+            summary = "Login de administrador",
+            description = "Autentica a un usuario interno con rol administrador y devuelve un token JWT"
+    )
+    @PostMapping("/login-admin")
+    public ResponseEntity<LoginResponseDTO> loginAdmin(
+            @RequestBody LoginRequestDTO loginDTO) {
+
+        return ResponseEntity.ok(usuarioService.loginAdmin(loginDTO));
     }
 
     // 🔥 REGISTRO USUARIO CORREGIDO

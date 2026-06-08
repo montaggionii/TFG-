@@ -1,0 +1,108 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/u/home" text=""></ion-back-button>
+    </ion-buttons>
+    <ion-title>{{ 'rewards.title' | ffTranslate }}</ion-title>
+  </ion-toolbar>
+
+  <div class="user-points-pro-banner animate__animated animate__slideInDown">
+    <div class="points-summary">
+      <small>{{ 'rewards.balance' | ffTranslate }}</small>
+      <h2>{{ userPoints }} <span>{{ 'common.points' | ffTranslate }}</span></h2>
+    </div>
+    <div class="points-icon">
+      <ion-icon name="wallet-outline"></ion-icon>
+    </div>
+  </div>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="refrescar($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <div class="state-container ion-padding" *ngIf="isLoading; else contentUI">
+    <ion-spinner name="crescent" color="primary"></ion-spinner>
+    <p>{{ 'rewards.loading' | ffTranslate }}</p>
+  </div>
+
+  <ng-template #contentUI>
+    <!-- Empty State -->
+    <div class="state-container animate__animated animate__fadeIn" *ngIf="!error && recompensasAgrupadas.length === 0">
+      <div class="empty-reward-icon">
+        <ion-icon name="gift-outline"></ion-icon>
+      </div>
+      <h2>{{ 'rewards.empty.title' | ffTranslate }}</h2>
+      <p>{{ 'rewards.empty.subtitle' | ffTranslate }}</p>
+      <ion-button expand="block" mode="ios" fill="outline" class="back-btn" routerLink="/u/home">
+        {{ 'rewards.empty.action' | ffTranslate }}
+      </ion-button>
+    </div>
+
+    <!-- Error State -->
+    <div class="state-container animate__animated animate__fadeIn" *ngIf="error">
+      <ion-icon name="alert-circle-outline" color="danger" class="error-large-icon"></ion-icon>
+      <h2>{{ 'rewards.error.title' | ffTranslate }}</h2>
+      <p>{{ 'rewards.error.subtitle' | ffTranslate }}</p>
+      <ion-button (click)="cargarDatos()" mode="ios" class="retry-btn">{{ 'common.retry' | ffTranslate }}</ion-button>
+    </div>
+
+    <!-- Catálogo Agrupado por Restaurante -->
+    <div class="marketplace-container" *ngIf="recompensasAgrupadas.length > 0">
+      <div class="restaurant-group animate__animated animate__fadeIn" *ngFor="let grupo of recompensasAgrupadas">
+        <div class="group-header" [routerLink]="['/u/restaurante', grupo.restaurantId]">
+          <div class="header-left">
+            <div class="rest-icon-box">
+              <ion-icon name="restaurant-outline"></ion-icon>
+            </div>
+            <div class="rest-text">
+              <h3>{{ grupo.restaurantName }}</h3>
+              <p>{{ 'rewards.exclusivePromos' | ffTranslate }}</p>
+            </div>
+          </div>
+          <ion-icon name="chevron-forward-outline" class="go-arrow"></ion-icon>
+        </div>
+
+        <div class="rewards-grid">
+          <div class="reward-item-pro" *ngFor="let r of grupo.items">
+            <div class="item-card tap-effect" [routerLink]="['/u/restaurante', grupo.restaurantId]">
+              <div class="item-visual">
+                <img [appSafeRestaurantImage]="r.imageUrl" [alt]="r.titulo">
+                <div class="visual-gradient"></div>
+                <div class="pts-pill" [class.locked]="userPoints < r.puntosCoste">
+                  {{ r.puntosCoste }} <span>{{ 'common.pts' | ffTranslate }}</span>
+                </div>
+              </div>
+
+              <div class="item-body">
+                <h4>{{ r.titulo }}</h4>
+                
+                <!-- Progreso de puntos -->
+                <div class="progress-section" *ngIf="userPoints < r.puntosCoste">
+                  <div class="bar-bg">
+                    <div class="bar-fill" [style.width.%]="(userPoints / r.puntosCoste) * 100"></div>
+                  </div>
+                  <div class="progress-info">
+                    <span>{{ ((userPoints / r.puntosCoste) * 100) | number:'1.0-0' }}%</span>
+                  </div>
+                </div>
+
+                <ion-button 
+                  expand="block" 
+                  mode="ios" 
+                  class="action-btn"
+                  [class.locked-btn]="userPoints < r.puntosCoste"
+                  [disabled]="userPoints < r.puntosCoste"
+                  (click)="confirmarCanje(r, $event)">
+                  <ion-icon [name]="userPoints >= r.puntosCoste ? 'ticket-outline' : 'lock-closed-outline'" slot="start"></ion-icon>
+                  {{ userPoints >= r.puntosCoste ? ('actions.redeem' | ffTranslate) : ('rewards.locked' | ffTranslate) }}
+                </ion-button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-template>
+</ion-content>

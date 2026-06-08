@@ -1,0 +1,83 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-title>Mis Promociones</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="openCreateModal()">
+        <ion-icon name="add-circle-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="futuristic-promos ion-padding">
+  <!-- BACKGROUND BLUR BLOCKS -->
+  <div class="blur-bg">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
+
+  <!-- Refrescar -->
+  <ion-refresher slot="fixed" (ionRefresh)="loadPromos($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <!-- Lista de Promos -->
+  <div *ngIf="isLoading" class="ion-text-center ion-padding">
+    <ion-spinner name="crescent" color="primary"></ion-spinner>
+    <p>Cargando tus campañas...</p>
+  </div>
+
+  <div *ngIf="!isLoading && promos.length === 0" class="empty-state animate__animated animate__fadeIn">
+    <div class="empty-icon-wrap">
+      <ion-icon name="megaphone-outline"></ion-icon>
+    </div>
+    <h2>Aún no tienes promociones activas</h2>
+    <p>Crea ofertas estratégicas para atraer más clientes y aumentar tus ventas.</p>
+    <ion-button class="primary-action-btn" (click)="openCreateModal()">
+      <ion-icon name="add-circle-outline" slot="start"></ion-icon>
+      Crear Mi Primera Oferta
+    </ion-button>
+  </div>
+
+  <div *ngIf="!isLoading && promos.length > 0" class="promos-grid">
+    <div *ngFor="let promo of promos" class="glass-card promo-card-pro">
+      <div class="promo-image-container">
+        <img [appSafeRestaurantImage]="promo.imagenUrl"
+             [alt]="promo.titulo" />
+        <div class="puntos-badge" [class.canje-badge]="promo.tipo === 'CANJEAR'">
+          <span class="badge-kind">{{ promo.tipo === 'CANJEAR' ? 'CANJE' : 'ABONO' }}</span>
+          {{ promo.tipo === 'CANJEAR' ? '-' : '+' }}{{ promo.puntosNecesarios }} PTS
+        </div>
+      </div>
+      
+      <div class="promo-info">
+        <div class="header-row">
+          <h3>{{ promo.titulo }}</h3>
+          <span class="status-active"><span class="dot"></span> Activa</span>
+        </div>
+        <p class="description">{{ promo.descripcion }}</p>
+        
+        <div class="promo-footer">
+          <div class="promo-actions">
+            <button class="soft-btn edit" (click)="editarPromo(promo)">
+              <ion-icon name="create-outline"></ion-icon>
+              Editar
+            </button>
+            <button class="soft-btn delete" (click)="eliminarPromo(promo.id)">
+              <ion-icon name="trash-outline"></ion-icon>
+              Eliminar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAB para crear -->
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab-button (click)="openCreateModal()">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+</ion-content>

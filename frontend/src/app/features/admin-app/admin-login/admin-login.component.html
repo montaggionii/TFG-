@@ -1,0 +1,57 @@
+<ion-content class="admin-login">
+  <main class="login-wrap">
+    <section class="login-brand">
+      <div class="logo-mark">
+        <img src="assets/img/logo_fidelyfood.png" alt="FidelyFood" />
+      </div>
+      <span>FidelyFood Admin</span>
+      <h1>Acceso interno autorizado</h1>
+      <p>Panel privado para supervisar usuarios, negocios, reservas e incidencias de la plataforma.</p>
+      <div class="security-note">
+        <ion-icon name="shield-checkmark-outline"></ion-icon>
+        <span>Entrada protegida para administradores verificados</span>
+      </div>
+    </section>
+
+    <section class="login-panel">
+      <div class="panel-header">
+        <div class="badge">
+          <ion-icon name="lock-closed-outline"></ion-icon>
+        </div>
+        <div>
+          <span class="eyebrow">Zona privada</span>
+          <h2>Iniciar sesión</h2>
+          <p>Usa tus credenciales internas de administrador.</p>
+        </div>
+      </div>
+
+      <form [formGroup]="loginForm" (ngSubmit)="doLogin()" class="auth-form">
+        <label>
+          <span>Email</span>
+          <div class="field">
+            <ion-icon name="mail-outline"></ion-icon>
+            <ion-input type="email" formControlName="email" placeholder="admin@fidelyfood.local"></ion-input>
+          </div>
+        </label>
+
+        <label>
+          <span>Contraseña</span>
+          <div class="field">
+            <ion-icon name="lock-closed-outline"></ion-icon>
+            <ion-input type="password" formControlName="password" placeholder="Contraseña"></ion-input>
+          </div>
+        </label>
+
+        <ion-button expand="block" type="submit" [disabled]="loginForm.invalid">
+          Entrar
+          <ion-icon name="arrow-forward-outline" slot="end"></ion-icon>
+        </ion-button>
+      </form>
+
+      <a routerLink="/login" class="public-link">
+        <ion-icon name="arrow-back-outline"></ion-icon>
+        Volver al login público
+      </a>
+    </section>
+  </main>
+</ion-content>

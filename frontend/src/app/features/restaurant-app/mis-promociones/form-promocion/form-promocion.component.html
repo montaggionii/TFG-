@@ -1,0 +1,153 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar class="saas-header">
+    <div class="header-content">
+      <div class="title-container">
+        <h1 class="title">{{ promo ? 'Editar promoción' : 'Crear promoción' }}</h1>
+        <p class="subtitle">{{ promo ? 'Actualiza los detalles de tu oferta existente.' : 'Configura una nueva oferta para fidelizar a tus clientes.' }}</p>
+      </div>
+      <ion-buttons slot="end">
+        <ion-button class="close-btn" (click)="closeModal()">
+          <ion-icon name="close-outline"></ion-icon>
+        </ion-button>
+      </ion-buttons>
+    </div>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="saas-content futuristic-promos" [fullscreen]="true" [scrollY]="true">
+  <!-- BACKGROUND BLUR BLOCKS -->
+  <div class="blur-bg">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
+
+  <div class="saas-container">
+    <div class="main-content">
+      <div class="form-wrapper">
+        <form [formGroup]="promotionForm" id="promoForm" (ngSubmit)="onSubmit()">
+          <div class="input-card">
+            <ion-item lines="none" class="saas-item">
+              <ion-icon name="pricetag-outline" slot="start" class="input-icon"></ion-icon>
+              <div class="input-content">
+                <ion-label class="saas-label">Título de la Promoción</ion-label>
+                <ion-input formControlName="titulo" placeholder="Ej: Menú del Día 10% Dto" class="saas-input"></ion-input>
+                <ion-note class="form-error-text" *ngIf="promotionForm.get('titulo')?.touched && promotionForm.get('titulo')?.invalid">
+                  Revisa este campo: el título es obligatorio.
+                </ion-note>
+              </div>
+            </ion-item>
+          </div>
+
+          <div class="input-card">
+            <ion-item lines="none" class="saas-item">
+              <ion-icon name="document-text-outline" slot="start" class="input-icon"></ion-icon>
+              <div class="input-content">
+                <ion-label class="saas-label">Descripción Detallada</ion-label>
+                <ion-textarea formControlName="descripcion" placeholder="Escribe aquí los detalles de la oferta..." rows="3" class="saas-input"></ion-textarea>
+                <ion-note class="form-error-text" *ngIf="promotionForm.get('descripcion')?.touched && promotionForm.get('descripcion')?.invalid">
+                  Revisa este campo: añade una descripción.
+                </ion-note>
+              </div>
+            </ion-item>
+          </div>
+
+          <div class="input-card">
+            <ion-item lines="none" class="saas-item">
+              <ion-icon name="star-outline" slot="start" class="input-icon"></ion-icon>
+              <div class="input-content">
+                <ion-label class="saas-label">Cantidad de Puntos</ion-label>
+                <ion-input type="number" formControlName="puntosNecesarios" placeholder="Ej: 300" class="saas-input"></ion-input>
+                <ion-note class="form-error-text" *ngIf="promotionForm.get('puntosNecesarios')?.touched && promotionForm.get('puntosNecesarios')?.invalid">
+                  Revisa este campo: introduce al menos 1 punto.
+                </ion-note>
+              </div>
+            </ion-item>
+          </div>
+
+          <div class="input-card">
+            <ion-item lines="none" class="saas-item">
+              <ion-icon name="swap-horizontal-outline" slot="start" class="input-icon"></ion-icon>
+              <div class="input-content">
+                <ion-label class="saas-label">Tipo de Promoción</ion-label>
+                <ion-select formControlName="tipo" interface="popover" class="saas-input">
+                  <ion-select-option value="GANAR">🎁 Ganar puntos (el cliente acumula)</ion-select-option>
+                  <ion-select-option value="CANJEAR">🛒 Canjear puntos (el cliente gasta)</ion-select-option>
+                </ion-select>
+              </div>
+            </ion-item>
+          </div>
+
+          <div class="image-upload-card">
+            <div class="image-upload-header">
+              <ion-icon name="image-outline" class="header-icon"></ion-icon>
+              <h3>Imagen de la Promoción</h3>
+            </div>
+            <p class="image-upload-subtitle">Sube un archivo desde tu dispositivo o proporciona una URL directa.</p>
+
+            <div class="upload-options">
+              <div class="file-upload-zone" [class.has-file]="selectedFile">
+                <input type="file" #fileInput (change)="onFileSelected($event)" accept="image/png, image/jpeg, image/webp" class="hidden-file-input" style="opacity: 0; position: absolute; width: 100%; height: 100%; cursor: pointer; z-index: 2;">
+                <div class="file-label">
+                  <ion-icon name="cloud-upload-outline"></ion-icon>
+                  <span>{{ selectedFile ? selectedFile.name : (promo?.imagen ? 'Cambiar imagen...' : 'Seleccionar archivo...') }}</span>
+                </div>
+                <ion-button fill="clear" color="danger" class="clear-file-btn" *ngIf="selectedFile" (click)="clearFileSelection(); $event.stopPropagation()" style="z-index: 3;">
+                  <ion-icon name="close-circle" slot="icon-only"></ion-icon>
+                </ion-button>
+              </div>
+
+              <div class="divider">
+                <span>O usa una URL</span>
+              </div>
+
+              <ion-item lines="none" class="saas-item url-item" [disabled]="selectedFile !== null">
+                <ion-icon name="link-outline" slot="start" class="input-icon"></ion-icon>
+                <div class="input-content">
+                  <ion-input type="url" formControlName="imagenUrl" placeholder="https://ejemplo.com/imagen.jpg" class="saas-input"></ion-input>
+                </div>
+              </ion-item>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- Marketplace Preview Area -->
+      <div class="preview-wrapper">
+        <div class="preview-header">
+          <h4>Vista previa en tiempo real</h4>
+          <span class="pulse-indicator"></span>
+        </div>
+        
+        <div class="marketplace-card" [class.no-image]="!previewUrl">
+          <div class="card-image-container">
+            <img *ngIf="previewUrl" [src]="previewUrl" alt="Promoción" class="preview-image fade-in">
+            <div *ngIf="!previewUrl" class="placeholder-image">
+              <ion-icon name="image-outline"></ion-icon>
+              <span>Sin imagen</span>
+            </div>
+            <div class="points-badge" [class.canje]="promotionForm.get('tipo')?.value === 'CANJEAR'" *ngIf="promotionForm.get('puntosNecesarios')?.value">
+              <ion-icon [name]="promotionForm.get('tipo')?.value === 'CANJEAR' ? 'cart' : 'gift'"></ion-icon>
+              <span>{{ promotionForm.get('tipo')?.value === 'CANJEAR' ? '-' : '+' }}{{ promotionForm.get('puntosNecesarios')?.value }} pts</span>
+            </div>
+          </div>
+          
+          <div class="card-content">
+            <h2 class="card-title">{{ promotionForm.get('titulo')?.value || 'Nombre de la promoción' }}</h2>
+            <p class="card-description">{{ promotionForm.get('descripcion')?.value || 'La descripción detallada de tu oferta aparecerá aquí.' }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</ion-content>
+
+<ion-footer class="ion-no-border saas-footer">
+  <div class="action-zone">
+    <ion-button expand="block" type="submit" form="promoForm" [disabled]="promotionForm.invalid || isSubmitting" class="primary-action-btn">
+      <ion-spinner name="crescent" *ngIf="isSubmitting"></ion-spinner>
+      <span *ngIf="!isSubmitting">{{ promo ? 'Actualizar promoción' : 'Crear promoción' }}</span>
+      <ion-icon [name]="promo ? 'save-outline' : 'arrow-forward'" slot="end" *ngIf="!isSubmitting"></ion-icon>
+    </ion-button>
+  </div>
+</ion-footer>

@@ -1,0 +1,191 @@
+.terms-page {
+  --background: #ffffff;
+}
+
+.terms-container {
+  max-width: min(700px, 100%);
+  margin: 0 auto;
+  padding: 0 clamp(12px, 4vw, 20px) var(--app-client-tabbar-clearance);
+}
+
+// HERO
+.terms-hero {
+  text-align: center;
+  padding: clamp(24px, 7vw, 32px) 0 24px;
+  
+  .icon-box {
+    width: 60px;
+    height: 60px;
+    background: #f1f5f9;
+    color: #475569;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    margin: 0 auto 16px;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0;
+    letter-spacing: -0.5px;
+  }
+
+  p {
+    margin: 12px 0;
+    font-size: 0.95rem;
+    color: #64748b;
+    line-height: 1.5;
+    font-weight: 500;
+  }
+
+  .badge-legal {
+    display: inline-block;
+    padding: 4px 12px;
+    background: #f8fafc;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: 1px solid #f1f5f9;
+  }
+}
+
+// INDEX (CHIPS)
+.terms-index {
+  margin: 24px 0 40px;
+  
+  p {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+  }
+
+  .index-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    .chip {
+      padding: 8px 14px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #475569;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:active {
+        background: #f1f5f9;
+        transform: translateY(2px);
+      }
+
+      ion-icon { font-size: 16px; color: #94a3b8; }
+    }
+  }
+}
+
+// LEGAL CONTENT
+.legal-content {
+  .content-section {
+    margin-bottom: 40px;
+    
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+      
+      ion-icon { font-size: 20px; color: var(--ion-color-primary); }
+      h3 { font-size: 1.1rem; font-weight: 800; color: #0f172a; margin: 0; }
+    }
+
+    .text-block {
+      p {
+        font-size: 1rem;
+        line-height: 1.7;
+        color: #475569;
+        margin-bottom: 16px;
+        font-weight: 500;
+      }
+
+      ul {
+        padding-left: 20px;
+        margin-bottom: 16px;
+        li {
+          font-size: 0.95rem;
+          line-height: 1.6;
+          color: #475569;
+          margin-bottom: 8px;
+          font-weight: 500;
+          list-style: disc;
+        }
+      }
+    }
+  }
+}
+
+// ACCEPTANCE
+.acceptance-box {
+  margin-top: 48px;
+  background: #f8fafc;
+  padding: clamp(18px, 5vw, 24px);
+  border-radius: 24px;
+  border: 1px solid #e2e8f0;
+
+  .checkbox-item {
+    --background: transparent;
+    --padding-start: 0;
+    margin-bottom: 16px;
+    
+    ion-checkbox {
+      --size: 22px;
+      --border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      line-height: 1.4;
+      color: #334155;
+    }
+  }
+
+  .btn-finish {
+    --border-radius: 16px;
+    height: 56px;
+    font-weight: 800;
+    --box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+  }
+}
+
+@media (max-width: 390px) {
+  .terms-index .index-chips .chip {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+}
+
+.footer-spacer {
+  height: 80px;
+}
+
+ion-fab-button {
+  --background: #0f172a;
+  --box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.custom-toast {
+  --border-radius: 16px;
+  font-weight: 700;
+}

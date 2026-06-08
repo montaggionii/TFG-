@@ -2,6 +2,7 @@ package progresa.springboot_tfg.security;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
@@ -12,11 +13,11 @@ public class JwtUtil {
 
     private static final long EXPIRATION_TIME = 1000 * 60 * 60 * 10; // 10 horas
 
+    private final Key key;
 
-    private static final String SECRET =
-            "clave-super-secreta-fidelyapp-2026-jwt-backend";
-
-    private final Key key = Keys.hmacShaKeyFor(SECRET.getBytes());
+    public JwtUtil(@Value("${app.jwt.secret:fidelyfood-dev-jwt-secret-change-me-2026}") String secret) {
+        this.key = Keys.hmacShaKeyFor(secret.getBytes());
+    }
 
     public String generateToken(String email, String role) {
 

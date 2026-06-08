@@ -16,7 +16,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/recompensas")
-@CrossOrigin(origins = "*")
+@CrossOrigin(originPatterns = "*")
 @Tag(name = "Recompensas", description = "Gestión de recompensas y canje por puntos")
 public class RecompensaController {
 

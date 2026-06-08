@@ -1,0 +1,214 @@
+.login-page {
+  --background: #FFFFFF;
+  background: linear-gradient(135deg, #FFFFFF 0%, #FFF5F2 100%);
+  
+  .login-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100dvh;
+    padding: calc(16px + env(safe-area-inset-top)) clamp(14px, 5vw, 24px) calc(16px + env(safe-area-inset-bottom));
+  }
+
+  .login-card {
+    background: transparent;
+    width: 100%;
+    max-width: min(420px, 100%);
+    
+    // 1. LOGO INTEGRADO (Look Fintech)
+    .brand-header {
+      text-align: center;
+      padding-top: clamp(8px, 6vh, 40px);
+      padding-bottom: clamp(12px, 3vh, 20px);
+      animation: logoEntrada 0.8s ease-out forwards;
+
+      .main-logo {
+        width: clamp(112px, 34vw, 150px);
+        height: auto;
+        background: transparent;
+        mix-blend-mode: multiply; // Clave para eliminar fondo blanco e integrar
+        display: block;
+        margin: 0 auto;
+      }
+    }
+
+    @keyframes logoEntrada {
+      0% {
+        opacity: 0;
+        transform: scale(0.9);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .welcome-header {
+      text-align: center;
+      margin-bottom: clamp(24px, 6vh, 40px);
+      
+      h2 {
+        font-size: clamp(1.45rem, 7vw, 1.8rem);
+        font-weight: 800;
+        color: #1F1F1F;
+        margin: 0;
+      }
+
+      p {
+        font-size: 0.95rem;
+        color: #666;
+        margin-top: 10px;
+        font-weight: 500;
+      }
+    }
+  }
+
+  // 2. SELECTOR: Track gris, Botón blanco, Texto naranja
+  .role-selector {
+    margin-bottom: clamp(20px, 5vh, 32px);
+
+    .pill-track {
+      background: #F3F4F6;
+      border-radius: 16px;
+      height: 56px;
+      display: flex;
+      padding: 6px;
+      position: relative;
+
+      .selection-indicator {
+        position: absolute;
+        width: calc(50% - 6px);
+        height: calc(100% - 12px);
+        background: #FFFFFF; // Fondo blanco para el activo
+        border-radius: 12px;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+
+        &.to-right {
+          transform: translateX(100%);
+        }
+      }
+
+      .role-btn {
+        flex: 1;
+        background: transparent;
+        border: none;
+        position: relative;
+        z-index: 2;
+        font-size: 1rem;
+        font-weight: 700;
+        color: #6B7280;
+        transition: all 0.3s ease;
+        cursor: pointer;
+
+        &.active {
+          color: #FF5A3C; // Texto naranja para el activo
+        }
+      }
+    }
+  }
+
+  // 3. INPUTS
+  .auth-form {
+    .input-group {
+      margin-bottom: clamp(16px, 4vh, 24px);
+
+      ion-label {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 800;
+        color: #4B5563;
+        margin-bottom: 8px;
+        padding-left: 4px;
+      }
+
+      .field-wrapper {
+        background: #F9FAFB;
+        border: 1px solid #E5E7EB;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        padding: 0 16px;
+        min-height: 54px;
+        transition: all 0.3s ease;
+
+        &:focus-within {
+          border-color: #FF5A3C;
+          background: white;
+        }
+
+        ion-icon {
+          display: none; // Minimalismo como en la foto
+        }
+
+        .custom-input {
+          --padding-start: 0;
+          font-weight: 600;
+          font-size: 1rem;
+          color: #1F1F1F;
+          --placeholder-color: #9CA3AF;
+        }
+      }
+    }
+
+    // BOTÓN PRINCIPAL: Naranja suave / Peachy
+    .submit-btn {
+      margin-top: clamp(22px, 5vh, 32px);
+      --border-radius: 16px;
+      height: 60px;
+      font-weight: 800;
+      font-size: 1.1rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      --background: linear-gradient(135deg, #FF9A8B 0%, #FF6B6B 100%);
+      --box-shadow: 0 8px 20px rgba(255, 107, 107, 0.2);
+      color: white;
+      
+      &:active {
+        transform: scale(0.98);
+      }
+    }
+  }
+
+  // 4. FOOTER LINKS
+  .footer-links {
+    margin-top: clamp(24px, 6vh, 40px);
+    text-align: center;
+
+    .register-text {
+      font-size: 0.95rem;
+      color: #6B7280;
+      font-weight: 600;
+      margin-bottom: 16px;
+
+      a {
+        color: #FF5A3C;
+        font-weight: 800;
+        text-decoration: none;
+        &:hover { text-decoration: underline; }
+      }
+    }
+
+    .forgot-link {
+      display: block;
+      font-size: 0.85rem;
+      color: #9CA3AF;
+      font-weight: 700;
+      text-decoration: none;
+      &:hover { color: #FF5A3C; }
+    }
+  }
+}
+
+@media (max-width: 360px) {
+  .login-page {
+    .role-selector .pill-track .role-btn {
+      font-size: 0.92rem;
+    }
+
+    .auth-form .submit-btn {
+      font-size: 0.95rem;
+      letter-spacing: 0.04em;
+    }
+  }
+}

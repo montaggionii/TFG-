@@ -4,6 +4,30 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+### OS / local files ###
+.DS_Store
+**/.DS_Store
+*.log
+*.tmp
+*.bak
+*.swp
+HELLO_FROM_ANTIGRAVITY.txt
+backend_url.txt
+
+### Environment / secrets ###
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.pfx
+*.jks
+*.key
+
+### Runtime uploads / generated media ###
+uploads/
+frontend/uploads/
+
 ### STS ###
 .apt_generated
 .classpath
@@ -31,3 +55,28 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Frontend / Angular / Ionic ###
+node_modules/
+frontend/node_modules/
+.angular/
+frontend/.angular/
+dist/
+frontend/dist/
+www/
+frontend/www/
+browser/
+frontend/browser/
+coverage/
+frontend/coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+frontend/package-lock 2.json
+frontend/android/app/src/main/res/xml/config 2.xml
+frontend/ios/App/App/config 2.xml
+
+### Capacitor generated build folders ###
+frontend/android/app/build/
+frontend/ios/App/build/

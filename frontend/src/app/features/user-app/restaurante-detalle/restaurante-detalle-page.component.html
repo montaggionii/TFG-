@@ -1,0 +1,401 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar class="glass-toolbar">
+    <ion-buttons slot="start">
+      <ion-button (click)="goBack()" class="back-btn">
+        <ion-icon slot="icon-only" name="arrow-back-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>{{ restaurante?.nombre || ('restaurant.fallbackTitle' | ffTranslate) }}</ion-title>
+    <ion-buttons slot="end">
+      <div class="points-badge" *ngIf="ptsRestaurante !== undefined">
+        <ion-icon name="star"></ion-icon>
+        <span>{{ ptsRestaurante }} {{ 'common.pts' | ffTranslate }}</span>
+      </div>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="detail-content">
+  
+  <div *ngIf="restaurante; else loadingOrError" class="main-container animate__animated animate__fadeIn">
+    
+    <!-- Hero Section -->
+    <div class="hero-section">
+      <img [appSafeRestaurantImage]="restaurante" 
+           alt="Hero Image" />
+      <div class="hero-overlay">
+        <div class="type-tag">{{ restaurante.tipo || ('common.gourmet' | ffTranslate) }}</div>
+      </div>
+    </div>
+
+    <!-- Info Section -->
+    <div class="info-section">
+      <div class="header-info">
+        <h1>{{ restaurante.nombre }}</h1>
+        <div class="rating">
+          <ion-icon name="star"></ion-icon>
+          <span>{{ restaurante.rating || '4.8' }}</span>
+        </div>
+      </div>
+
+      <div class="restaurant-points-context" aria-live="polite">
+        <div class="points-icon">
+          <ion-icon name="star"></ion-icon>
+        </div>
+        <div class="points-copy">
+          <p class="label">{{ 'restaurant.pointsContext.label' | ffTranslate }}</p>
+          <p class="value" *ngIf="!isRestaurantBalanceLoading && ptsRestaurante !== undefined">
+            {{ 'restaurant.pointsContext.text' | ffTranslate:{ points: ptsRestaurante, restaurant: restaurante.nombre } }}
+          </p>
+          <p class="value muted" *ngIf="isRestaurantBalanceLoading || ptsRestaurante === undefined">
+            {{ 'restaurant.loadingBalance' | ffTranslate }}
+          </p>
+        </div>
+      </div>
+
+      <div class="info-grid">
+        <div class="info-item" (click)="abrirMaps()">
+          <ion-icon name="location-outline" color="primary"></ion-icon>
+          <div class="text">
+            <p class="label">{{ 'restaurant.location' | ffTranslate }} • {{ distanciaKM }} km</p>
+            <p class="value">{{ restaurante.direccion || 'Valencia, España' }}</p>
+          </div>
+          <ion-icon name="navigate-outline" class="nav-icon" color="primary"></ion-icon>
+        </div>
+
+        <div class="info-item" *ngIf="restaurante.telefono">
+          <ion-icon name="call-outline" color="success"></ion-icon>
+          <div class="text">
+            <p class="label">{{ 'restaurant.contact' | ffTranslate }}</p>
+            <p class="value">{{ restaurante.telefono }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="description">
+        <h3>{{ 'restaurant.about' | ffTranslate }}</h3>
+        <p>{{ restaurante.descripcion || ('restaurant.defaultDescription' | ffTranslate) }}</p>
+      </div>
+    </div>
+
+    <!-- Promociones -->
+    <div class="promotions-section">
+      <div class="section-header">
+        <h2>{{ 'restaurant.promotions' | ffTranslate }}</h2>
+        <ion-icon name="gift-outline" color="primary"></ion-icon>
+      </div>
+
+      <div *ngIf="promociones.length > 0" class="promo-grid">
+        <ion-card *ngFor="let promo of promociones" class="promo-card animate__animated animate__fadeInUp"
+                  [class.promo-ganar]="isEarnPromotion(promo)" 
+                  [class.promo-canjear]="isRedeemPromotion(promo)">
+          <div class="promo-image-mini">
+            <img [appSafeRestaurantImage]="promo"
+                 alt="{{ promo.titulo }}" />
+          </div>
+          <ion-card-header>
+            <div class="promo-title-row">
+              <ion-card-title>{{ promo.titulo }}</ion-card-title>
+              <div class="pts-tag" [class.pts-tag--ganar]="isEarnPromotion(promo)" [class.pts-tag--canjear]="isRedeemPromotion(promo)">
+                <span *ngIf="isEarnPromotion(promo)">🎁 +{{ promo.puntosNecesarios }} pts</span>
+                <span *ngIf="isRedeemPromotion(promo)">🛒 {{ promo.puntosNecesarios }} pts</span>
+                <span *ngIf="!isEarnPromotion(promo) && !isRedeemPromotion(promo)">{{ promo.puntosNecesarios }} pts</span>
+              </div>
+            </div>
+            <div class="promo-kind-label" [class.promo-kind-label--redeem]="isRedeemPromotion(promo)">
+              <ion-icon [name]="isRedeemPromotion(promo) ? 'ticket-outline' : (isEarnPromotion(promo) ? 'trending-up-outline' : 'information-circle-outline')"></ion-icon>
+              <span *ngIf="isEarnPromotion(promo)">{{ 'restaurant.kindEarn' | ffTranslate }}</span>
+              <span *ngIf="isRedeemPromotion(promo)">{{ 'restaurant.kindRedeem' | ffTranslate }}</span>
+              <span *ngIf="isInvalidPromotion(promo)">{{ 'restaurant.promotions' | ffTranslate }}</span>
+            </div>
+          </ion-card-header>
+
+          <ion-card-content>
+            <p>{{ promo.descripcion }}</p>
+            
+            <div class="card-footer">
+              <!-- Promoción de GANAR: siempre activa, texto motivador -->
+              <ion-button 
+                *ngIf="isEarnPromotion(promo)"
+                expand="block"
+                color="success"
+                class="earn-qr-btn"
+                (click)="canjearPromo(promo)">
+                {{ 'restaurant.viewPromotion' | ffTranslate }}
+              </ion-button>
+
+              <!-- Promoción de CANJEAR: valida saldo -->
+              <ion-button 
+                *ngIf="isRedeemPromotion(promo)"
+                expand="block" 
+                shape="round"
+                [color]="hasEnoughRestaurantPoints(promo) ? 'primary' : 'medium'"
+                [disabled]="isRedeemDisabled(promo)"
+                (click)="canjearPromo(promo)">
+                <ng-container *ngIf="isRestaurantBalanceLoading || ptsRestaurante === undefined">
+                  {{ 'restaurant.loadingBalance' | ffTranslate }}
+                </ng-container>
+                <ng-container *ngIf="!isRestaurantBalanceLoading && ptsRestaurante !== undefined">
+                  {{ hasEnoughRestaurantPoints(promo) ? ('restaurant.redeemFor' | ffTranslate:{ points: promo.puntosNecesarios }) : ('restaurant.insufficientPoints' | ffTranslate:{ current: ptsRestaurante, required: promo.puntosNecesarios }) }}
+                </ng-container>
+              </ion-button>
+
+              <!-- Fallback para otros tipos -->
+              <ion-button 
+                *ngIf="!isEarnPromotion(promo) && !isRedeemPromotion(promo)"
+                expand="block"
+                (click)="canjearPromo(promo)">
+                {{ 'restaurant.viewPromotion' | ffTranslate }}
+              </ion-button>
+            </div>
+          </ion-card-content>
+        </ion-card>
+      </div>
+
+      <div *ngIf="promociones.length === 0" class="empty-state">
+        <div class="empty-icon">
+          <ion-icon name="information-circle-outline"></ion-icon>
+        </div>
+        <p>{{ 'restaurant.noPromos' | ffTranslate }}</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Template para Carga o Error -->
+  <ng-template #loadingOrError>
+    <div *ngIf="!error" class="loading-container">
+      <ion-spinner name="crescent" color="primary"></ion-spinner>
+      <p>{{ 'restaurant.loading' | ffTranslate }}</p>
+    </div>
+
+    <div *ngIf="error" class="error-container">
+      <ion-icon name="cloud-offline-outline" color="danger"></ion-icon>
+      <p>{{ 'restaurant.error' | ffTranslate }}</p>
+      <ion-button fill="clear" (click)="goBack()">{{ 'restaurant.backToMap' | ffTranslate }}</ion-button>
+    </div>
+  </ng-template>
+
+
+  <!-- MODAL DETALLE PROMOCIÓN PARA GANAR PUNTOS -->
+  <ion-modal [isOpen]="isEarnPromoDetailOpen" (didDismiss)="isEarnPromoDetailOpen = false" class="promo-action-modal earn-detail-modal" [backdropDismiss]="true">
+    <ng-template>
+      <div class="modal-content-scrollable">
+        <ion-button
+          fill="clear"
+          class="receipt-close-button"
+          aria-label="Cerrar promoción"
+          (click)="isEarnPromoDetailOpen = false">
+          <ion-icon slot="icon-only" name="close-outline"></ion-icon>
+        </ion-button>
+
+        <div class="header-indicator-wrapper">
+          <div class="header-indicator"></div>
+        </div>
+
+        <div class="receipt-content-area earn-detail-content">
+          <div class="icon-circle earn">
+            <ion-icon name="trending-up-outline"></ion-icon>
+          </div>
+
+          <p class="success-subtitle">{{ 'restaurant.kindEarn' | ffTranslate }}</p>
+          <h2>{{ selectedPromo?.titulo }}</h2>
+          <p class="promo-desc">{{ selectedPromo?.descripcion }}</p>
+
+          <div class="receipt-card">
+            <div class="receipt-body">
+              <div class="receipt-row balance">
+                <span class="label">{{ 'restaurant.earnDetail.points' | ffTranslate }}</span>
+                <span class="value success">+{{ selectedPromo?.puntosNecesarios }} {{ 'common.pts' | ffTranslate }}</span>
+              </div>
+              <div class="receipt-row main">
+                <span class="label">{{ 'restaurant.earnDetail.restaurant' | ffTranslate }}</span>
+                <span class="value">{{ restaurante?.nombre }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="instruction-box earn-instruction">
+            <ion-icon name="qr-code-outline"></ion-icon>
+            <span>{{ 'restaurant.earnDetail.instruction' | ffTranslate }}</span>
+          </div>
+
+          <div class="action-buttons">
+            <ion-button expand="block" mode="ios" class="btn-history" (click)="mostrarQrGanarPuntos(selectedPromo)">
+              <ion-icon name="qr-code-outline" slot="start"></ion-icon>
+              {{ 'restaurant.earnDetail.showQr' | ffTranslate }}
+            </ion-button>
+            <ion-button expand="block" fill="clear" class="btn-close" (click)="isEarnPromoDetailOpen = false">
+              {{ 'common.close' | ffTranslate }}
+            </ion-button>
+          </div>
+        </div>
+      </div>
+    </ng-template>
+  </ion-modal>
+
+  <!-- MODAL QR (PARA GANAR PUNTOS) -->
+  <ion-modal [isOpen]="isQrModalOpen" (didDismiss)="isQrModalOpen = false" class="promo-action-modal earn-qr-modal">
+    <ng-template>
+      <div class="qr-reward-shell">
+        <button type="button" class="qr-close-icon" (click)="isQrModalOpen = false" aria-label="Cerrar QR">
+          <ion-icon name="close-outline"></ion-icon>
+        </button>
+
+        <section class="qr-reward-header animate__animated animate__fadeInDown">
+          <div class="reward-icon">
+            <ion-icon name="trophy-outline"></ion-icon>
+          </div>
+          <div class="reward-copy">
+            <span>{{ 'restaurant.qr.unlocked' | ffTranslate }}</span>
+            <h2>{{ selectedPromo?.titulo || ('restaurant.qr.title' | ffTranslate) }}</h2>
+            <p>{{ restaurante?.nombre }}</p>
+          </div>
+          <div class="points-pill">
+            +{{ selectedPromo?.puntosNecesarios || 0 }} pts
+          </div>
+        </section>
+
+        <div class="qr-info-card animate__animated animate__fadeInUp">
+          <ion-icon name="sparkles-outline"></ion-icon>
+          <p>{{ 'restaurant.qr.info' | ffTranslate }}</p>
+        </div>
+
+        <section class="qr-stage animate__animated animate__zoomIn">
+          <div class="qr-stage-label">
+            <ion-icon name="qr-code-outline"></ion-icon>
+            <span>{{ 'restaurant.qr.scanLabel' | ffTranslate }}</span>
+          </div>
+          <div class="qr-frame-premium">
+            <canvas #promoQrCanvas></canvas>
+          </div>
+        </section>
+
+        <div class="reward-badge-card animate__animated animate__fadeInUp">
+          <span>{{ 'restaurant.qr.rewardLabel' | ffTranslate }}</span>
+          <strong>+{{ selectedPromo?.puntosNecesarios || 0 }} puntos</strong>
+        </div>
+
+        <div class="qr-action-row animate__animated animate__fadeInUp">
+          <ion-button expand="block" mode="ios" class="show-restaurant-btn">
+            <ion-icon name="qr-code-outline" slot="start"></ion-icon>
+            {{ 'restaurant.qr.primaryAction' | ffTranslate }}
+          </ion-button>
+          <ion-button expand="block" fill="clear" class="close-qr-btn" (click)="isQrModalOpen = false">
+            {{ 'common.close' | ffTranslate }}
+          </ion-button>
+          <div class="screen-tip">
+            <ion-icon name="flashlight-outline"></ion-icon>
+            <span>{{ 'restaurant.qr.brightness' | ffTranslate }}</span>
+          </div>
+        </div>
+      </div>
+    </ng-template>
+  </ion-modal>
+
+  <!-- MODAL ÉXITO — RECIBO PREMIUM TICKET FINTECH -->
+  <ion-modal #successModal [isOpen]="isSuccessModalOpen" (didDismiss)="isSuccessModalOpen = false" class="promo-action-modal success-receipt" [backdropDismiss]="true" [handle]="true">
+    <ng-template>
+      <div class="modal-content-scrollable">
+        <ion-button
+          fill="clear"
+          class="receipt-close-button"
+          aria-label="Cerrar recibo"
+          (click)="cerrarModalExito()">
+          <ion-icon slot="icon-only" name="close-outline"></ion-icon>
+        </ion-button>
+
+        <div class="header-indicator-wrapper">
+          <div class="header-indicator"></div>
+        </div>
+
+        <div class="receipt-content-area">
+          <div class="icon-circle success">
+            <ion-icon name="checkmark-circle-outline"></ion-icon>
+          </div>
+          
+          <h2 class="success-title">{{ 'restaurant.success.title' | ffTranslate }}</h2>
+          <p class="success-subtitle">{{ 'restaurant.success.subtitle' | ffTranslate }}</p>
+
+          <!-- TICKET / RECIBO PREMIUM -->
+          <div class="receipt-card">
+            <div class="ticket-perfs"></div>
+            <div class="receipt-brand">
+              <span class="brand-name">FidelyApp</span>
+              <span class="brand-dot"></span>
+              <span class="brand-sub">{{ 'restaurant.receipt.title' | ffTranslate }}</span>
+            </div>
+
+            <div class="receipt-header">
+              <div class="restaurant-info">
+                <ion-icon name="restaurant-outline"></ion-icon>
+                <span>{{ restaurante?.nombre }}</span>
+              </div>
+              <div class="receipt-date">
+                <ion-icon name="calendar-outline"></ion-icon>
+                <span>{{ redemptionDate }}</span>
+              </div>
+            </div>
+
+            <div class="receipt-body">
+              <div class="receipt-row main">
+                <span class="label">{{ 'restaurant.receipt.reward' | ffTranslate }}</span>
+                <span class="value">{{ selectedPromo?.titulo }}</span>
+              </div>
+              <div class="receipt-divider"></div>
+              <div class="receipt-row points">
+                <span class="label">{{ 'restaurant.receipt.discounted' | ffTranslate }}</span>
+                <span class="value negative">-{{ selectedPromo?.puntosNecesarios }} {{ 'common.pts' | ffTranslate }}</span>
+              </div>
+              <div class="receipt-row balance-old">
+                <span class="label">{{ 'restaurant.receipt.previous' | ffTranslate }}</span>
+                <span class="value">{{ previousPoints }} {{ 'common.pts' | ffTranslate }}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">{{ 'restaurant.receipt.current' | ffTranslate }}</span>
+                <span class="value success">{{ ptsRestaurante }} {{ 'common.pts' | ffTranslate }}</span>
+              </div>
+            </div>
+
+            <div class="receipt-footer">
+              <span class="ref-label">{{ 'restaurant.receipt.reference' | ffTranslate }}</span>
+              <span class="ref-code">{{ voucherCode }}</span>
+            </div>
+          </div>
+
+          <div class="action-buttons">
+            <ion-button expand="block" fill="clear" class="btn-close" (click)="cerrarModalExito()">
+              {{ 'restaurant.receipt.continue' | ffTranslate }}
+            </ion-button>
+            <ion-button expand="block" mode="ios" class="btn-history" (click)="verHistorial()">
+              {{ 'restaurant.receipt.history' | ffTranslate }}
+            </ion-button>
+          </div>
+        </div>
+      </div>
+    </ng-template>
+  </ion-modal>
+
+  <!-- MODAL ERROR PREMIUM -->
+  <ion-modal #errorModal [isOpen]="isErrorModalOpen" (didDismiss)="isErrorModalOpen = false" class="promo-action-modal error-feedback">
+    <ng-template>
+      <div class="modal-wrapper">
+        <div class="modal-header">
+          <div class="header-indicator"></div>
+        </div>
+        <div class="modal-content animate__animated animate__headShake">
+          <div class="icon-circle error">
+            <ion-icon name="alert-circle-outline"></ion-icon>
+          </div>
+          <h2>{{ 'restaurant.error.title' | ffTranslate }}</h2>
+          <p class="error-msg">{{ errorMessage }}</p>
+          
+          <ion-button expand="block" mode="ios" class="main-modal-btn error" (click)="isErrorModalOpen = false">
+            {{ 'common.understood' | ffTranslate }}
+          </ion-button>
+        </div>
+      </div>
+    </ng-template>
+  </ion-modal>
+
+</ion-content>

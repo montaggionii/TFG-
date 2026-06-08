@@ -1,0 +1,208 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-title>Centro de Mando</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="cargarDatos()" class="sync-btn">
+        <ion-icon slot="icon-only" name="sync-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="futuristic-dashboard">
+  <!-- DASHBOARD BACKGROUND BLUR BLOCKS -->
+  <div class="blur-bg">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
+
+  <div class="ion-text-center glass-loader" *ngIf="isLoading; else contentUI">
+    <ion-spinner name="crescent"></ion-spinner>
+    <p>Sincronizando Sistema...</p>
+  </div>
+
+  <ng-template #contentUI>
+    <div class="estado-container glass-card" *ngIf="error">
+      <ion-icon name="cloud-offline-outline" color="danger"></ion-icon>
+      <h2>Error de Enlace</h2>
+      <p>No se pudo establecer conexión con el núcleo.</p>
+      <ion-button fill="clear" (click)="cargarDatos()">Reintentar</ion-button>
+    </div>
+
+    <div *ngIf="!error" class="dashboard-scroll-container">
+      
+      <!-- HERO RESTAURANT -->
+      <div class="restaurant-hero animate__animated animate__fadeInDown">
+        <div class="hero-bg" [style.background-image]="'url(' + restauranteImageUrl + ')'">
+          <div class="hero-overlay"></div>
+        </div>
+        
+        <div class="hero-top-row">
+          <div class="date-chip">
+            <ion-icon name="calendar-outline"></ion-icon>
+            <span>{{ today | date:'EEEE, d MMMM' }}</span>
+          </div>
+          <div class="status-chip">
+            <span class="status-dot"></span>
+            Sistema Activo
+          </div>
+        </div>
+
+        <div class="hero-bottom-content">
+          <h2 class="business-name">{{ extendedData?.nombre || business?.nombre }}</h2>
+          <div class="business-meta">
+            <ion-icon name="location-outline"></ion-icon>
+            <span>Centro de Operaciones Business</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- QUICK ACTIONS GRID -->
+      <div class="quick-actions-grid animate__animated animate__fadeInUp">
+        <div class="action-card scan hover-lift tap-effect" routerLink="/r/scanner">
+          <div class="icon-wrap"><ion-icon name="scan-outline"></ion-icon></div>
+          <span>Escanear QR</span>
+        </div>
+        <div class="action-card promo hover-lift tap-effect" (click)="openCreatePromoModal()">
+          <div class="icon-wrap"><ion-icon name="add-circle-outline"></ion-icon></div>
+          <span>Crear Promo</span>
+        </div>
+        <div class="action-card list hover-lift tap-effect" routerLink="/r/promociones">
+          <div class="icon-wrap"><ion-icon name="list-outline"></ion-icon></div>
+          <span>Mis Ofertas</span>
+        </div>
+        <div class="action-card settings hover-lift tap-effect" routerLink="/r/settings">
+          <div class="icon-wrap"><ion-icon name="settings-outline"></ion-icon></div>
+          <span>Ajustes</span>
+        </div>
+      </div>
+
+      <!-- KPI SECTOR: CRYSTAL CARDS -->
+      <div class="kpi-grid animate__animated animate__fadeInUp">
+        <div class="glass-card kpi-card">
+          <div class="kpi-header">
+            <div class="icon-wrap cash-bg">
+              <ion-icon name="cash-outline"></ion-icon>
+            </div>
+            <span class="trend-pill up">
+              <ion-icon name="trending-up-outline"></ion-icon>
+              12%
+            </span>
+          </div>
+          <div class="kpi-body">
+            <h3>€{{ activityStats?.ventasHoy || 0 | number:'1.2-2' }}</h3>
+            <p>Ventas Hoy</p>
+          </div>
+          <div class="sparkline">
+            <div class="bar" style="height: 40%"></div>
+            <div class="bar" style="height: 60%"></div>
+            <div class="bar" style="height: 50%"></div>
+            <div class="bar" style="height: 80%"></div>
+            <div class="bar" style="height: 70%"></div>
+          </div>
+        </div>
+        
+        <div class="glass-card kpi-card">
+          <div class="kpi-header">
+            <div class="icon-wrap users-bg">
+              <ion-icon name="people-outline"></ion-icon>
+            </div>
+            <span class="trend-pill up">
+              <ion-icon name="trending-up-outline"></ion-icon>
+              Actual
+            </span>
+          </div>
+          <div class="kpi-body">
+            <h3>{{ activityStats?.clientesNuevos || 0 }}</h3>
+            <p>Clientes Activos Hoy</p>
+          </div>
+          <div class="sparkline">
+            <div class="bar" style="height: 30%"></div>
+            <div class="bar" style="height: 40%"></div>
+            <div class="bar" style="height: 90%"></div>
+            <div class="bar" style="height: 60%"></div>
+            <div class="bar" style="height: 50%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ANALYTICS SECTOR: BAR CHART -->
+      <div class="glass-card chart-container animate__animated animate__fadeInUp">
+        <div class="chart-header">
+          <div class="header-left">
+            <h3>Rendimiento Semanal</h3>
+            <p>Transacciones fidelizadas por día</p>
+          </div>
+          <div class="header-right">
+            <span class="total-label">Total semanal: <strong>8.430 €</strong></span>
+          </div>
+        </div>
+        
+        <div class="gradient-bar-chart">
+          <div class="chart-column"><div class="bar" style="height: 60%"></div><span class="day">L</span></div>
+          <div class="chart-column"><div class="bar" style="height: 45%"></div><span class="day">M</span></div>
+          <div class="chart-column"><div class="bar" style="height: 80%"></div><span class="day">X</span></div>
+          <div class="chart-column"><div class="bar highlight" style="height: 95%"></div><span class="day">J</span></div>
+          <div class="chart-column"><div class="bar" style="height: 70%"></div><span class="day">V</span></div>
+          <div class="chart-column"><div class="bar" style="height: 55%"></div><span class="day">S</span></div>
+          <div class="chart-column"><div class="bar" style="height: 40%"></div><span class="day">D</span></div>
+        </div>
+      </div>
+
+      <!-- SECTOR UBICACIÓN DEL LOCAL -->
+      <div class="location-section animate__animated animate__fadeInUp" *ngIf="location">
+        <div class="section-header">
+          <h3>Ubicación del Local</h3>
+        </div>
+        <div class="map-wrapper glass-card">
+          <app-map
+            [center]="location"
+            [markers]="markers">
+          </app-map>
+        </div>
+      </div>
+
+      <!-- ACTIVITY LIST SECTOR -->
+      <div class="activity-section animate__animated animate__fadeInUp">
+        <div class="section-header">
+          <h3>Actividad Reciente</h3>
+          <ion-button fill="clear" size="small" [routerLink]="['/r/actividad']">Ver todo</ion-button>
+        </div>
+        
+        <div class="activity-list" *ngIf="activityStats?.actividadReciente?.length > 0; else noActivity">
+          <div class="activity-item glass-item" *ngFor="let move of activityStats.actividadReciente">
+            <div class="status-icon" [class.success-glow]="move.tipo === 'GANADOS'" [class.error-glow]="move.tipo === 'CANJEADOS'">
+              <ion-icon [name]="move.tipo === 'GANADOS' ? 'trending-up-outline' : 'trending-down-outline'"></ion-icon>
+            </div>
+            <div class="item-info">
+              <h4>{{ move.descripcion }}</h4>
+              <p>{{ move.fecha | date:'shortTime' }} • {{ move.tipo }}</p>
+            </div>
+            <div class="item-points" [class.earned]="move.tipo === 'GANADOS'" [class.redeemed]="move.tipo === 'CANJEADOS'">
+              <span class="item-kind">{{ move.tipo === 'GANADOS' ? 'ABONO' : 'CANJE' }}</span>
+              {{ move.tipo === 'GANADOS' ? '+' : '-' }}{{ move.puntos }} pts
+            </div>
+          </div>
+        </div>
+        <ng-template #noActivity>
+          <div class="empty-state">
+            <p>No hay actividad registrada hoy.</p>
+          </div>
+        </ng-template>
+      </div>
+
+      <!-- PROMOS SECTOR -->
+      <div class="promos-section animate__animated animate__fadeInUp" *ngIf="promociones.length > 0">
+        <h3 class="section-title ion-padding-horizontal">Tus Ofertas Activas</h3>
+        <div class="promo-scroll">
+          <div *ngFor="let promo of promociones" class="glass-card promo-mini-card">
+            <div class="promo-glow-icon"><ion-icon name="gift-outline"></ion-icon></div>
+            <h4>{{ promo.nombre }}</h4>
+            <p>{{ promo.puntosRequeridos }} PTS</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-template>
+</ion-content>

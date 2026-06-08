@@ -1,0 +1,121 @@
+.admin-shell {
+  --side-width: 292px;
+  --side-max-width: 292px;
+}
+
+ion-menu {
+  --background: #fffdfb;
+  border-right: 1px solid rgba(31, 31, 31, 0.08);
+  box-shadow: 12px 0 34px rgba(30, 27, 24, 0.05);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 28px 18px 12px;
+
+  .brand-logo {
+    width: 56px;
+    height: 56px;
+    display: grid;
+    place-items: center;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #fff1e9, #ffffff);
+    box-shadow: 0 12px 26px rgba(255, 122, 0, 0.16);
+  }
+
+  img {
+    width: 38px;
+    height: 38px;
+    object-fit: contain;
+  }
+
+  strong,
+  span {
+    display: block;
+  }
+
+  strong {
+    color: #202124;
+    font-size: 1.02rem;
+    line-height: 1.15;
+    letter-spacing: 0;
+  }
+
+  span {
+    margin-top: 3px;
+    color: #777f8c;
+    font-size: 0.82rem;
+    font-weight: 800;
+  }
+}
+
+.admin-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 18px 18px;
+  padding: 9px 12px;
+  border: 1px solid rgba(34, 132, 74, 0.16);
+  border-radius: 999px;
+  background: #effaf3;
+  color: #207a42;
+  font-size: 0.78rem;
+  font-weight: 900;
+
+  span {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: #2fbf64;
+    box-shadow: 0 0 0 4px rgba(47, 191, 100, 0.14);
+  }
+}
+
+ion-list {
+  padding: 8px 12px;
+}
+
+ion-item {
+  --border-radius: 8px;
+  --padding-start: 12px;
+  --inner-padding-end: 12px;
+  --min-height: 52px;
+  margin-bottom: 6px;
+  color: #2c2f33;
+  font-weight: 850;
+
+  ion-icon {
+    color: #7d838c;
+    font-size: 21px;
+  }
+
+  &.selected {
+    --background: linear-gradient(135deg, #fff1e9, #ffe7d8);
+    color: #f36f21;
+    box-shadow: inset 3px 0 0 #ff7a00;
+
+    ion-icon {
+      color: #ff7a00;
+    }
+  }
+}
+
+ion-footer {
+  padding: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0), #fffdfb 24%);
+}
+
+.logout-button {
+  min-height: 46px;
+  --border-radius: 8px;
+  --color: #6f7682;
+  font-weight: 850;
+}
+
+@media (min-width: 992px) {
+  ion-menu {
+    --width: 292px;
+  }
+}

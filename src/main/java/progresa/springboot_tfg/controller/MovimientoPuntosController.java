@@ -16,7 +16,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/movimientos")
-@CrossOrigin(origins = "*")
+@CrossOrigin(originPatterns = "*")
 @Tag(name = "Movimientos de Puntos", description = "Consulta del historial de puntos de los usuarios")
 public class MovimientoPuntosController {
 
