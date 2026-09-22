@@ -60,7 +60,16 @@ export const tokenInterceptor: HttpInterceptorFn = (req, next) => {
         if (req.url.includes('/api/auth/login')) {
            return throwError(() => error);
         }
-        authService.logout();
+
+        // Un 401 solo significa "sesión inválida" si el token que teníamos
+        // realmente ha caducado o ya no existe. Un endpoint que rechaza este
+        // rol por permisos (p.ej. /api/recompensas solo para ROLE_USER
+        // llamado con un token de restaurante) es un 401 de alcance, no de
+        // sesión — no debe cerrar una sesión que sigue siendo válida.
+        const currentToken = localStorage.getItem('token');
+        if (!currentToken || authService.isTokenExpired(currentToken)) {
+          authService.logout();
+        }
       }
 
       if (error.status === 403) {
