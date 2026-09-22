@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FidelyFood Access Center</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #161922;
+    --panel-2: #1d212c;
+    --border: #2a2f3d;
+    --text: #e8e9ee;
+    --text-dim: #8b90a3;
+    --accent: #ff7a52;
+    --accent-2: #ffb199;
+    --admin: #a371f7;
+    --restaurante: #ff7a52;
+    --cliente: #58a6ff;
+    --otros: #8b90a3;
+    --ok: #34d058;
+    --bad: #f85149;
+    font-family: -apple-system, "SF Pro Text", "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    min-height: 100vh;
+  }
+  a { color: inherit; }
+
+  /* Sidebar */
+  .sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    padding: 20px 14px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+  }
+  .brand {
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: 0.3px;
+  }
+  .brand span { color: var(--accent); }
+  .brand-sub {
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-top: 2px;
+    margin-bottom: 24px;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    color: var(--text-dim);
+    font-size: 13.5px;
+    cursor: pointer;
+    margin-bottom: 2px;
+  }
+  .nav-item:hover { background: var(--panel-2); color: var(--text); }
+  .nav-item.active { background: var(--panel-2); color: var(--text); font-weight: 600; }
+  .nav-count {
+    margin-left: auto;
+    background: var(--border);
+    color: var(--text-dim);
+    font-size: 11px;
+    padding: 1px 7px;
+    border-radius: 20px;
+  }
+  .search-box {
+    margin-top: 18px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+  }
+  .search-box input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-size: 13px;
+    width: 100%;
+  }
+  .sync-note {
+    position: absolute;
+    bottom: 18px;
+    font-size: 10.5px;
+    color: var(--text-dim);
+    width: 190px;
+    line-height: 1.5;
+  }
+
+  /* Main */
+  .main { flex: 1; padding: 28px 36px; max-width: 1200px; }
+  header.top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 22px;
+  }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .top-sub { color: var(--text-dim); font-size: 13px; }
+  .env-pill {
+    background: rgba(52, 208, 88, 0.12);
+    color: var(--ok);
+    border: 1px solid rgba(52, 208, 88, 0.3);
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+    margin-bottom: 26px;
+  }
+  .stat-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+  }
+  .stat-label { font-size: 10.5px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.8px; }
+  .stat-value { font-size: 24px; font-weight: 700; margin-top: 4px; }
+
+  .section-title {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    margin: 24px 0 10px;
+  }
+
+  .recent-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+  .recent-chip {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 12.5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .dot { width: 7px; height: 7px; border-radius: 50%; }
+
+  .filters { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .filter-btn {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12.5px;
+    cursor: pointer;
+  }
+  .filter-btn.active { background: var(--accent); color: #1a0f0a; border-color: var(--accent); font-weight: 700; }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 14px;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+  }
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+  .card-name { font-size: 15px; font-weight: 700; }
+  .badge {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 6px;
+    letter-spacing: 0.4px;
+  }
+  .badge-ADMINISTRADOR { background: rgba(163,113,247,0.15); color: var(--admin); }
+  .badge-RESTAURANTE { background: rgba(255,122,82,0.15); color: var(--restaurante); }
+  .badge-CLIENTE { background: rgba(88,166,255,0.15); color: var(--cliente); }
+  .badge-OTROS { background: rgba(139,144,163,0.15); color: var(--otros); }
+
+  .status-dot { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-dim); }
+  .status-dot .dot.ok { background: var(--ok); }
+  .status-dot .dot.bad { background: var(--bad); }
+
+  .field { margin-top: 9px; }
+  .field-label { font-size: 10.5px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+  .field-row { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+  .field-value { font-size: 13px; font-family: ui-monospace, SFMono-Regular, monospace; word-break: break-all; }
+  .field-value.muted { color: var(--text-dim); font-style: italic; font-family: inherit; }
+  .icon-btn {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    border-radius: 6px;
+    padding: 3px 7px;
+    font-size: 11px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .icon-btn:hover { color: var(--text); border-color: var(--accent); }
+  .card-footer { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .card-footer .icon-btn { padding: 5px 10px; }
+  .origin-note { font-size: 10.5px; color: var(--text-dim); margin-top: 10px; border-top: 1px dashed var(--border); padding-top: 8px; }
+
+  .toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--panel-2);
+    border: 1px solid var(--accent);
+    color: var(--text);
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.2s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  .empty { color: var(--text-dim); font-size: 13px; padding: 30px 0; text-align: center; }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="brand">Fidely<span>Food</span></div>
+  <div class="brand-sub">Access Center</div>
+
+  <div class="nav-item active" data-filter="ALL">Overview <span class="nav-count" id="count-ALL">0</span></div>
+  <div class="nav-item" data-filter="ADMINISTRADOR">Administradores <span class="nav-count" id="count-ADMINISTRADOR">0</span></div>
+  <div class="nav-item" data-filter="RESTAURANTE">Restaurantes <span class="nav-count" id="count-RESTAURANTE">0</span></div>
+  <div class="nav-item" data-filter="CLIENTE">Clientes <span class="nav-count" id="count-CLIENTE">0</span></div>
+  <div class="nav-item" data-filter="OTROS">Otros <span class="nav-count" id="count-OTROS">0</span></div>
+
+  <div class="search-box">
+    <input id="search" type="text" placeholder="Buscar: nombre, email, rol..." />
+  </div>
+
+  <div class="sync-note" id="sync-note">Cargando…</div>
+</div>
+
+<div class="main">
+  <header class="top">
+    <div>
+      <h1>FIDELYFOOD ACCESS CENTER</h1>
+      <div class="top-sub">Solo lectura · Solo localhost · Fuente: base de datos real + .env local</div>
+    </div>
+    <div class="env-pill">● LOCAL — no expuesto</div>
+  </header>
+
+  <div class="stats-grid" id="stats"></div>
+
+  <div class="section-title">Recientemente vistos</div>
+  <div class="recent-row" id="recent"></div>
+
+  <div class="section-title">Todas las cuentas</div>
+  <div class="filters">
+    <button class="filter-btn active" data-status="ALL">Todos</button>
+    <button class="filter-btn" data-status="ACTIVO">Activos</button>
+    <button class="filter-btn" data-status="INACTIVO">Inactivos</button>
+  </div>
+
+  <div class="cards" id="cards"></div>
+  <div class="empty" id="empty" style="display:none">No hay cuentas que coincidan con la búsqueda/filtro.</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let ALL_ACCOUNTS = [];
+let revealed = new Set();
+let activeCategory = "ALL";
+let activeStatus = "ALL";
+let searchTerm = "";
+let recentlyViewed = [];
+
+const colorFor = (categoria) => ({
+  ADMINISTRADOR: "var(--admin)",
+  RESTAURANTE: "var(--restaurante)",
+  CLIENTE: "var(--cliente)",
+  OTROS: "var(--otros)",
+}[categoria] || "var(--otros)");
+
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 1600);
+}
+
+function copyText(text, label) {
+  if (!text) { toast("Nada que copiar"); return; }
+  navigator.clipboard.writeText(text).then(() => toast(`${label} copiado`)).catch(() => toast("No se pudo copiar"));
+}
+
+async function load() {
+  const res = await fetch("/api/accounts");
+  const data = await res.json();
+  ALL_ACCOUNTS = data.accounts;
+  document.getElementById("sync-note").textContent =
+    "Última sincronización: " + new Date(data.sourcedAt).toLocaleString("es-ES");
+  render();
+}
+
+function render() {
+  const counts = { ALL: ALL_ACCOUNTS.length, ADMINISTRADOR: 0, RESTAURANTE: 0, CLIENTE: 0, OTROS: 0 };
+  for (const a of ALL_ACCOUNTS) counts[a.categoria] = (counts[a.categoria] || 0) + 1;
+  for (const k of Object.keys(counts)) {
+    const el = document.getElementById("count-" + k);
+    if (el) el.textContent = counts[k];
+  }
+
+  const activos = ALL_ACCOUNTS.filter(a => a.estado === "ACTIVO").length;
+  const inactivos = ALL_ACCOUNTS.length - activos;
+  document.getElementById("stats").innerHTML = `
+    ${statCard("Total cuentas", ALL_ACCOUNTS.length)}
+    ${statCard("Administradores", counts.ADMINISTRADOR)}
+    ${statCard("Restaurantes", counts.RESTAURANTE)}
+    ${statCard("Clientes", counts.CLIENTE)}
+    ${statCard("Activas", activos)}
+    ${statCard("Inactivas", inactivos)}
+  `;
+
+  document.getElementById("recent").innerHTML = recentlyViewed.length
+    ? recentlyViewed.map(a => `<div class="recent-chip"><span class="dot" style="background:${colorFor(a.categoria)}"></span>${escapeHtml(a.nombre)}</div>`).join("")
+    : `<div class="recent-chip" style="opacity:0.6">Ninguna todavía — pulsa "Mostrar" en una cuenta</div>`;
+
+  let filtered = ALL_ACCOUNTS.filter(a => activeCategory === "ALL" || a.categoria === activeCategory);
+  filtered = filtered.filter(a => activeStatus === "ALL" || a.estado === activeStatus);
+  if (searchTerm.trim()) {
+    const q = searchTerm.trim().toLowerCase();
+    filtered = filtered.filter(a =>
+      [a.nombre, a.email, a.rol, a.categoria, a.estado, a.descripcion].join(" ").toLowerCase().includes(q)
+    );
+  }
+
+  document.getElementById("empty").style.display = filtered.length ? "none" : "block";
+  document.getElementById("cards").innerHTML = filtered.map(cardHtml).join("");
+
+  filtered.forEach(a => {
+    const btn = document.getElementById("toggle-" + a.id);
+    if (btn) btn.onclick = () => togglePassword(a.id);
+  });
+}
+
+function statCard(label, value) {
+  return `<div class="stat-card"><div class="stat-label">${label}</div><div class="stat-value">${value}</div></div>`;
+}
+
+function escapeHtml(s) {
+  return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+function cardHtml(a) {
+  const hasPassword = !!a.password;
+  return `
+  <div class="card" data-id="${a.id}">
+    <div class="card-top">
+      <div>
+        <div class="card-name">${escapeHtml(a.nombre)}</div>
+        <span class="status-dot"><span class="dot ${a.estado === 'ACTIVO' ? 'ok' : 'bad'}"></span>${a.estado}${a.dbId != null ? ' · ID ' + a.dbId : ''}</span>
+      </div>
+      <span class="badge badge-${a.categoria}">${a.categoria}</span>
+    </div>
+
+    <div class="field">
+      <div class="field-label">Email</div>
+      <div class="field-row">
+        <span class="field-value">${escapeHtml(a.email)}</span>
+        <button class="icon-btn" onclick="copyText('${escapeJs(a.email)}','Email')">📋</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">Password</div>
+      <div class="field-row">
+        <span class="field-value" id="pwd-${a.id}">${hasPassword ? (revealed.has(a.id) ? escapeHtml(a.password) : "••••••••") : "no disponible (solo hash)"}</span>
+        ${hasPassword ? `<button class="icon-btn" id="toggle-${a.id}">👁</button><button class="icon-btn" onclick="copyText('${escapeJs(a.password)}','Password')">📋</button>` : ""}
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">Rol</div>
+      <div class="field-value">${a.rol}</div>
+    </div>
+
+    <div class="card-footer">
+      <button class="icon-btn" onclick="copyText('${escapeJs(a.email)}\\n${escapeJs(a.password || '')}','Credenciales')">📋 Credenciales</button>
+      <a href="${a.url}" target="_blank"><button class="icon-btn">🔗 Abrir panel</button></a>
+    </div>
+
+    <div class="origin-note">Origen cuenta: ${escapeHtml(a.origenCuenta)}<br/>Origen password: ${escapeHtml(a.origenPassword)}</div>
+  </div>`;
+}
+
+function escapeJs(s) {
+  return String(s ?? "").replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+}
+
+function togglePassword(id) {
+  const account = ALL_ACCOUNTS.find(a => a.id === id);
+  if (!account) return;
+  const willReveal = !revealed.has(id);
+  if (willReveal) {
+    revealed.add(id);
+    recentlyViewed = [account, ...recentlyViewed.filter(a => a.id !== id)].slice(0, 5);
+  } else {
+    revealed.delete(id);
+  }
+  render();
+}
+
+document.querySelectorAll(".nav-item[data-filter]").forEach(el => {
+  el.addEventListener("click", () => {
+    document.querySelectorAll(".nav-item[data-filter]").forEach(x => x.classList.remove("active"));
+    el.classList.add("active");
+    activeCategory = el.dataset.filter;
+    render();
+  });
+});
+
+document.querySelectorAll(".filter-btn[data-status]").forEach(el => {
+  el.addEventListener("click", () => {
+    document.querySelectorAll(".filter-btn[data-status]").forEach(x => x.classList.remove("active"));
+    el.classList.add("active");
+    activeStatus = el.dataset.status;
+    render();
+  });
+});
+
+document.getElementById("search").addEventListener("input", (e) => {
+  searchTerm = e.target.value;
+  render();
+});
+
+load();
+setInterval(load, 15000); // re-sincroniza con la BD cada 15s
+</script>
+
+</body>
+</html>
