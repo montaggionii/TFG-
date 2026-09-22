@@ -1,6 +1,5 @@
 package progresa.springboot_tfg.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -18,19 +17,18 @@ public class Restaurante {
     private String direccion;
     private String ciudad;
     private String telefono;
-    private String descripcion;
-    private String imagen;
-
-    @Column(name = "imagen_url")
-    private String imagenUrl;
-
     private String tipo;
+    @Column(length = 1200)
+    private String descripcion;
+    private String foto;
     private Double latitud;
     private Double longitud;
-
-    @Column(name = "codigo_postal")
-    private String codigoPostal;
-    private boolean finalizado;
+    private Boolean active = true;
+    private Boolean deleted = false;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private LocalDateTime deletedAt;
+    private String deletedByAdminEmail;
 
     @Column(nullable = false, unique = true)
     private String email;
@@ -41,15 +39,6 @@ public class Restaurante {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
-
-    @Column(nullable = false, columnDefinition = "boolean default true")
-    private boolean isActive = true;
-
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
-
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
 
     public Restaurante() {
     }
@@ -62,6 +51,20 @@ public class Restaurante {
         this.telefono = telefono;
         this.email = email;
         this.password = password;
+    }
+
+    @PrePersist
+    public void prePersist() {
+        LocalDateTime now = LocalDateTime.now();
+        if (createdAt == null) createdAt = now;
+        updatedAt = now;
+        if (active == null) active = true;
+        if (deleted == null) deleted = false;
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        updatedAt = LocalDateTime.now();
     }
 
     // ===== GETTERS & SETTERS =====
@@ -106,28 +109,28 @@ public class Restaurante {
         this.telefono = telefono;
     }
 
-    public String getDescripcion() {
-        return descripcion;
+    public String getEmail() {
+        return email;
     }
 
-    public void setDescripcion(String descripcion) {
-        this.descripcion = descripcion;
+    public void setEmail(String email) {
+        this.email = email;
     }
 
-    public String getImagen() {
-        return imagen;
+    public String getPassword() {
+        return password;
     }
 
-    public void setImagen(String imagen) {
-        this.imagen = imagen;
+    public void setPassword(String password) {
+        this.password = password;
     }
 
-    public String getImagenUrl() {
-        return imagenUrl;
+    public Role getRole() {
+        return role;
     }
 
-    public void setImagenUrl(String imagenUrl) {
-        this.imagenUrl = imagenUrl;
+    public void setRole(Role role) {
+        this.role = role;
     }
 
     public String getTipo() {
@@ -136,6 +139,22 @@ public class Restaurante {
 
     public void setTipo(String tipo) {
         this.tipo = tipo;
+    }
+
+    public String getDescripcion() {
+        return descripcion;
+    }
+
+    public void setDescripcion(String descripcion) {
+        this.descripcion = descripcion;
+    }
+
+    public String getFoto() {
+        return foto;
+    }
+
+    public void setFoto(String foto) {
+        this.foto = foto;
     }
 
     public Double getLatitud() {
@@ -154,53 +173,20 @@ public class Restaurante {
         this.longitud = longitud;
     }
 
-    public String getCodigoPostal() {
-        return codigoPostal;
+    public Boolean getActive() {
+        return !Boolean.FALSE.equals(active);
     }
 
-    public void setCodigoPostal(String codigoPostal) {
-        this.codigoPostal = codigoPostal;
+    public void setActive(Boolean active) {
+        this.active = active;
     }
 
-    public boolean isFinalizado() {
-        return finalizado;
+    public Boolean getDeleted() {
+        return Boolean.TRUE.equals(deleted);
     }
 
-    public void setFinalizado(boolean finalizado) {
-        this.finalizado = finalizado;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    @JsonIgnore
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public Role getRole() {
-        return role;
-    }
-
-    public void setRole(Role role) {
-        this.role = role;
-    }
-
-    public boolean isActive() {
-        return isActive;
-    }
-
-    public void setActive(boolean active) {
-        isActive = active;
+    public void setDeleted(Boolean deleted) {
+        this.deleted = deleted;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -219,15 +205,19 @@ public class Restaurante {
         this.updatedAt = updatedAt;
     }
 
-    @PrePersist
-    void onCreate() {
-        LocalDateTime now = LocalDateTime.now();
-        if (createdAt == null) createdAt = now;
-        updatedAt = now;
+    public LocalDateTime getDeletedAt() {
+        return deletedAt;
     }
 
-    @PreUpdate
-    void onUpdate() {
-        updatedAt = LocalDateTime.now();
+    public void setDeletedAt(LocalDateTime deletedAt) {
+        this.deletedAt = deletedAt;
+    }
+
+    public String getDeletedByAdminEmail() {
+        return deletedByAdminEmail;
+    }
+
+    public void setDeletedByAdminEmail(String deletedByAdminEmail) {
+        this.deletedByAdminEmail = deletedByAdminEmail;
     }
 }

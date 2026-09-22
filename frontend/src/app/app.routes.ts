@@ -15,6 +15,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/public/login/login.component').then(m => m.LoginComponent),
   },
   {
+    path: 'fidelyfood',
+    loadComponent: () => import('./features/public/app-public/app-public.component').then(m => m.AppPublicComponent),
+  },
+  {
     path: 'admin/login',
     loadComponent: () => Promise.resolve(AdminLoginComponent),
   },

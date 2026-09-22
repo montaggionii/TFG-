@@ -13,10 +13,16 @@ public class JwtUtil {
 
     private static final long EXPIRATION_TIME = 1000 * 60 * 60 * 10; // 10 horas
 
-    private final Key key;
+    @Value("${app.jwt.secret:fidelyfood-dev-jwt-secret-change-me-2026}")
+    private String secret;
 
-    public JwtUtil(@Value("${app.jwt.secret:fidelyfood-dev-jwt-secret-change-me-2026}") String secret) {
-        this.key = Keys.hmacShaKeyFor(secret.getBytes());
+    private Key key;
+
+    private Key getKey() {
+        if (key == null) {
+            key = Keys.hmacShaKeyFor(secret.getBytes());
+        }
+        return key;
     }
 
     public String generateToken(String email, String role) {
@@ -26,13 +32,13 @@ public class JwtUtil {
                 .claim("role", role)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
-                .signWith(key)
+                .signWith(getKey())
                 .compact();
     }
 
     public Claims getClaims(String token) {
         return Jwts.parserBuilder()
-                .setSigningKey(key)
+                .setSigningKey(getKey())
                 .build()
                 .parseClaimsJws(token)
                 .getBody();

@@ -1,6 +1,5 @@
 package progresa.springboot_tfg.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -32,19 +31,21 @@ public class Usuario {
     @Column(unique = true)
     private String qrCode;
 
-    @Column(name = "foto_perfil")
-    private String fotoPerfil;
-
     private String telefono;
 
-    @Column(nullable = false, columnDefinition = "boolean default true")
-    private boolean isActive = true;
+    private String fotoPerfil;
 
-    @Column(name = "created_at")
+    private Boolean active = true;
+
+    private Boolean deleted = false;
+
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    private LocalDateTime deletedAt;
+
+    private String deletedByAdminEmail;
 
     public Usuario() {
     }
@@ -54,6 +55,20 @@ public class Usuario {
         this.email = email;
         this.password = password;
         this.puntos = puntos;
+    }
+
+    @PrePersist
+    public void prePersist() {
+        LocalDateTime now = LocalDateTime.now();
+        if (createdAt == null) createdAt = now;
+        updatedAt = now;
+        if (active == null) active = true;
+        if (deleted == null) deleted = false;
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        updatedAt = LocalDateTime.now();
     }
 
     // ===== GETTERS & SETTERS =====
@@ -82,7 +97,6 @@ public class Usuario {
         this.email = email;
     }
 
-    @JsonIgnore
     public String getPassword() {
         return password;
     }
@@ -117,14 +131,6 @@ public class Usuario {
         this.qrCode = qrCode;
     }
 
-    public String getFotoPerfil() {
-        return fotoPerfil;
-    }
-
-    public void setFotoPerfil(String fotoPerfil) {
-        this.fotoPerfil = fotoPerfil;
-    }
-
     public String getTelefono() {
         return telefono;
     }
@@ -133,12 +139,28 @@ public class Usuario {
         this.telefono = telefono;
     }
 
-    public boolean isActive() {
-        return isActive;
+    public String getFotoPerfil() {
+        return fotoPerfil;
     }
 
-    public void setActive(boolean active) {
-        isActive = active;
+    public void setFotoPerfil(String fotoPerfil) {
+        this.fotoPerfil = fotoPerfil;
+    }
+
+    public Boolean getActive() {
+        return !Boolean.FALSE.equals(active);
+    }
+
+    public void setActive(Boolean active) {
+        this.active = active;
+    }
+
+    public Boolean getDeleted() {
+        return Boolean.TRUE.equals(deleted);
+    }
+
+    public void setDeleted(Boolean deleted) {
+        this.deleted = deleted;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -157,15 +179,19 @@ public class Usuario {
         this.updatedAt = updatedAt;
     }
 
-    @PrePersist
-    void onCreate() {
-        LocalDateTime now = LocalDateTime.now();
-        if (createdAt == null) createdAt = now;
-        updatedAt = now;
+    public LocalDateTime getDeletedAt() {
+        return deletedAt;
     }
 
-    @PreUpdate
-    void onUpdate() {
-        updatedAt = LocalDateTime.now();
+    public void setDeletedAt(LocalDateTime deletedAt) {
+        this.deletedAt = deletedAt;
+    }
+
+    public String getDeletedByAdminEmail() {
+        return deletedByAdminEmail;
+    }
+
+    public void setDeletedByAdminEmail(String deletedByAdminEmail) {
+        this.deletedByAdminEmail = deletedByAdminEmail;
     }
 }

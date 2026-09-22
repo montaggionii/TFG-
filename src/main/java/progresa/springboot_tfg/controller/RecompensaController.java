@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import progresa.springboot_tfg.entity.Recompensa;
+import progresa.springboot_tfg.security.SecurityUtils;
 import progresa.springboot_tfg.service.RecompensaService;
 import org.springframework.security.core.Authentication;
 
@@ -16,7 +17,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/recompensas")
-@CrossOrigin(originPatterns = "*")
+@CrossOrigin(origins = "*")
 @Tag(name = "Recompensas", description = "Gestión de recompensas y canje por puntos")
 public class RecompensaController {
 
@@ -60,7 +61,10 @@ public class RecompensaController {
             @ApiResponse(responseCode = "400", description = "Datos inválidos")
     })
     @PostMapping
-    public ResponseEntity<Recompensa> crear(@RequestBody Recompensa recompensa) {
+    public ResponseEntity<Recompensa> crear(
+            @RequestBody Recompensa recompensa,
+            Authentication authentication) {
+        SecurityUtils.requireRole(authentication, "ROLE_ADMIN");
         return new ResponseEntity<>(
                 recompensaService.crear(recompensa),
                 HttpStatus.CREATED
@@ -78,7 +82,9 @@ public class RecompensaController {
     @PutMapping("/{id}")
     public ResponseEntity<Recompensa> actualizar(
             @PathVariable Long id,
-            @RequestBody Recompensa recompensa) {
+            @RequestBody Recompensa recompensa,
+            Authentication authentication) {
+        SecurityUtils.requireRole(authentication, "ROLE_ADMIN");
         return ResponseEntity.ok(
                 recompensaService.actualizar(id, recompensa)
         );
@@ -93,7 +99,10 @@ public class RecompensaController {
             @ApiResponse(responseCode = "404", description = "Recompensa no encontrada")
     })
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+    public ResponseEntity<Void> eliminar(
+            @PathVariable Long id,
+            Authentication authentication) {
+        SecurityUtils.requireRole(authentication, "ROLE_ADMIN");
         recompensaService.eliminar(id);
         return ResponseEntity.noContent().build();
     }

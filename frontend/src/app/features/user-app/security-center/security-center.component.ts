@@ -29,18 +29,13 @@ export class SecurityCenterComponent implements OnInit {
   isSavingPassword = false;
   securityData = { current: '', new: '', confirm: '' };
   passwordTouched = false;
+  twoFactorEnabled = false;
+  recoveryEmail = '';
+  securityScore = 65;
   
-  // MOCK DATA PARA PREMIUM FEEL
-  sessions = [
-    { device: 'iPhone 15 Pro', location: 'Madrid, ES', active: true, ip: '192.168.1.45', icon: icons.phonePortraitOutline },
-    { device: 'MacBook Pro 14"', location: 'Madrid, ES', active: false, ip: '84.120.45.11', icon: icons.desktopOutline }
-  ];
+  sessions: Array<{ id: string; device: string; location: string; active: boolean; ip: string; lastSeen: string; icon: any }> = [];
 
-  activityLogs = [
-    { type: 'login', titleKey: 'security.activity.login', dateKey: 'security.date.today', date: '', icon: icons.logInOutline, color: 'success' },
-    { type: 'security', titleKey: 'security.activity.photo', dateKey: 'security.date.yesterday', date: '', icon: icons.cameraOutline, color: 'primary' },
-    { type: 'reward', titleKey: 'security.activity.reward', dateKey: '', date: '10 May, 18:30', icon: icons.giftOutline, color: 'secondary' }
-  ];
+  activityLogs: Array<{ type: string; title: string; date: string; icon: any; color: string }> = [];
 
   alertsConfig = {
     login: true,
@@ -67,7 +62,11 @@ export class SecurityCenterComponent implements OnInit {
       powerOutline: icons.powerOutline,
       mailOutline: icons.mailOutline,
       calendarOutline: icons.calendarOutline,
-      timeOutline: icons.timeOutline
+      timeOutline: icons.timeOutline,
+      checkmarkCircleOutline: icons.checkmarkCircleOutline,
+      settingsOutline: icons.settingsOutline,
+      refreshOutline: icons.refreshOutline,
+      trashOutline: icons.trashOutline
     });
   }
 
@@ -77,14 +76,174 @@ export class SecurityCenterComponent implements OnInit {
       if (state.id) {
         this.usuarioService.getUsuarioById(state.id).subscribe(data => {
           this.user = data;
+          this.initializeLocalSecurity();
           this.isLoading = false;
         }, () => {
+          this.initializeLocalSecurity();
           this.isLoading = false;
         });
       } else {
+        this.initializeLocalSecurity();
         this.isLoading = false;
       }
     });
+  }
+
+  private initializeLocalSecurity() {
+    this.loadPreferences();
+    this.registerCurrentSession();
+    this.loadActivityLogs();
+    this.updateSecurityScore();
+  }
+
+  private scopedKey(name: string): string {
+    const id = this.user?.id || localStorage.getItem('userId') || 'guest';
+    return `fidelyfood.security.${id}.${name}`;
+  }
+
+  private loadPreferences() {
+    const rawAlerts = localStorage.getItem(this.scopedKey('alerts'));
+    if (rawAlerts) {
+      try {
+        this.alertsConfig = { ...this.alertsConfig, ...JSON.parse(rawAlerts) };
+      } catch {
+        localStorage.removeItem(this.scopedKey('alerts'));
+      }
+    }
+
+    this.twoFactorEnabled = localStorage.getItem(this.scopedKey('2fa')) === 'true';
+    this.recoveryEmail = localStorage.getItem(this.scopedKey('recoveryEmail')) || '';
+  }
+
+  private registerCurrentSession() {
+    const currentSessionKey = this.scopedKey('currentSessionId');
+    let sessionId = localStorage.getItem(currentSessionKey);
+    if (!sessionId) {
+      sessionId = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `session-${Date.now()}`;
+      localStorage.setItem(currentSessionKey, sessionId);
+    }
+
+    const raw = localStorage.getItem(this.scopedKey('sessions'));
+    let storedSessions: any[] = [];
+    if (raw) {
+      try {
+        storedSessions = JSON.parse(raw);
+      } catch {
+        storedSessions = [];
+      }
+    }
+
+    const current = {
+      id: sessionId,
+      device: this.detectDeviceName(),
+      location: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Ubicación local',
+      active: true,
+      ip: 'Este dispositivo',
+      lastSeen: new Date().toISOString()
+    };
+
+    const merged = [
+      current,
+      ...storedSessions
+        .filter(session => session.id && session.id !== sessionId)
+        .slice(0, 4)
+        .map(session => ({ ...session, active: false }))
+    ];
+
+    localStorage.setItem(this.scopedKey('sessions'), JSON.stringify(merged));
+    this.sessions = merged.map(session => ({
+      ...session,
+      icon: this.getSessionIcon(session.device)
+    }));
+  }
+
+  private loadActivityLogs() {
+    const raw = localStorage.getItem(this.scopedKey('activity'));
+    if (raw) {
+      try {
+        this.activityLogs = JSON.parse(raw).map((log: any) => ({
+          ...log,
+          icon: this.getActivityIcon(log.type)
+        }));
+      } catch {
+        this.activityLogs = [];
+      }
+    }
+
+    if (this.activityLogs.length === 0) {
+      this.addActivity('login', 'Inicio de sesión en este dispositivo', 'success', false);
+    }
+  }
+
+  private addActivity(type: string, title: string, color = 'primary', showToast = false) {
+    const next = [
+      {
+        type,
+        title,
+        date: this.formatDateTime(new Date().toISOString()),
+        icon: this.getActivityIcon(type),
+        color
+      },
+      ...this.activityLogs
+    ].slice(0, 8);
+
+    this.activityLogs = next;
+    localStorage.setItem(this.scopedKey('activity'), JSON.stringify(next.map(log => ({
+      type: log.type,
+      title: log.title,
+      date: log.date,
+      color: log.color
+    }))));
+
+    if (showToast) {
+      this.showToast(title, 'success');
+    }
+  }
+
+  private updateSecurityScore() {
+    let score = 65;
+    if (this.twoFactorEnabled) score += 15;
+    if (this.recoveryEmail) score += 10;
+    if (this.alertsConfig.login && this.alertsConfig.suspicious) score += 10;
+    this.securityScore = Math.min(score, 100);
+  }
+
+  private detectDeviceName(): string {
+    const ua = navigator.userAgent;
+    const browser = ua.includes('Chrome') ? 'Chrome' : ua.includes('Safari') ? 'Safari' : 'Navegador';
+    if (/iPhone/i.test(ua)) return `iPhone · ${browser}`;
+    if (/iPad/i.test(ua)) return `iPad · ${browser}`;
+    if (/Android/i.test(ua)) return `Android · ${browser}`;
+    if (/Mac/i.test(ua)) return `Mac · ${browser}`;
+    if (/Windows/i.test(ua)) return `Windows · ${browser}`;
+    return browser;
+  }
+
+  private getSessionIcon(device: string) {
+    return /iPhone|iPad|Android/i.test(device) ? icons.phonePortraitOutline : icons.desktopOutline;
+  }
+
+  private getActivityIcon(type: string) {
+    if (type === 'login') return icons.logInOutline;
+    if (type === 'password') return icons.keyOutline;
+    if (type === '2fa') return icons.fingerPrintOutline;
+    if (type === 'recovery') return icons.mailOutline;
+    if (type === 'session') return icons.powerOutline;
+    return icons.shieldCheckmarkOutline;
+  }
+
+  formatDateTime(value: string | null | undefined): string {
+    if (!value) return 'No disponible';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return new Intl.DateTimeFormat('es-ES', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
   }
 
   getPasswordStrength(): { label: string, color: string, width: string } {
@@ -157,6 +316,7 @@ export class SecurityCenterComponent implements OnInit {
         console.log('[PASSWORD CHANGED]');
         this.securityData = { current: '', new: '', confirm: '' };
         this.passwordTouched = false;
+        this.addActivity('password', 'Contraseña actualizada', 'success');
         this.showToast(this.i18n.instant('security.toast.passwordUpdated'), 'success');
       },
       error: (err) => {
@@ -170,6 +330,12 @@ export class SecurityCenterComponent implements OnInit {
   }
 
   async closeAllSessions() {
+    const otherSessions = this.sessions.filter(session => !session.active);
+    if (otherSessions.length === 0) {
+      this.showToast('No hay otras sesiones abiertas en este navegador.', 'medium');
+      return;
+    }
+
     const alert = await this.alertCtrl.create({
       header: this.i18n.instant('security.alert.closeSessions.title'),
       message: this.i18n.instant('security.alert.closeSessions.message'),
@@ -178,7 +344,9 @@ export class SecurityCenterComponent implements OnInit {
         { 
           text: this.i18n.instant('security.alert.closeSessions.confirm'), 
           handler: () => {
-            console.log('[SESSION CLOSED] Other sessions terminated');
+            this.sessions = this.sessions.filter(session => session.active);
+            localStorage.setItem(this.scopedKey('sessions'), JSON.stringify(this.sessions.map(({ icon, ...session }) => session)));
+            this.addActivity('session', 'Otras sesiones cerradas', 'success');
             this.showToast(this.i18n.instant('security.toast.sessionsClosed'), 'success');
           }
         }
@@ -187,9 +355,98 @@ export class SecurityCenterComponent implements OnInit {
     await alert.present();
   }
 
+  terminateSession(sessionId: string) {
+    const target = this.sessions.find(session => session.id === sessionId);
+    if (!target || target.active) return;
+    this.sessions = this.sessions.filter(session => session.id !== sessionId);
+    localStorage.setItem(this.scopedKey('sessions'), JSON.stringify(this.sessions.map(({ icon, ...session }) => session)));
+    this.addActivity('session', `Sesión eliminada: ${target.device}`, 'success');
+    this.showToast('Sesión eliminada', 'success');
+  }
+
   onAlertChange() {
     console.log('[SECURITY SETTINGS UPDATED]', this.alertsConfig);
+    localStorage.setItem(this.scopedKey('alerts'), JSON.stringify(this.alertsConfig));
+    this.addActivity('settings', 'Preferencias de alerta actualizadas', 'primary');
+    this.updateSecurityScore();
     this.showToast(this.i18n.instant('security.toast.preferencesSaved'), 'success');
+  }
+
+  async manageTwoFactor() {
+    const alert = await this.alertCtrl.create({
+      header: this.twoFactorEnabled ? 'Desactivar 2FA' : 'Activar 2FA',
+      message: this.twoFactorEnabled
+        ? 'La verificación adicional dejará de figurar como activa en este dispositivo.'
+        : 'Se registrará una capa adicional de verificación para esta cuenta en este dispositivo.',
+      buttons: [
+        { text: this.i18n.instant('common.cancel'), role: 'cancel' },
+        {
+          text: this.twoFactorEnabled ? 'Desactivar' : 'Activar',
+          handler: () => {
+            this.twoFactorEnabled = !this.twoFactorEnabled;
+            localStorage.setItem(this.scopedKey('2fa'), String(this.twoFactorEnabled));
+            this.updateSecurityScore();
+            this.addActivity('2fa', this.twoFactorEnabled ? '2FA activado' : '2FA desactivado', this.twoFactorEnabled ? 'success' : 'primary');
+            this.showToast(this.twoFactorEnabled ? '2FA activado' : '2FA desactivado', 'success');
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  async configureRecovery() {
+    const alert = await this.alertCtrl.create({
+      header: 'Correo de recuperación',
+      message: 'Guarda un correo alternativo para recuperación de cuenta.',
+      inputs: [
+        {
+          name: 'email',
+          type: 'email',
+          placeholder: 'correo@ejemplo.com',
+          value: this.recoveryEmail || ''
+        }
+      ],
+      buttons: [
+        { text: this.i18n.instant('common.cancel'), role: 'cancel' },
+        {
+          text: 'Guardar',
+          handler: (data) => {
+            const email = String(data.email || '').trim().toLowerCase();
+            if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+              this.showToast('Introduce un correo válido', 'warning');
+              return false;
+            }
+            this.recoveryEmail = email;
+            localStorage.setItem(this.scopedKey('recoveryEmail'), email);
+            this.updateSecurityScore();
+            this.addActivity('recovery', 'Correo de recuperación actualizado', 'success');
+            this.showToast('Correo de recuperación guardado', 'success');
+            return true;
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  async showDeviceDetails() {
+    const sessionText = this.sessions
+      .map(session => `${session.active ? 'Actual' : 'Otra'}: ${session.device} · ${session.location} · ${this.formatDateTime(session.lastSeen)}`)
+      .join('<br><br>');
+
+    const alert = await this.alertCtrl.create({
+      header: 'Dispositivos conectados',
+      message: sessionText || 'No hay sesiones registradas.',
+      buttons: ['OK']
+    });
+    await alert.present();
+  }
+
+  refreshSecurityData() {
+    this.registerCurrentSession();
+    this.addActivity('session', 'Sesiones actualizadas', 'primary');
+    this.showToast('Datos de seguridad actualizados', 'success');
   }
 
   async showToast(message: string, color: string) {

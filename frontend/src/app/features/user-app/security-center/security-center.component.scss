@@ -417,6 +417,33 @@ ion-list {
     font-size: 0.78rem;
     font-weight: 800;
     text-transform: uppercase;
+    overflow-wrap: anywhere;
+    line-height: 1.35;
+  }
+
+  div {
+    flex: 1;
+    min-width: 0;
+  }
+
+  ion-button {
+    --color: var(--app-primary);
+    --padding-start: 8px;
+    --padding-end: 8px;
+    flex-shrink: 0;
+    font-size: 0.78rem;
+    font-weight: 900;
+    min-height: 36px;
+  }
+
+  &.enabled {
+    border-color: var(--app-success-border);
+    background: var(--app-success-bg);
+
+    > ion-icon {
+      background: rgba(34, 197, 94, 0.12);
+      color: var(--app-success);
+    }
   }
 }
 

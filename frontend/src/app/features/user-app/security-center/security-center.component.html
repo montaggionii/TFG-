@@ -26,8 +26,8 @@
       <div class="security-score">
         <svg viewBox="0 0 36 36" class="circular-chart green">
           <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-          <path class="circle" stroke-dasharray="90, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-          <text x="18" y="20.35" class="percentage">90%</text>
+          <path class="circle" [attr.stroke-dasharray]="securityScore + ', 100'" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+          <text x="18" y="20.35" class="percentage">{{ securityScore }}%</text>
         </svg>
       </div>
     </div>
@@ -54,7 +54,7 @@
           </div>
           <div>
             <span>Fecha de registro</span>
-            <strong>{{ user?.fechaRegistro || user?.createdAt || 'No disponible' }}</strong>
+            <strong>{{ formatDateTime(user?.createdAt) }}</strong>
           </div>
         </div>
         <div class="access-row">
@@ -63,7 +63,7 @@
           </div>
           <div>
             <span>Último acceso</span>
-            <strong>{{ user?.ultimoAcceso || user?.lastLogin || 'No disponible' }}</strong>
+            <strong>{{ formatDateTime(sessions[0]?.lastSeen) }}</strong>
           </div>
         </div>
       </div>
@@ -144,10 +144,10 @@
           </div>
           <div class="session-info">
             <strong>{{ session.device }}</strong>
-            <p>{{ session.location }} • {{ session.ip }}</p>
+            <p>{{ session.location }} • {{ session.ip }} • {{ formatDateTime(session.lastSeen) }}</p>
             <span class="status-badge" *ngIf="session.active">{{ 'security.sessions.current' | ffTranslate }}</span>
           </div>
-          <ion-button fill="clear" color="danger" *ngIf="!session.active">
+          <ion-button fill="clear" color="danger" *ngIf="!session.active" (click)="terminateSession(session.id)" aria-label="Cerrar sesión">
             <ion-icon [icon]="icons.powerOutline" slot="icon-only"></ion-icon>
           </ion-button>
         </div>
@@ -172,8 +172,8 @@
             <ion-icon [icon]="log.icon"></ion-icon>
           </div>
           <div class="log-text">
-            <strong>{{ log.titleKey | ffTranslate }}</strong>
-            <p>{{ log.dateKey ? (log.dateKey | ffTranslate) : log.date }}</p>
+            <strong>{{ log.title }}</strong>
+            <p>{{ log.date }}</p>
           </div>
           <ion-icon [icon]="icons.chevronBackOutline" class="arrow-rev"></ion-icon>
         </div>
@@ -213,40 +213,46 @@
       </div>
     </section>
 
-    <!-- SECCIÓN 5: FUNCIONES FUTURAS -->
+    <!-- SECCIÓN 5: HERRAMIENTAS DE SEGURIDAD -->
     <section class="security-section animate__animated animate__fadeInUp" *ngIf="!isLoading">
       <div class="section-header">
         <ion-icon [icon]="icons.shieldCheckmarkOutline"></ion-icon>
         <h3>Seguridad de la cuenta</h3>
       </div>
       <div class="security-card future-grid">
-        <div class="future-item">
+        <div class="future-item actionable" [class.enabled]="twoFactorEnabled">
           <ion-icon [icon]="icons.fingerPrintOutline"></ion-icon>
           <div>
             <strong>Autenticación de dos factores</strong>
-            <p>Próximamente</p>
+            <p>{{ twoFactorEnabled ? 'Activada' : 'Desactivada' }}</p>
           </div>
+          <ion-button fill="clear" (click)="manageTwoFactor()">
+            {{ twoFactorEnabled ? 'Cambiar' : 'Activar' }}
+          </ion-button>
         </div>
-        <div class="future-item">
+        <div class="future-item actionable">
           <ion-icon [icon]="icons.phonePortraitOutline"></ion-icon>
           <div>
             <strong>Dispositivos conectados</strong>
-            <p>Próximamente</p>
+            <p>{{ sessions.length }} registrados</p>
           </div>
+          <ion-button fill="clear" (click)="showDeviceDetails()">Ver</ion-button>
         </div>
-        <div class="future-item">
+        <div class="future-item actionable">
           <ion-icon [icon]="icons.logInOutline"></ion-icon>
           <div>
             <strong>Sesiones activas avanzadas</strong>
-            <p>Próximamente</p>
+            <p>{{ sessions.length > 1 ? 'Hay otras sesiones' : 'Solo este dispositivo' }}</p>
           </div>
+          <ion-button fill="clear" (click)="refreshSecurityData()">Actualizar</ion-button>
         </div>
-        <div class="future-item">
+        <div class="future-item actionable" [class.enabled]="recoveryEmail">
           <ion-icon [icon]="icons.keyOutline"></ion-icon>
           <div>
             <strong>Recuperación de cuenta</strong>
-            <p>Próximamente</p>
+            <p>{{ recoveryEmail || 'Sin correo alternativo' }}</p>
           </div>
+          <ion-button fill="clear" (click)="configureRecovery()">Configurar</ion-button>
         </div>
       </div>
     </section>

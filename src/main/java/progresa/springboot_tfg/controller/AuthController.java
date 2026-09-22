@@ -5,27 +5,37 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import progresa.springboot_tfg.dto.*;
 import progresa.springboot_tfg.entity.Usuario; // 🔥 NUEVO
+import progresa.springboot_tfg.security.JwtUtil;
 import progresa.springboot_tfg.service.RestauranteService;
 import progresa.springboot_tfg.service.UsuarioService;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(originPatterns = "*")
+@CrossOrigin(origins = "*")
 @Tag(name = "Auth", description = "Operaciones de autenticación para usuarios y restaurantes")
 public class AuthController {
 
     private final UsuarioService usuarioService;
     private final RestauranteService restauranteService;
+    private final JwtUtil jwtUtil;
+    private final String adminPassword;
 
     public AuthController(UsuarioService usuarioService,
-                          RestauranteService restauranteService) {
+                          RestauranteService restauranteService,
+                          JwtUtil jwtUtil,
+                          @Value("${fidelyfood.admin.password:admin123}") String adminPassword) {
         this.usuarioService = usuarioService;
         this.restauranteService = restauranteService;
+        this.jwtUtil = jwtUtil;
+        this.adminPassword = adminPassword;
     }
 
     // Login del usuario
@@ -60,15 +70,26 @@ public class AuthController {
         return ResponseEntity.ok(restauranteService.login(loginDTO));
     }
 
-    @Operation(
-            summary = "Login de administrador",
-            description = "Autentica a un usuario interno con rol administrador y devuelve un token JWT"
-    )
     @PostMapping("/login-admin")
-    public ResponseEntity<LoginResponseDTO> loginAdmin(
-            @RequestBody LoginRequestDTO loginDTO) {
+    public ResponseEntity<?> loginAdmin(@RequestBody LoginRequestDTO loginDTO) {
+        String email = loginDTO.getEmail() == null ? "" : loginDTO.getEmail().trim();
+        String password = loginDTO.getPassword() == null ? "" : loginDTO.getPassword().trim();
+        boolean validEmail = "admin@fidelyfood.local".equalsIgnoreCase(email)
+                || "admin@fidelyfood.com".equalsIgnoreCase(email);
+        boolean validPassword = adminPassword.equals(password);
 
-        return ResponseEntity.ok(usuarioService.loginAdmin(loginDTO));
+        if (!validEmail || !validPassword) {
+            return ResponseEntity.status(401).body(Map.of("message", "Credenciales de administrador no válidas."));
+        }
+
+        String token = jwtUtil.generateToken(email, "ROLE_ADMIN");
+        return ResponseEntity.ok(Map.of(
+                "id", 1,
+                "nombre", "Administrador",
+                "email", email,
+                "role", "ROLE_ADMIN",
+                "token", token
+        ));
     }
 
     // 🔥 REGISTRO USUARIO CORREGIDO

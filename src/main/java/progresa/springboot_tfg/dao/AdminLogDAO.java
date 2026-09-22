@@ -6,5 +6,6 @@ import progresa.springboot_tfg.entity.AdminLog;
 import java.util.List;
 
 public interface AdminLogDAO extends JpaRepository<AdminLog, Long> {
-    List<AdminLog> findTop20ByOrderByCreatedAtDesc();
+
+    List<AdminLog> findByEntityTypeAndEntityIdOrderByCreatedAtDesc(String entityType, Long entityId);
 }

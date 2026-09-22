@@ -10,14 +10,16 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import progresa.springboot_tfg.entity.Promocion;
+import progresa.springboot_tfg.security.SecurityUtils;
 import progresa.springboot_tfg.service.PromocionService;
 import progresa.springboot_tfg.dto.AplicarPromocionDTO;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/promociones")
-@CrossOrigin(originPatterns = "*")
+@CrossOrigin(origins = "*")
 @Tag(name = "Promociones", description = "Gestión de promociones y aplicación de beneficios para usuarios")
 public class PromocionController {
 
@@ -39,15 +41,15 @@ public class PromocionController {
         return ResponseEntity.ok(promocionService.obtenerTodas());
     }
 
-    @Operation(
-            summary = "Obtener promociones por restaurante",
-            description = "Devuelve las promociones asociadas a un restaurante concreto"
-    )
     @GetMapping("/restaurante/{restauranteId}")
-    public ResponseEntity<List<Promocion>> obtenerPorRestaurante(@PathVariable Long restauranteId) {
+    public ResponseEntity<List<Promocion>> obtenerPorRestaurante(
+            @PathVariable Long restauranteId,
+            Authentication authentication) {
+        if (SecurityUtils.hasRole(authentication, "ROLE_RESTAURANT")) {
+            promocionService.validarRestauranteAutenticado(restauranteId, SecurityUtils.email(authentication));
+        }
         return ResponseEntity.ok(promocionService.obtenerPorRestaurante(restauranteId));
     }
-
 
     @Operation(
             summary = "Crear promoción",
@@ -60,15 +62,30 @@ public class PromocionController {
     })
     @PostMapping
     public ResponseEntity<Promocion> crear(
-            @RequestBody Promocion promocion,
+            @RequestBody Map<String, Object> data,
             Authentication authentication
     ) {
-        // email del restaurante obtenido del JWT
-        String emailRestaurante = authentication.getName();
-
         return ResponseEntity.ok(
-                promocionService.crear(promocion, emailRestaurante)
+                promocionService.crear(toPromocion(data), SecurityUtils.email(authentication))
         );
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Promocion> actualizar(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> data,
+            Authentication authentication) {
+        return ResponseEntity.ok(
+                promocionService.actualizar(id, toPromocion(data), SecurityUtils.email(authentication))
+        );
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminar(
+            @PathVariable Long id,
+            Authentication authentication) {
+        promocionService.eliminar(id, SecurityUtils.email(authentication));
+        return ResponseEntity.noContent().build();
     }
 
 
@@ -84,9 +101,32 @@ public class PromocionController {
     @PostMapping("/{id}/aplicar")
     public ResponseEntity<?> aplicarPromocion(
             @PathVariable Long id,
-            @RequestBody AplicarPromocionDTO dto
+            @RequestBody AplicarPromocionDTO dto,
+            Authentication authentication
     ) {
-        promocionService.aplicarPromocion(id, dto.getUsuarioId());
+        promocionService.aplicarPromocion(id, dto.getUsuarioId(), SecurityUtils.email(authentication));
         return ResponseEntity.ok("Promoción aplicada y puntos sumados");
+    }
+
+    private Promocion toPromocion(Map<String, Object> data) {
+        Promocion promocion = new Promocion();
+        promocion.setTitulo(stringValue(data.get("titulo")));
+        promocion.setDescripcion(stringValue(data.get("descripcion")));
+        promocion.setPuntosOtorgados(intValue(data.get("puntosOtorgados"), intValue(data.get("puntosNecesarios"), 0)));
+        return promocion;
+    }
+
+    private String stringValue(Object value) {
+        return value == null ? null : String.valueOf(value).trim();
+    }
+
+    private int intValue(Object value, int fallback) {
+        if (value == null) return fallback;
+        if (value instanceof Number number) return number.intValue();
+        try {
+            return Integer.parseInt(String.valueOf(value));
+        } catch (NumberFormatException ex) {
+            return fallback;
+        }
     }
 }

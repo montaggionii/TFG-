@@ -1,1 +1,59 @@
 @import '../shared-admin';
+
+.clickable {
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 138, 42, 0.28);
+  }
+}
+
+.quick-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: -4px 0 18px;
+
+  ion-button {
+    --border-radius: 8px;
+    font-weight: 900;
+  }
+}
+
+.system-status {
+  margin-bottom: 18px;
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+
+  article {
+    min-height: 72px;
+    padding: 12px;
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    background: #fffaf7;
+  }
+
+  span,
+  strong {
+    display: block;
+  }
+
+  span {
+    color: var(--admin-muted);
+    font-size: 0.76rem;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  strong {
+    margin-top: 8px;
+    color: var(--admin-text);
+    font-size: 1.35rem;
+  }
+}

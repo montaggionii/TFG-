@@ -11,6 +11,8 @@ public class AdminLog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    private String adminEmail;
+
     @Column(nullable = false)
     private String action;
 
@@ -18,32 +20,33 @@ public class AdminLog {
     private String entityType;
 
     private Long entityId;
-    private String adminEmail;
 
-    @Column(length = 1200)
-    private String details;
+    @Column(length = 1000)
+    private String description;
 
-    @Column(nullable = false)
+    @Column(length = 3000)
+    private String oldData;
+
+    @Column(length = 3000)
+    private String newData;
+
     private LocalDateTime createdAt;
 
-    public AdminLog() {
-    }
-
-    public AdminLog(String action, String entityType, Long entityId, String adminEmail, String details) {
-        this.action = action;
-        this.entityType = entityType;
-        this.entityId = entityId;
-        this.adminEmail = adminEmail;
-        this.details = details;
-    }
-
     @PrePersist
-    void onCreate() {
+    public void prePersist() {
         if (createdAt == null) createdAt = LocalDateTime.now();
     }
 
     public Long getId() {
         return id;
+    }
+
+    public String getAdminEmail() {
+        return adminEmail;
+    }
+
+    public void setAdminEmail(String adminEmail) {
+        this.adminEmail = adminEmail;
     }
 
     public String getAction() {
@@ -70,20 +73,28 @@ public class AdminLog {
         this.entityId = entityId;
     }
 
-    public String getAdminEmail() {
-        return adminEmail;
+    public String getDescription() {
+        return description;
     }
 
-    public void setAdminEmail(String adminEmail) {
-        this.adminEmail = adminEmail;
+    public void setDescription(String description) {
+        this.description = description;
     }
 
-    public String getDetails() {
-        return details;
+    public String getOldData() {
+        return oldData;
     }
 
-    public void setDetails(String details) {
-        this.details = details;
+    public void setOldData(String oldData) {
+        this.oldData = oldData;
+    }
+
+    public String getNewData() {
+        return newData;
+    }
+
+    public void setNewData(String newData) {
+        this.newData = newData;
     }
 
     public LocalDateTime getCreatedAt() {

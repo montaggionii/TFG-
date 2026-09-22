@@ -51,6 +51,12 @@ export class AuthService {
     this.syncGlobalState(this.authStateSubject.getValue());
   }
 
+  private clearSessionStorage() {
+    ['token', 'role', 'nombre', 'userId', 'userPhoto', 'currentUser'].forEach(key => {
+      localStorage.removeItem(key);
+    });
+  }
+
   // --- MÉTODOS DE AUTENTICACIÓN ---
 
   loginUsuario(credentials: any): Observable<any> {
@@ -136,7 +142,7 @@ export class AuthService {
       console.log('[AuthService] Procesando respuesta de login. Limpiando sesión previa...');
       
       // Limpieza atómica antes de escribir el nuevo usuario
-      localStorage.clear();
+      this.clearSessionStorage();
       this.globalState.setState(null);
 
       let role = fallbackRole;
@@ -209,15 +215,27 @@ export class AuthService {
     return this.authStateSubject.getValue().rol || localStorage.getItem('role');
   }
 
+  public isTokenExpired(token: string | null = this.getToken()): boolean {
+    if (!token) return true;
+    try {
+      const decoded: any = jwtDecode(token);
+      if (!decoded.exp) return true;
+      return decoded.exp * 1000 <= Date.now();
+    } catch {
+      return true;
+    }
+  }
+
   public isAuthenticated(): boolean {
-    return !!this.getToken();
+    const token = this.getToken();
+    return !!token && !this.isTokenExpired(token);
   }
 
   public logout() {
     // 3. RASTREO DE REDIRECCIÓN FUGITIVA
     console.trace('Cierre de sesión invocado desde:');
     
-    localStorage.clear();
+    this.clearSessionStorage();
     this.authStateSubject.next({ token: null, rol: null, nombre: null });
     this.globalState.setState(null);
     this.router.navigate(['/login']);

@@ -36,12 +36,12 @@ public class UsuarioDTO {
             example = "USER_1_a8f5f167f44f4964e6c998dee827110c"
     )
     private String qrCode;
-    private String fotoPerfil;
-    private String telefono;
-    private String role;
-    private boolean active = true;
+
     private LocalDateTime createdAt;
+
     private LocalDateTime updatedAt;
+
+    private String fotoPerfil;
 
     public UsuarioDTO() {
     }
@@ -63,19 +63,19 @@ public class UsuarioDTO {
         this.qrCode = qrCode;
     }
 
-    public UsuarioDTO(Long id, String nombre, String email, int puntos, String qrCode, String fotoPerfil) {
-        this(id, nombre, email, puntos, qrCode);
-        this.fotoPerfil = fotoPerfil;
-    }
-
-    public UsuarioDTO(Long id, String nombre, String email, int puntos, String qrCode, String fotoPerfil,
-                      String telefono, String role, boolean active, LocalDateTime createdAt, LocalDateTime updatedAt) {
-        this(id, nombre, email, puntos, qrCode, fotoPerfil);
-        this.telefono = telefono;
-        this.role = role;
-        this.active = active;
+    public UsuarioDTO(Long id, String nombre, String email, int puntos, String qrCode, LocalDateTime createdAt, LocalDateTime updatedAt) {
+        this.id = id;
+        this.nombre = nombre;
+        this.email = email;
+        this.puntos = puntos;
+        this.qrCode = qrCode;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+    }
+
+    public UsuarioDTO(Long id, String nombre, String email, int puntos, String qrCode, LocalDateTime createdAt, LocalDateTime updatedAt, String fotoPerfil) {
+        this(id, nombre, email, puntos, qrCode, createdAt, updatedAt);
+        this.fotoPerfil = fotoPerfil;
     }
 
     public Long getId() {
@@ -99,28 +99,20 @@ public class UsuarioDTO {
         return qrCode;
     }
 
-    public String getFotoPerfil() {
-        return fotoPerfil;
-    }
-
-    public String getTelefono() {
-        return telefono;
-    }
-
-    public String getRole() {
-        return role;
-    }
-
-    public boolean isActive() {
-        return active;
-    }
-
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
 
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
+    }
+
+    public String getFotoPerfil() {
+        return fotoPerfil;
+    }
+
+    public void setFotoPerfil(String fotoPerfil) {
+        this.fotoPerfil = fotoPerfil;
     }
 
     public void setId(Long id) {
@@ -142,22 +134,6 @@ public class UsuarioDTO {
     // 🔥 NUEVO setter
     public void setQrCode(String qrCode) {
         this.qrCode = qrCode;
-    }
-
-    public void setFotoPerfil(String fotoPerfil) {
-        this.fotoPerfil = fotoPerfil;
-    }
-
-    public void setTelefono(String telefono) {
-        this.telefono = telefono;
-    }
-
-    public void setRole(String role) {
-        this.role = role;
-    }
-
-    public void setActive(boolean active) {
-        this.active = active;
     }
 
     public void setCreatedAt(LocalDateTime createdAt) {

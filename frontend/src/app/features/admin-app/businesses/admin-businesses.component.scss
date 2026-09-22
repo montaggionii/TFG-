@@ -1,9 +1,49 @@
 @import '../shared-admin';
 
-.detail-actions .span-2 {
-  grid-column: 1 / -1;
-}
+.businesses-page {
+  .business-avatar {
+    background: #eef7ff;
+    color: #2373c8;
+  }
 
-.compact {
-  min-height: 210px;
+  .desktop-list {
+    table {
+      min-width: 880px;
+    }
+
+    th,
+    td {
+      &:first-child {
+        width: 24%;
+      }
+
+      &:nth-child(2) {
+        width: 23%;
+      }
+
+      &:nth-child(3) {
+        width: 12%;
+      }
+
+      &:nth-child(4) {
+        width: 17%;
+      }
+
+      &:nth-child(5) {
+        width: 13%;
+      }
+
+      &:nth-child(6) {
+        width: 9%;
+      }
+
+      &:last-child {
+        width: 54px;
+      }
+    }
+
+    td span {
+      max-width: none;
+    }
+  }
 }

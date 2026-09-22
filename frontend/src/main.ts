@@ -1,6 +1,7 @@
 import { bootstrapApplication } from '@angular/platform-browser';
 import { RouteReuseStrategy, provideRouter, withPreloading, PreloadAllModules, withEnabledBlockingInitialNavigation } from '@angular/router';
 import { IonicRouteStrategy, provideIonicAngular } from '@ionic/angular/standalone';
+import { defineCustomElements } from '@ionic/core/loader';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 
 import { routes } from './app/app.routes';
@@ -40,6 +41,12 @@ addIcons({
   arrowForward,
   star
 });
+
+// Registra globalmente los web components de Ionic (ion-input, ion-button, ion-icon, etc.).
+// Sin esto, los componentes importados vía IonicModule (@ionic/angular) nunca se
+// definen como custom elements bajo bootstrapApplication + provideIonicAngular(),
+// y se renderizan sin shadow DOM (0x0, sin interactividad).
+defineCustomElements(window);
 
 bootstrapApplication(AppComponent, {
   providers: [
