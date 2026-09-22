@@ -22,13 +22,16 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final JwtAuthEntryPoint jwtAuthEntryPoint;
+    private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
 
     public SecurityConfig(
             JwtAuthenticationFilter jwtAuthenticationFilter,
-            JwtAuthEntryPoint jwtAuthEntryPoint
+            JwtAuthEntryPoint jwtAuthEntryPoint,
+            JwtAccessDeniedHandler jwtAccessDeniedHandler
     ) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.jwtAuthEntryPoint = jwtAuthEntryPoint;
+        this.jwtAccessDeniedHandler = jwtAccessDeniedHandler;
     }
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -41,6 +44,7 @@ public class SecurityConfig {
                 )
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(jwtAuthEntryPoint)
+                        .accessDeniedHandler(jwtAccessDeniedHandler)
                 )
                 .authorizeHttpRequests(auth -> auth
 

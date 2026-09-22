@@ -169,7 +169,7 @@ export class AuthService {
 
       const newState: AuthState = { token: res.token, rol: role, nombre, id, foto };
 
-      
+
       // Emitimos el nuevo estado DESPUÉS de asegurar el localStorage
       this.authStateSubject.next(newState);
       this.syncGlobalState(newState);
