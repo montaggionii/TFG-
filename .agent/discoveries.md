@@ -39,3 +39,14 @@ Ver `decisions.md` — es el nombre que usa el usuario para la app Claude Deskto
 **Conclusión**: las filas de datos originales (mayo 2026) no son recuperables de ningún archivo del sistema. Reconstruibles parcialmente: 2 de los 3 restaurantes conocidos vía código semilla (con contraseña nueva, no la original). El restaurante mexicano, los usuarios reales, promociones, puntos y movimientos históricos no dejaron rastro de sus valores exactos en ningún archivo — solo las imágenes como evidencia de que existieron.
 
 **Sobre "123456" como credencial**: el único sitio del proyecto donde aparece es `docs/api-examples.json`, como ejemplo genérico de documentación de la API (`user@test.com` / `123456`), no como credencial real de ningún restaurante específico.
+
+**Reconstrucción aplicada (2026-09-22, con confirmación del usuario)**: se creó `config/HistoricalRestaurantSeeder.java`, un `CommandLineRunner` idempotente que siembra los 3 restaurantes al arrancar el backend, si no existen ya (busca por email):
+- "Alabroster - Comida Colombiana" (`alabroster@test.com`) — nombre/email originales, del código semilla recuperado.
+- "Venezuela Food" (`venezuelafood@gmail.com`) — nombre/email originales, del código semilla recuperado.
+- "Mexican Food" (`mexicanfood@fidelyfood.local`) — **nombre y email reconstruidos, no verificados**. El dato original solo sobrevivió como el logo `1778686469641_logo_restaurante mexicano.png`, subido en mayo de 2026; no se encontró su nombre/email real en ningún archivo.
+
+Contraseña de los 3: nueva, generada, guardada solo en `.env` local (variable `APP_SEED_RESTAURANT_PASSWORD`, gitignored) — no es la contraseña histórica real (esa se perdió junto con la base de datos original, estaba hasheada con BCrypt).
+
+Validado: los 3 aparecen en la BD, el login de restaurante funciona (probado con Venezuela Food), el logo del restaurante mexicano se sirve correctamente, y el dashboard de admin cuenta 4 negocios (los 3 + el de prueba E2E).
+
+Backup de la BD tomado antes de la siembra: `backups/proyectoTFG_20260922_131229.sql` (gitignored, local).
