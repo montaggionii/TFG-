@@ -206,24 +206,27 @@
     padding-bottom: 8px;
   }
 
+  // Etiqueta encima del valor (no al lado): el ancho que necesita la fila
+  // pasa a ser el mayor de los dos textos por separado, no su suma. Así
+  // "ACTUALIZADO" + fecha nunca puede forzar un wrap aunque sea más largo
+  // que "CREADO" + fecha.
   .date-row {
     display: flex;
-    align-items: baseline;
-    gap: 6px;
+    flex-direction: column;
+    gap: 1px;
     white-space: nowrap;
 
     & + .date-row {
-      margin-top: 4px;
+      margin-top: 6px;
     }
   }
 
   .date-label {
-    flex: 0 0 auto;
     color: var(--admin-muted);
-    font-size: 10.5px;
+    font-size: 9.5px;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.4px;
   }
 
   .date-value {
