@@ -128,59 +128,121 @@
   overflow: auto;
 
   table {
-    min-width: 820px;
+    min-width: 760px;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  // Los anchos se fijan solo en <th> — en table-layout:fixed son los que
+  // determinan las columnas; repetirlos en cada <td> es innecesario y fue
+  // parte de por qué la columna Fechas podía acabar con un ancho distinto
+  // al de su cabecera.
+  th {
+    white-space: nowrap;
+
+    &.col-client { width: 24%; }
+    &.col-email { width: 24%; }
+    &.col-phone { width: 13%; }
+    &.col-points { width: 10%; }
+    &.col-dates { width: 17%; }
+    &.col-status { width: 12%; }
+    &.col-actions { width: 52px; }
+  }
+
+  td {
+    vertical-align: middle;
+    height: 64px;
   }
 
   tr {
     cursor: pointer;
+    transition: background 120ms ease;
+
+    &:hover td {
+      background: var(--admin-soft);
+    }
+
+    &.active-row td {
+      background: var(--admin-soft-strong);
+    }
   }
 
   td strong {
     display: block;
+    color: var(--admin-text);
   }
 
-  td span {
-    display: block;
-    max-width: 180px;
+  .client-cell {
+    span {
+      display: block;
+      margin-top: 2px;
+      color: var(--admin-muted);
+      font-size: 11.5px;
+      font-weight: 600;
+    }
+  }
+
+  .email-cell {
+    max-width: 0; // fuerza a respetar el ancho de columna para poder truncar
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .phone-cell {
+    white-space: nowrap;
+  }
+
+  .points-cell {
+    text-align: center;
+
+    strong {
+      font-size: 15px;
+    }
+  }
+
+  .date-stack {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .date-row {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    white-space: nowrap;
+
+    & + .date-row {
+      margin-top: 4px;
+    }
+  }
+
+  .date-label {
+    flex: 0 0 auto;
     color: var(--admin-muted);
-    font-size: 12px;
-    overflow-wrap: anywhere;
+    font-size: 10.5px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
   }
 
-  th,
-  td {
-    &:first-child {
-      width: 22%;
-    }
-
-    &:nth-child(2) {
-      width: 26%;
-    }
-
-    &:nth-child(3) {
-      width: 12%;
-    }
-
-    &:nth-child(4) {
-      width: 9%;
-    }
-
-    &:nth-child(5) {
-      width: 17%;
-    }
-
-    &:nth-child(6) {
-      width: 10%;
-    }
-
-    &:last-child {
-      width: 54px;
-    }
+  .date-value {
+    color: var(--admin-text);
+    font-size: 12.5px;
+    font-weight: 600;
   }
 
-  .date-stack span {
-    max-width: none;
+  .status-cell {
+    white-space: nowrap;
   }
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: 0 0 auto;
 }
 
 .mobile-cards {
@@ -482,7 +544,14 @@ ion-segment-button {
   .client-controls {
     grid-template-columns: 1fr 1fr;
   }
+}
 
+/* La tabla de escritorio necesita ~820px + el panel de detalle (340-390px)
+   para caber sin comprimirse (ver .desktop-list table { min-width }). Por
+   debajo de esto, el grid maestro-detalle apilaba el detalle pero seguía
+   dejando la tabla en una columna demasiado estrecha, forzando su texto a
+   cortarse carácter a carácter. Se apila hasta que sobra espacio real. */
+@media (max-width: 1600px) {
   .management-grid.enhanced {
     grid-template-columns: 1fr;
   }
