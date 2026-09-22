@@ -153,8 +153,42 @@ async function fetchAccounts() {
 }
 
 const app = express();
+app.use(express.json());
+
+// CORS solo para el frontend local de FidelyFood (necesario para que
+// AgentStateService pueda hacer POST aquí desde el navegador). Sigue sin
+// exponerse nada fuera de este Mac: el servidor entero solo escucha en
+// 127.0.0.1, esto únicamente permite que otro puerto de localhost lo llame.
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", FRONTEND_URL);
+  res.header("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type");
+  if (req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
 
 app.use(express.static(path.join(__dirname, "public")));
+
+// --- Puente de estado del Agent Widget (frontend -> aquí -> widget de escritorio) ---
+// El AgentWidgetComponent (frontend Angular) hace POST aquí cada vez que su
+// estado cambia. El widget de escritorio (Übersicht) hace GET aquí para
+// mostrar la misma actividad en tiempo real fuera del navegador. Solo
+// guarda el último snapshot en memoria — no hay persistencia ni historial
+// aquí (el historial completo vive en el propio AgentStateService del
+// frontend, ver .../core/agent/agent-state.service.ts).
+let lastAgentState = null;
+
+app.post("/api/agent-state", (req, res) => {
+  lastAgentState = { ...req.body, receivedAt: new Date().toISOString() };
+  res.json({ ok: true });
+});
+
+app.get("/api/agent-state", (req, res) => {
+  if (!lastAgentState) {
+    return res.json({ status: "UNKNOWN", message: "Sin datos todavía — abre el panel admin de FidelyFood en el navegador." });
+  }
+  res.json(lastAgentState);
+});
 
 app.get("/api/accounts", async (req, res) => {
   try {

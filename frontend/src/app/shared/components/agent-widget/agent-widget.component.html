@@ -1,0 +1,151 @@
+<div class="agent-widget" [class.expanded]="expanded" [attr.data-tone]="meta.tone">
+
+  <!-- BURBUJA MINIMIZADA -->
+  <button
+    *ngIf="!expanded"
+    type="button"
+    class="bubble"
+    (click)="toggleExpanded()"
+    [attr.aria-label]="'Agente: ' + meta.label"
+  >
+    <span class="mark">
+      <span class="mark-ring"></span>
+      <span class="mark-core"></span>
+    </span>
+    <span class="bubble-text">
+      <strong>Agente</strong>
+      <small>{{ meta.label }}</small>
+    </span>
+  </button>
+
+  <!-- PANEL EXPANDIDO -->
+  <div class="panel" *ngIf="expanded">
+    <header class="panel-header">
+      <div class="identity">
+        <span class="mark small">
+          <span class="mark-ring"></span>
+          <span class="mark-core"></span>
+        </span>
+        <div>
+          <strong>Agente</strong>
+          <div class="status-line">
+            <span class="status-dot"></span>
+            {{ meta.label }}
+          </div>
+        </div>
+      </div>
+      <button type="button" class="icon-btn" (click)="toggleExpanded()" aria-label="Minimizar">–</button>
+    </header>
+
+    <section class="panel-body">
+
+      <!-- IDLE -->
+      <ng-container *ngIf="state.status === 'IDLE'">
+        <p class="idle-text">El agente está en espera.</p>
+        <p class="idle-sub" *ngIf="state.lastTaskSummary">
+          Última tarea: {{ state.lastTaskSummary }}
+        </p>
+        <p class="idle-meta">Última actividad: {{ relativeTime(state.lastActionAt) }}</p>
+      </ng-container>
+
+      <!-- WORKING / THINKING / TOOL_RUNNING -->
+      <ng-container *ngIf="state.status === 'WORKING' || state.status === 'THINKING' || state.status === 'TOOL_RUNNING'">
+        <p class="current-action">{{ state.currentAction || 'Trabajando…' }}</p>
+
+        <div class="tool-line" *ngIf="state.currentTool">
+          <span class="tool-chip">{{ state.currentTool.name }}</span>
+          <span class="tool-detail" *ngIf="state.currentTool.detail">{{ state.currentTool.detail }}</span>
+        </div>
+
+        <div class="progress-bar" *ngIf="state.progress !== null">
+          <div class="progress-fill" [style.width.%]="state.progress"></div>
+          <span class="progress-label">{{ state.progress }}%</span>
+        </div>
+
+        <ul class="steps" *ngIf="state.steps.length">
+          <li *ngFor="let step of state.steps" [class]="'step ' + step.state">
+            <span class="step-icon">
+              <ng-container [ngSwitch]="step.state">
+                <span *ngSwitchCase="'done'">✓</span>
+                <span *ngSwitchCase="'active'" class="step-pulse"></span>
+                <span *ngSwitchDefault>○</span>
+              </ng-container>
+            </span>
+            {{ step.label }}
+          </li>
+        </ul>
+
+        <div class="meta-row">
+          <span>Tiempo trabajando: {{ elapsedSince(state.startedAt) }}</span>
+          <span>Última acción: {{ relativeTime(state.lastActionAt) }}</span>
+        </div>
+      </ng-container>
+
+      <!-- SUCCESS -->
+      <ng-container *ngIf="state.status === 'SUCCESS'">
+        <p class="success-title">✓ Tarea completada</p>
+        <p class="success-summary">{{ state.lastTaskSummary }}</p>
+        <p class="idle-meta" *ngIf="state.nextAction">Siguiente: {{ state.nextAction }}</p>
+        <p class="idle-meta">{{ relativeTime(state.lastActionAt) }}</p>
+      </ng-container>
+
+      <!-- ERROR -->
+      <ng-container *ngIf="state.status === 'ERROR'">
+        <p class="error-title">⚠ Se ha encontrado un problema</p>
+        <p class="error-message">{{ state.error?.message }}</p>
+        <p class="error-recoverable">
+          {{ state.error?.recoverable ? 'El agente puede recuperarse automáticamente.' : 'Requiere intervención manual.' }}
+        </p>
+        <button type="button" class="link-btn" (click)="openActivity()">Ver detalles</button>
+      </ng-container>
+
+      <!-- WAITING -->
+      <ng-container *ngIf="state.status === 'WAITING'">
+        <p class="waiting-title">Necesito tu intervención</p>
+        <p class="waiting-reason">{{ state.waitingFor }}</p>
+      </ng-container>
+
+    </section>
+
+    <footer class="panel-footer">
+      <button type="button" class="ghost-btn" (click)="openActivity()">Ver actividad</button>
+    </footer>
+  </div>
+
+  <!-- DRAWER DE ACTIVIDAD -->
+  <div class="activity-backdrop" *ngIf="activityOpen" (click)="closeActivity()"></div>
+  <aside class="activity-drawer" *ngIf="activityOpen">
+    <header>
+      <strong>Actividad del agente</strong>
+      <button type="button" class="icon-btn" (click)="closeActivity()" aria-label="Cerrar">×</button>
+    </header>
+
+    <div class="activity-summary">
+      <div>
+        <span class="summary-value">{{ state.tasksCompletedToday }}</span>
+        <span class="summary-label">{{ state.tasksCompletedToday === 1 ? 'tarea completada hoy' : 'tareas completadas hoy' }}</span>
+      </div>
+      <div>
+        <span class="summary-value">{{ meta.label }}</span>
+        <span class="summary-label">estado actual</span>
+      </div>
+    </div>
+
+    <ol class="timeline">
+      <li *ngFor="let entry of state.timeline" [class]="'entry ' + entry.kind">
+        <span class="entry-time">{{ formatClock(entry.at) }}</span>
+        <span class="entry-icon">
+          <ng-container [ngSwitch]="entry.kind">
+            <span *ngSwitchCase="'done'">✓</span>
+            <span *ngSwitchCase="'error'">⚠</span>
+            <span *ngSwitchCase="'active'">●</span>
+            <span *ngSwitchDefault>·</span>
+          </ng-container>
+        </span>
+        <span class="entry-message">{{ entry.message }}</span>
+      </li>
+      <li class="entry empty" *ngIf="!state.timeline.length">Todavía no hay actividad registrada.</li>
+    </ol>
+  </aside>
+
+</div>
