@@ -1,0 +1,40 @@
+{
+  "updatedAt": "2026-09-22T12:40:00Z",
+  "project": {
+    "name": "FidelyFood (TFG)",
+    "path": "/Users/montaggioni/projects/TFG-repaired-20260917",
+    "repo": "https://github.com/montaggionii/TFG-",
+    "branch": "main"
+  },
+  "agent": {
+    "status": "ACTIVO",
+    "mode": "LIVE",
+    "currentTask": "Fase 5/9 completadas (estado persistente + widget). Siguiente: Fase 4 (validacion real: build y tests).",
+    "lastActivity": "2026-09-22T12:40:00Z",
+    "progress": "Consolidacion de proyecto: auditoria + PR mergeado + secretos corregidos + estado persistente + widget. Pendiente: validacion real, agente autonomo (Fase 7), tests."
+  },
+  "pr": {
+    "lastMerged": "https://github.com/montaggionii/TFG-/pull/1"
+  },
+  "usage": {
+    "asOf": "2026-09-22T12:40:00Z",
+    "source": "Claude Code get_usage (plan Pro) - snapshot manual, no polling en vivo",
+    "fiveHourWindowPercentUsed": 28,
+    "fiveHourWindowResetsIn": "4h 7m",
+    "weeklyPercentUsed": 22,
+    "weeklyResetsIn": "1d 5h",
+    "sessionContextTokensUsed": 179869,
+    "sessionContextWindow": 1000000,
+    "sessionContextPercentUsed": 18,
+    "note": "No hay API publica de Anthropic para consultar uso/creditos fuera de una sesion de Claude Code. Estas cifras son una foto fija, no un valor en vivo."
+  },
+  "build": {
+    "status": "NO_VALIDADO"
+  },
+  "tests": {
+    "total": 3,
+    "passing": null,
+    "failing": null,
+    "note": "No ejecutados todavia en esta sesion"
+  }
+}
