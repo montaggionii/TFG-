@@ -6,14 +6,16 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import progresa.springboot_tfg.dto.RegistrarCompraDTO;
+import progresa.springboot_tfg.security.SecurityUtils;
 import progresa.springboot_tfg.service.CompraService;
 
 @RestController
 @RequestMapping("/api/compras")
-@CrossOrigin(originPatterns = "*")
+@CrossOrigin(origins = "*")
 @Tag(name = "Compras", description = "Gestión de compras y acumulación de puntos")
 public class CompraController {
 
@@ -34,11 +36,14 @@ public class CompraController {
     })
     @PostMapping
     public ResponseEntity<?> registrarCompra(
-            @RequestBody RegistrarCompraDTO dto
+            @RequestBody RegistrarCompraDTO dto,
+            Authentication authentication
     ) {
+        SecurityUtils.requireRole(authentication, "ROLE_RESTAURANT");
         compraService.registrarCompra(
                 dto.getUsuarioId(),
-                dto.getImporte()
+                dto.getImporte(),
+                SecurityUtils.email(authentication)
         );
 
         return ResponseEntity.ok("Compra registrada y puntos sumados");

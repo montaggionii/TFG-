@@ -3,65 +3,281 @@
     <ion-buttons slot="start"><ion-menu-button></ion-menu-button></ion-buttons>
     <ion-title>Reservas</ion-title>
     <ion-buttons slot="end">
+      <ion-button (click)="createNew()"><ion-icon name="add-circle-outline" slot="icon-only"></ion-icon></ion-button>
       <ion-button (click)="load()"><ion-icon name="refresh-outline" slot="icon-only"></ion-icon></ion-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="admin-page">
+<ion-content class="admin-page reservations-page">
   <div class="page-inner">
     <section class="header-block">
       <span class="eyebrow">Operaciones</span>
       <h1>Gestión de reservas</h1>
-      <p>Listado global preparado para filtros por negocio, fecha, estado y cliente.</p>
+      <p>Control global de reservas por cliente, negocio, fecha, estado y acciones administrativas.</p>
     </section>
 
-    <div class="filters">
-      <ion-searchbar [(ngModel)]="query" placeholder="Buscar cliente, email, teléfono o negocio"></ion-searchbar>
-      <ion-select [(ngModel)]="status" placeholder="Estado" interface="popover">
+    <section class="admin-metrics">
+      <article>
+        <ion-icon name="calendar-outline"></ion-icon>
+        <span>Total</span>
+        <strong>{{ reservations.length }}</strong>
+      </article>
+      <article>
+        <ion-icon name="time-outline"></ion-icon>
+        <span>Pendientes</span>
+        <strong>{{ pendingReservations }}</strong>
+      </article>
+      <article>
+        <ion-icon name="checkmark-circle-outline"></ion-icon>
+        <span>Confirmadas</span>
+        <strong>{{ confirmedReservations }}</strong>
+      </article>
+      <article>
+        <ion-icon name="close-circle-outline"></ion-icon>
+        <span>Canceladas</span>
+        <strong>{{ cancelledReservations }}</strong>
+      </article>
+    </section>
+
+    <section class="admin-controls reservation-controls">
+      <ion-searchbar
+        [value]="query"
+        (ionInput)="onSearch($event)"
+        placeholder="Buscar cliente, email, teléfono o negocio">
+      </ion-searchbar>
+      <ion-select [(ngModel)]="statusFilter" (ionChange)="applyFilters()" placeholder="Estado" interface="popover">
         <ion-select-option value="">Todos</ion-select-option>
         <ion-select-option value="PENDING">Pendiente</ion-select-option>
         <ion-select-option value="CONFIRMED">Confirmada</ion-select-option>
         <ion-select-option value="CANCELLED">Cancelada</ion-select-option>
+        <ion-select-option value="COMPLETED">Completada</ion-select-option>
+        <ion-select-option value="ATTENDED">Asistió</ion-select-option>
+        <ion-select-option value="NO_SHOW">No asistió</ion-select-option>
       </ion-select>
-      <ion-select [(ngModel)]="business" placeholder="Negocio" interface="popover">
+      <ion-select [(ngModel)]="businessFilter" (ionChange)="applyFilters()" placeholder="Negocio" interface="popover">
         <ion-select-option value="">Todos</ion-select-option>
-        <ion-select-option *ngFor="let option of businessOptions" [value]="option.id">{{ option.name }}</ion-select-option>
+        <ion-select-option *ngFor="let option of businesses" [value]="option.id">{{ option.nombre }}</ion-select-option>
       </ion-select>
-      <ion-input type="date" [(ngModel)]="date"></ion-input>
-    </div>
+      <ion-input type="date" [(ngModel)]="dateFilter" (ionChange)="applyFilters()"></ion-input>
+    </section>
 
-    <div class="table-wrap" *ngIf="filtered.length; else emptyState">
-      <table>
-        <thead>
-          <tr>
-            <th>Fecha</th>
-            <th>Cliente</th>
-            <th>Negocio</th>
-            <th>Personas</th>
-            <th>Estado</th>
-            <th>Contacto</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let item of filtered">
-            <td data-label="Fecha">{{ item.date | date:'short' }}</td>
-            <td data-label="Cliente">{{ item.clientName }}</td>
-            <td data-label="Negocio">{{ item.businessName }}</td>
-            <td data-label="Personas">{{ item.people || '-' }}</td>
-            <td data-label="Estado"><span class="status-pill">{{ item.status }}</span></td>
-            <td data-label="Contacto">{{ item.clientEmail || item.clientPhone || '-' }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <div class="management-grid enhanced">
+      <section class="list-panel">
+        <div class="list-heading">
+          <div>
+            <h2>Reservas</h2>
+            <p>{{ reservations.length }} resultados visibles</p>
+          </div>
+          <div class="heading-actions">
+            <ion-button size="small" (click)="createNew()">
+              <ion-icon name="add-circle-outline" slot="start"></ion-icon>
+              Nueva
+            </ion-button>
+            <ion-icon name="filter-outline"></ion-icon>
+          </div>
+        </div>
 
-    <ng-template #emptyState>
-      <section class="panel empty-state-card empty-reservations">
-        <ion-icon name="calendar-outline"></ion-icon>
-        <h2>No hay reservas disponibles</h2>
-        <p>Cuando existan reservas registradas aparecerán aquí con sus filtros y datos de contacto.</p>
+        <div class="table-wrap desktop-list" *ngIf="!loading && reservations.length; else emptyState">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Cliente</th>
+                <th>Negocio</th>
+                <th>Personas</th>
+                <th>Estado</th>
+                <th>Contacto</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of reservations" (click)="select(item)" [class.active-row]="selected?.id === item.id">
+                <td data-label="Fecha">{{ item.date ? (item.date | date:'short') : 'Sin fecha' }}</td>
+                <td data-label="Cliente">
+                  <strong>{{ item.clientName || 'Cliente' }}</strong>
+                  <span>{{ item.clientEmail || 'Sin email' }}</span>
+                </td>
+                <td data-label="Negocio">{{ item.businessName || '-' }}</td>
+                <td data-label="Personas">{{ item.people || '-' }}</td>
+                <td data-label="Estado">
+                  <span class="status-pill" [ngClass]="statusClass(item.status)">{{ statusLabel(item.status) }}</span>
+                </td>
+                <td data-label="Contacto">{{ item.clientPhone || item.clientEmail || '-' }}</td>
+                <td class="actions" data-label="Acciones">
+                  <ion-button size="small" fill="clear" (click)="select(item); $event.stopPropagation()">
+                    <ion-icon name="create-outline" slot="icon-only"></ion-icon>
+                  </ion-button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="mobile-cards" *ngIf="!loading && reservations.length">
+          <article *ngFor="let item of reservations" (click)="select(item)" [class.active-card]="selected?.id === item.id">
+            <div>
+              <strong>{{ item.clientName || 'Cliente' }}</strong>
+              <span>{{ item.businessName || 'Sin negocio' }}</span>
+              <small>{{ item.date ? (item.date | date:'short') : 'Sin fecha' }}</small>
+            </div>
+            <aside>
+              <b>{{ item.people || 0 }}</b>
+              <span class="status-pill" [ngClass]="statusClass(item.status)">{{ statusLabel(item.status) }}</span>
+            </aside>
+          </article>
+        </div>
+
+        <ng-template #emptyState>
+          <section class="empty-state-card compact">
+            <ion-spinner *ngIf="loading" name="crescent"></ion-spinner>
+            <ion-icon *ngIf="!loading" name="calendar-outline"></ion-icon>
+            <h2>{{ loading ? 'Cargando reservas' : 'No hay reservas disponibles' }}</h2>
+            <p>{{ loading ? 'Consultando reservas administrativas.' : 'Crea una reserva manual o ajusta los filtros para ver resultados.' }}</p>
+            <ion-button *ngIf="!loading" (click)="createNew()">
+              <ion-icon name="add-circle-outline" slot="start"></ion-icon>
+              Crear reserva
+            </ion-button>
+          </section>
+        </ng-template>
       </section>
-    </ng-template>
+
+      <aside class="panel detail-panel reservation-detail" *ngIf="selected || activeTab === 'edit'; else noSelection">
+        <div class="detail-top">
+          <div class="avatar reservation-avatar">
+            <ion-icon name="calendar-outline"></ion-icon>
+          </div>
+          <div>
+            <h2>{{ selected?.clientName || 'Nueva reserva' }}</h2>
+            <p>{{ selected?.businessName || 'Selecciona negocio y fecha' }}</p>
+            <span class="status-pill" [ngClass]="statusClass(selected?.status || reservationForm.value.status || 'PENDING')">{{ statusLabel(selected?.status || reservationForm.value.status || 'PENDING') }}</span>
+          </div>
+          <ion-button fill="clear" class="close-detail" (click)="closeDetail()">
+            <ion-icon name="close-circle-outline" slot="icon-only"></ion-icon>
+          </ion-button>
+        </div>
+
+        <ion-segment [value]="activeTab" (ionChange)="setTab($event)" scrollable="true">
+          <ion-segment-button *ngFor="let tab of tabs" [value]="tab.id" [disabled]="!selected && tab.id !== 'edit'">
+            <ion-label>{{ tab.label }}</ion-label>
+          </ion-segment-button>
+        </ion-segment>
+
+        <section class="tab-section" *ngIf="activeTab === 'summary' && selected">
+          <div class="summary-grid">
+            <article><span>Estado</span><strong>{{ statusLabel(selected.status) }}</strong></article>
+            <article><span>Personas</span><strong>{{ selected.people || 0 }}</strong></article>
+            <article><span>Fecha</span><strong>{{ selected.date ? (selected.date | date:'short') : 'Sin fecha' }}</strong></article>
+            <article><span>Contacto</span><strong>{{ selected.clientPhone || selected.clientEmail || '-' }}</strong></article>
+            <article><span>Creada</span><strong>{{ selected.createdAt ? (selected.createdAt | date:'short') : 'Sin fecha' }}</strong></article>
+            <article><span>Actualizada</span><strong>{{ selected.updatedAt ? (selected.updatedAt | date:'short') : 'Sin fecha' }}</strong></article>
+          </div>
+          <div class="info-block">
+            <span>Notas internas</span>
+            <code>{{ selected.notes || 'Sin notas internas' }}</code>
+          </div>
+          <div class="quick-actions">
+            <ion-button fill="outline" (click)="setStatus('CONFIRMED')" [disabled]="selected.status === 'CONFIRMED'">
+              Confirmar
+            </ion-button>
+            <ion-button fill="outline" color="medium" (click)="setStatus('COMPLETED')" [disabled]="selected.status === 'COMPLETED'">
+              Completar
+            </ion-button>
+            <ion-button fill="outline" (click)="setStatus('ATTENDED')" [disabled]="selected.status === 'ATTENDED'">
+              Asistió
+            </ion-button>
+            <ion-button fill="outline" color="medium" (click)="setStatus('NO_SHOW')" [disabled]="selected.status === 'NO_SHOW'">
+              No asistió
+            </ion-button>
+            <ion-button color="warning" (click)="setStatus('CANCELLED')" [disabled]="selected.status === 'CANCELLED'">
+              Cancelar
+            </ion-button>
+          </div>
+        </section>
+
+        <section class="tab-section" *ngIf="activeTab === 'edit'">
+          <form [formGroup]="reservationForm" class="detail-form">
+            <label>Cliente existente
+              <ion-select formControlName="clientId" interface="popover" placeholder="Opcional" (ionChange)="onClientChange($event.detail.value)">
+                <ion-select-option value="">Manual</ion-select-option>
+                <ion-select-option *ngFor="let client of clients" [value]="client.id">{{ client.nombre }} · {{ client.email }}</ion-select-option>
+              </ion-select>
+            </label>
+            <label>Negocio
+              <ion-select formControlName="businessId" interface="popover">
+                <ion-select-option *ngFor="let business of businesses" [value]="business.id">{{ business.nombre }}</ion-select-option>
+              </ion-select>
+              <small *ngIf="reservationForm.controls.businessId.touched && reservationForm.controls.businessId.invalid">Negocio obligatorio</small>
+            </label>
+            <label>Nombre cliente
+              <ion-input formControlName="clientName"></ion-input>
+              <small *ngIf="reservationForm.controls.clientName.touched && reservationForm.controls.clientName.invalid">Nombre obligatorio</small>
+            </label>
+            <label>Email cliente
+              <ion-input type="email" formControlName="clientEmail"></ion-input>
+              <small *ngIf="reservationForm.controls.clientEmail.touched && reservationForm.controls.clientEmail.invalid">Email no válido</small>
+            </label>
+            <label>Teléfono cliente
+              <ion-input formControlName="clientPhone"></ion-input>
+              <small *ngIf="reservationForm.controls.clientPhone.touched && reservationForm.controls.clientPhone.invalid">Teléfono no válido</small>
+            </label>
+            <label>Fecha y hora
+              <ion-input type="datetime-local" formControlName="date"></ion-input>
+              <small *ngIf="reservationForm.controls.date.touched && reservationForm.controls.date.invalid">Fecha obligatoria</small>
+            </label>
+            <label>Personas
+              <ion-input type="number" formControlName="people"></ion-input>
+            </label>
+            <label>Estado
+              <ion-select formControlName="status" interface="popover">
+                <ion-select-option value="PENDING">Pendiente</ion-select-option>
+                <ion-select-option value="CONFIRMED">Confirmada</ion-select-option>
+                <ion-select-option value="CANCELLED">Cancelada</ion-select-option>
+                <ion-select-option value="COMPLETED">Completada</ion-select-option>
+                <ion-select-option value="ATTENDED">Asistió</ion-select-option>
+                <ion-select-option value="NO_SHOW">No asistió</ion-select-option>
+              </ion-select>
+            </label>
+            <label>Notas internas
+              <ion-textarea rows="3" formControlName="notes"></ion-textarea>
+            </label>
+            <ion-button expand="block" (click)="save()" [disabled]="reservationForm.invalid || saving">
+              <ion-icon name="save-outline" slot="start"></ion-icon>
+              {{ selected?.id ? 'Guardar reserva' : 'Crear reserva' }}
+            </ion-button>
+          </form>
+        </section>
+
+        <section class="tab-section security-section" *ngIf="activeTab === 'security' && selected">
+          <div class="danger-note">
+            <ion-icon name="time-outline"></ion-icon>
+            <div>
+              <strong>Acciones sensibles</strong>
+              <span>Los cambios de estado y eliminación lógica quedan auditados.</span>
+            </div>
+          </div>
+          <ion-button expand="block" fill="outline" (click)="setStatus('CONFIRMED')">Confirmar reserva</ion-button>
+          <ion-button expand="block" fill="outline" (click)="setStatus('ATTENDED')">Marcar asistencia</ion-button>
+          <ion-button expand="block" fill="outline" color="medium" (click)="setStatus('NO_SHOW')">Marcar no asistió</ion-button>
+          <ion-button expand="block" color="warning" (click)="setStatus('CANCELLED')">Cancelar reserva</ion-button>
+          <ion-button expand="block" color="danger" (click)="softDelete()">
+            <ion-icon name="archive-outline" slot="start"></ion-icon>
+            Eliminar de forma lógica
+          </ion-button>
+        </section>
+      </aside>
+
+      <ng-template #noSelection>
+        <aside class="panel detail-panel empty-state-card compact">
+          <ion-icon name="calendar-outline"></ion-icon>
+          <h2>Selecciona una reserva</h2>
+          <p>Podrás editarla, cambiar su estado, crear nuevas reservas y aplicar acciones seguras.</p>
+          <ion-button (click)="createNew()">
+            <ion-icon name="add-circle-outline" slot="start"></ion-icon>
+            Nueva reserva
+          </ion-button>
+        </aside>
+      </ng-template>
+    </div>
   </div>
 </ion-content>

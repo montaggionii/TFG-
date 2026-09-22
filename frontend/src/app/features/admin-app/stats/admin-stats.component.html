@@ -9,11 +9,19 @@
 </ion-header>
 
 <ion-content class="admin-page">
-  <div class="page-inner">
+  <div class="page-inner" *ngIf="!loading; else loadingTpl">
     <section class="header-block">
       <span class="eyebrow">Analítica</span>
       <h1>Estadísticas generales</h1>
-      <p>Datos agregados de actividad, altas y rendimiento de la plataforma.</p>
+      <p>Datos agregados de clientes, negocios, reservas, puntos, actividad y auditoría.</p>
+    </section>
+
+    <section class="admin-metrics">
+      <article *ngFor="let metric of metrics">
+        <ion-icon [name]="metric.icon"></ion-icon>
+        <span>{{ metric.label }}</span>
+        <strong>{{ metric.value }}</strong>
+      </article>
     </section>
 
     <section class="stats-grid">
@@ -25,7 +33,7 @@
         <div class="bar-row" *ngFor="let item of entries(stats?.clientsByDay)">
           <span>{{ item.key }}</span>
           <div><i [style.width.%]="(item.value / max(stats?.clientsByDay)) * 100"></i></div>
-          <strong>{{ item.value }}</strong>
+          <strong>{{ item.value }} <small>{{ percent(item.value, stats?.clientsByDay) }}%</small></strong>
         </div>
         <div class="mini-empty" *ngIf="!entries(stats?.clientsByDay).length">Sin datos suficientes</div>
       </article>
@@ -38,22 +46,35 @@
         <div class="bar-row" *ngFor="let item of entries(stats?.businessesByDay)">
           <span>{{ item.key }}</span>
           <div><i [style.width.%]="(item.value / max(stats?.businessesByDay)) * 100"></i></div>
-          <strong>{{ item.value }}</strong>
+          <strong>{{ item.value }} <small>{{ percent(item.value, stats?.businessesByDay) }}%</small></strong>
         </div>
         <div class="mini-empty" *ngIf="!entries(stats?.businessesByDay).length">Sin datos suficientes</div>
       </article>
 
       <article class="panel chart-panel">
         <div class="panel-title">
-          <h2>Actividad por día</h2>
+          <h2>Actividad de puntos por día</h2>
           <span class="soft-badge">Movimientos</span>
         </div>
         <div class="bar-row" *ngFor="let item of entries(stats?.movementsByDay)">
           <span>{{ item.key }}</span>
           <div><i [style.width.%]="(item.value / max(stats?.movementsByDay)) * 100"></i></div>
-          <strong>{{ item.value }}</strong>
+          <strong>{{ item.value }} <small>{{ percent(item.value, stats?.movementsByDay) }}%</small></strong>
         </div>
         <div class="mini-empty" *ngIf="!entries(stats?.movementsByDay).length">Sin movimientos todavía</div>
+      </article>
+
+      <article class="panel chart-panel">
+        <div class="panel-title">
+          <h2>Reservas por estado</h2>
+          <span class="soft-badge">Estados</span>
+        </div>
+        <div class="bar-row" *ngFor="let item of entries(stats?.reservationsByStatus)">
+          <span>{{ item.key }}</span>
+          <div><i [style.width.%]="(item.value / max(stats?.reservationsByStatus)) * 100"></i></div>
+          <strong>{{ item.value }} <small>{{ percent(item.value, stats?.reservationsByStatus) }}%</small></strong>
+        </div>
+        <div class="mini-empty" *ngIf="!entries(stats?.reservationsByStatus).length">Sin reservas todavía</div>
       </article>
 
       <article class="panel chart-panel">
@@ -64,23 +85,62 @@
         <div class="bar-row" *ngFor="let item of entries(stats?.movementsByRestaurant)">
           <span>{{ item.key }}</span>
           <div><i [style.width.%]="(item.value / max(stats?.movementsByRestaurant)) * 100"></i></div>
-          <strong>{{ item.value }}</strong>
+          <strong>{{ item.value }} <small>{{ percent(item.value, stats?.movementsByRestaurant) }}%</small></strong>
         </div>
         <div class="mini-empty" *ngIf="!entries(stats?.movementsByRestaurant).length">Sin datos por negocio</div>
       </article>
+
+      <article class="panel chart-panel">
+        <div class="panel-title">
+          <h2>Clientes con más puntos</h2>
+          <span class="soft-badge">Top</span>
+        </div>
+        <div class="ranking-row" *ngFor="let item of stats?.topClientsByPoints || []">
+          <div>
+            <strong>{{ item.nombre || 'Cliente' }}</strong>
+            <span>{{ item.email || 'Sin email' }}</span>
+          </div>
+          <b>{{ item.puntos || 0 }} pts</b>
+        </div>
+        <div class="mini-empty" *ngIf="!(stats?.topClientsByPoints?.length)">Sin clientes activos</div>
+      </article>
     </section>
 
-    <section class="panel">
-      <div class="panel-title">
-        <h2>Actividad reciente</h2>
-        <span class="soft-badge">Últimos eventos</span>
-      </div>
-      <div class="activity-row" *ngFor="let item of stats?.recentActivity || []">
-        <span>{{ item.fecha | date:'short' }}</span>
-        <strong>{{ item.descripcion || item.tipo }}</strong>
-        <em>{{ item.cliente || 'Cliente' }} · {{ item.negocio || 'Sin negocio' }}</em>
-      </div>
-      <p class="empty" *ngIf="!(stats?.recentActivity?.length)">No hay actividad reciente.</p>
+    <section class="two-column">
+      <article class="panel">
+        <div class="panel-title">
+          <h2>Negocios destacados</h2>
+          <span class="soft-badge">Directorio</span>
+        </div>
+        <div class="row" *ngFor="let item of stats?.topBusinesses || []">
+          <div>
+            <strong>{{ item.nombre || 'Negocio' }}</strong>
+            <span>{{ item.ciudad || 'Sin ciudad' }} · {{ item.email || 'Sin email' }}</span>
+          </div>
+          <span class="status-pill" [class.inactive]="!item.active">{{ item.active ? 'Activo' : 'Inactivo' }}</span>
+        </div>
+        <p class="empty" *ngIf="!(stats?.topBusinesses?.length)">No hay negocios disponibles.</p>
+      </article>
+
+      <article class="panel">
+        <div class="panel-title">
+          <h2>Auditoría reciente</h2>
+          <span class="soft-badge">Admin logs</span>
+        </div>
+        <div class="activity-row compact-activity" *ngFor="let item of stats?.recentActivity || []">
+          <span>{{ item.createdAt || item.fecha | date:'short' }}</span>
+          <strong>{{ item.description || item.descripcion || item.action || item.tipo }}</strong>
+          <em>{{ item.adminEmail || 'Admin' }} · {{ item.entityType || 'Sistema' }}</em>
+        </div>
+        <p class="empty" *ngIf="!(stats?.recentActivity?.length)">No hay actividad reciente.</p>
+      </article>
     </section>
   </div>
+
+  <ng-template #loadingTpl>
+    <div class="loading-state">
+      <ion-spinner name="crescent"></ion-spinner>
+      <p>Cargando estadísticas...</p>
+    </div>
+  </ng-template>
 </ion-content>

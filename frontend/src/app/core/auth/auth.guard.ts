@@ -1,5 +1,6 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
+import { AuthService } from './auth.service';
 
 /**
  * AUTH GUARD SÍNCRONO (INGENIERÍA SENIOR)
@@ -7,9 +8,10 @@ import { CanActivateFn, Router } from '@angular/router';
  */
 export const authGuard: CanActivateFn = (route, state) => {
   const router = inject(Router);
+  const authService = inject(AuthService);
   const token = localStorage.getItem('token');
 
-  if (token) {
+  if (token && !authService.isTokenExpired(token)) {
     const role = localStorage.getItem('role');
     
     // Protección extra: Si intenta entrar a rutas de restaurante, debe ser RESTAURANT
@@ -29,6 +31,10 @@ export const authGuard: CanActivateFn = (route, state) => {
   }
 
   console.warn(`[AUTH GUARD] Sin sesión activa para ${state.url}. Redirigiendo...`);
+  if (token) {
+    authService.logout();
+    return false;
+  }
   router.navigate([state.url.startsWith('/admin') ? '/admin/login' : '/login']);
   return false;
 };

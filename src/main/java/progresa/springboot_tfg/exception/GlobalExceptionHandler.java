@@ -2,9 +2,7 @@ package progresa.springboot_tfg.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -14,7 +12,6 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     /* =========================
        404 - NOT FOUND
@@ -52,12 +49,12 @@ public class GlobalExceptionHandler {
         );
     }
 
-    @ExceptionHandler(MaxUploadSizeExceededException.class)
-    public ResponseEntity<Map<String, Object>> manejarArchivoGrande(MaxUploadSizeExceededException ex) {
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> manejarIllegalArgument(IllegalArgumentException ex) {
         return buildResponse(
-                HttpStatus.PAYLOAD_TOO_LARGE,
-                "Payload Too Large",
-                "Archivo demasiado grande. Máximo 5MB"
+                HttpStatus.BAD_REQUEST,
+                "Bad Request",
+                ex.getMessage()
         );
     }
 
@@ -73,12 +70,20 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> manejarForbidden(AccessDeniedException ex) {
+        return buildResponse(
+                HttpStatus.FORBIDDEN,
+                "Forbidden",
+                ex.getMessage()
+        );
+    }
+
     /* =========================
        500 - ERROR GENERAL
        ========================= */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> manejarExceptionGeneral(Exception ex) {
-        log.error("[UNEXPECTED ERROR] {}", ex.getMessage(), ex);
         return buildResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "Internal Server Error",

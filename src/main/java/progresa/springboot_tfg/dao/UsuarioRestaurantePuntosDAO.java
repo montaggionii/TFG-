@@ -5,11 +5,14 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import progresa.springboot_tfg.entity.UsuarioRestaurantePuntos;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface UsuarioRestaurantePuntosDAO extends JpaRepository<UsuarioRestaurantePuntos, Long> {
 
     Optional<UsuarioRestaurantePuntos> findByUsuarioIdAndRestauranteId(Long usuarioId, Long restauranteId);
+
+    List<UsuarioRestaurantePuntos> findByUsuarioId(Long usuarioId);
 
     @Query("select coalesce(sum(urp.puntos), 0) from UsuarioRestaurantePuntos urp where urp.usuario.id = :usuarioId")
     int sumarPuntosPorUsuario(@Param("usuarioId") Long usuarioId);

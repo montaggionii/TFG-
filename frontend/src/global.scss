@@ -268,6 +268,39 @@ ion-content {
   color: var(--app-text);
 }
 
+/*
+ * WORKAROUND Safari/WebKit: dentro de <ion-tabs>, el contenedor interno
+ * .tabs-inner (CSS propio de Ionic: flex:1 + contain:layout size style)
+ * no resuelve una altura > 0 en Safari real, aunque <ion-tabs> sí mide el
+ * alto completo del viewport. Eso colapsa a 0 toda la cadena
+ * ion-router-outlet -> .ion-page -> ion-content, dejando invisible el
+ * contenido de Inicio/Mapa/Historial/Perfil mientras la barra de pestañas
+ * (que no depende de .tabs-inner) se sigue viendo con normalidad.
+ * Ionic usa <ion-tabs> en modo Light DOM (no Shadow DOM), por lo que
+ * .tabs-inner es un selector global válido y no requiere tocar node_modules.
+ * Fijamos una altura explícita anclada a <ion-tabs> (que sí mide el
+ * viewport correctamente) en vez de depender del cálculo de flex-basis que
+ * falla en Safari. El contenedor puede extenderse a nivel de caja por
+ * detrás de ion-tab-bar (ver comentario más abajo), pero es inofensivo.
+ */
+ion-tabs > .tabs-inner {
+  // En vez de depender del cálculo de flex-basis:0% (parte de flex:1) para
+  // obtener su altura -el cálculo que falla en Safari-, le damos una altura
+  // explícita basada directamente en <ion-tabs>, que sí mide el alto
+  // completo del viewport de forma fiable en todos los navegadores.
+  // El contenedor puede extenderse "por detrás" de ion-tab-bar a nivel de
+  // caja (invisible, sin contenido propio), pero no es un problema visual:
+  // cada página (home/historial/perfil/...) ya reserva ese espacio con
+  // "padding-bottom: var(--app-client-tabbar-clearance)" en su propio CSS,
+  // y ion-tab-bar se sigue renderizando por encima con normalidad.
+  height: 100%;
+}
+
+ion-tabs > .tabs-inner > ion-router-outlet {
+  position: absolute;
+  inset: 0;
+}
+
 ion-toolbar {
   --background: var(--app-surface);
   --color: var(--app-text);

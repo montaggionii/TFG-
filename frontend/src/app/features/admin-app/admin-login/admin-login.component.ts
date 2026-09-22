@@ -35,7 +35,12 @@ export class AdminLoginComponent {
     const loading = await this.loadingCtrl.create({ message: 'Verificando acceso interno...' });
     await loading.present();
 
-    this.authService.loginAdmin(this.loginForm.value).subscribe({
+    const credentials = {
+      email: (this.loginForm.value.email || '').trim(),
+      password: (this.loginForm.value.password || '').trim()
+    };
+
+    this.authService.loginAdmin(credentials).subscribe({
       next: () => loading.dismiss(),
       error: async (err) => {
         await loading.dismiss();

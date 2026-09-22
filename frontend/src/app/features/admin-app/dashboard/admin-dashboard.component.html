@@ -25,11 +25,43 @@
     </section>
 
     <section class="metric-grid">
-      <article class="metric-card" *ngFor="let metric of metrics">
+      <article class="metric-card clickable" *ngFor="let metric of metrics" (click)="go(metric.route)">
         <ion-icon class="metric-icon" [name]="metric.icon"></ion-icon>
         <span>{{ metric.label }}</span>
         <strong>{{ metric.value }}</strong>
       </article>
+    </section>
+
+    <section class="quick-nav">
+      <ion-button fill="outline" (click)="go('/admin/businesses')">Gestionar negocios</ion-button>
+      <ion-button fill="outline" (click)="go('/admin/clients')">Gestionar clientes</ion-button>
+      <ion-button fill="outline" (click)="go('/admin/reservations')">Gestionar reservas</ion-button>
+      <ion-button fill="outline" (click)="go('/admin/stats')">Ver estadísticas</ion-button>
+    </section>
+
+    <section class="panel system-status">
+      <div class="panel-title">
+        <h2>Estado general del sistema</h2>
+        <span class="soft-badge">Operativo</span>
+      </div>
+      <div class="status-grid">
+        <article>
+          <span>Clientes activos</span>
+          <strong>{{ dashboard?.totalClients ?? 0 }}</strong>
+        </article>
+        <article>
+          <span>Negocios operativos</span>
+          <strong>{{ dashboard?.totalBusinesses ?? 0 }}</strong>
+        </article>
+        <article>
+          <span>Reservas pendientes</span>
+          <strong>{{ dashboard?.pendingReservations ?? 0 }}</strong>
+        </article>
+        <article>
+          <span>Movimientos hoy</span>
+          <strong>{{ dashboard?.movementsToday ?? 0 }}</strong>
+        </article>
+      </div>
     </section>
 
     <section class="two-column">
@@ -66,13 +98,28 @@
 
     <section class="panel">
       <div class="panel-title">
-        <h2>Actividad reciente</h2>
-        <span class="soft-badge">Timeline</span>
+        <h2>Reservas recientes</h2>
+        <span class="soft-badge">Operaciones</span>
+      </div>
+      <div class="row" *ngFor="let item of dashboard?.recentReservations || []" (click)="go('/admin/reservations')">
+        <div>
+          <strong>{{ item.clientName || 'Cliente' }} · {{ item.businessName || 'Negocio' }}</strong>
+          <span>{{ item.date | date:'short' }} · {{ item.people || 0 }} personas</span>
+        </div>
+        <span class="status-pill" [class.inactive]="item.status === 'CANCELLED'">{{ item.status }}</span>
+      </div>
+      <p class="empty" *ngIf="!(dashboard?.recentReservations?.length)">No hay reservas recientes.</p>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title">
+        <h2>Auditoría reciente</h2>
+        <span class="soft-badge">Admin logs</span>
       </div>
       <div class="activity-row" *ngFor="let item of dashboard?.recentActivity || []">
-        <span>{{ item.fecha | date:'short' }}</span>
-        <strong>{{ item.descripcion || item.tipo }}</strong>
-        <em>{{ item.cliente || 'Cliente' }} · {{ item.negocio || 'Sin negocio' }}</em>
+        <span>{{ item.createdAt || item.fecha | date:'short' }}</span>
+        <strong>{{ item.description || item.descripcion || item.action || item.tipo }}</strong>
+        <em>{{ item.adminEmail || 'Admin' }} · {{ item.entityType || 'Sistema' }}</em>
       </div>
       <p class="empty" *ngIf="!(dashboard?.recentActivity?.length)">Todavía no hay actividad registrada.</p>
     </section>

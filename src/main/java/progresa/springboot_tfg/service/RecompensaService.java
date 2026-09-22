@@ -8,6 +8,7 @@ import progresa.springboot_tfg.dao.MovimientoPuntosDAO;
 import progresa.springboot_tfg.dao.UsuarioDAO;
 import progresa.springboot_tfg.entity.MovimientoPuntos;
 import progresa.springboot_tfg.entity.Usuario;
+import progresa.springboot_tfg.exception.BadRequestException;
 
 
 import java.util.List;
@@ -69,7 +70,7 @@ public class RecompensaService {
         Recompensa recompensa = obtenerPorId(recompensaId);
 
         if (usuario.getPuntos() < recompensa.getPuntosNecesarios()) {
-            throw new RuntimeException("Puntos insuficientes para canjear la recompensa");
+            throw new BadRequestException("Puntos insuficientes para canjear la recompensa");
         }
 
         // restar puntos

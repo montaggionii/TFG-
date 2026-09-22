@@ -9,7 +9,7 @@ export const roleGuard = (role: string | string[]): CanActivateFn => {
     const allowedRoles = Array.isArray(role) ? role : [role];
     const currentRole = authService.getRoleSync();
 
-    if (currentRole && allowedRoles.includes(currentRole)) {
+    if (authService.isAuthenticated() && currentRole && allowedRoles.includes(currentRole)) {
       return true;
     }
 

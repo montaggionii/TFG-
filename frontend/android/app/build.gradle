@@ -1,10 +1,16 @@
 apply plugin: 'com.android.application'
 
+def releaseStoreFile = System.getenv("FIDELYFOOD_UPLOAD_STORE_FILE")
+def releaseStorePassword = System.getenv("FIDELYFOOD_UPLOAD_STORE_PASSWORD")
+def releaseKeyAlias = System.getenv("FIDELYFOOD_UPLOAD_KEY_ALIAS")
+def releaseKeyPassword = System.getenv("FIDELYFOOD_UPLOAD_KEY_PASSWORD")
+def hasReleaseSigning = releaseStoreFile && releaseStorePassword && releaseKeyAlias && releaseKeyPassword
+
 android {
-    namespace = "io.ionic.starter"
+    namespace = "com.fidelyfood.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "io.ionic.starter"
+        applicationId "com.fidelyfood.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -16,9 +22,22 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (hasReleaseSigning) {
+                storeFile file(releaseStoreFile)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }

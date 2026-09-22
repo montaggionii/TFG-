@@ -8,81 +8,275 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="admin-page">
+<ion-content class="admin-page businesses-page">
   <div class="page-inner">
     <section class="header-block">
       <span class="eyebrow">Directorio operativo</span>
       <h1>Gestión de negocios</h1>
-      <p>Consulta, búsqueda, estado y edición básica de locales registrados.</p>
+      <p>Control administrativo de locales, estado, información pública, actividad y auditoría.</p>
     </section>
 
-    <div class="toolbar-row">
-      <ion-searchbar [(ngModel)]="query" placeholder="Buscar por nombre, email, teléfono o ciudad"></ion-searchbar>
-    </div>
+    <section class="admin-metrics">
+      <article>
+        <ion-icon name="storefront-outline"></ion-icon>
+        <span>Total</span>
+        <strong>{{ totalBusinesses }}</strong>
+      </article>
+      <article>
+        <ion-icon name="shield-checkmark-outline"></ion-icon>
+        <span>Activos</span>
+        <strong>{{ activeBusinesses }}</strong>
+      </article>
+      <article>
+        <ion-icon name="close-circle-outline"></ion-icon>
+        <span>Inactivos</span>
+        <strong>{{ inactiveBusinesses }}</strong>
+      </article>
+      <article>
+        <ion-icon name="location-outline"></ion-icon>
+        <span>Con ciudad</span>
+        <strong>{{ businessesWithCity }}</strong>
+      </article>
+    </section>
 
-    <div class="management-grid">
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Negocio</th>
-              <th>Email</th>
-              <th>Teléfono</th>
-              <th>Creado</th>
-              <th>Estado</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let item of filtered" (click)="select(item)" [class.active-row]="selected?.id === item.id">
-              <td data-label="Negocio"><strong>{{ item.nombre }}</strong><span>{{ item.ciudad || 'Sin ciudad' }}</span></td>
-              <td data-label="Email">{{ item.email }}</td>
-              <td data-label="Teléfono">{{ item.telefono || '-' }}</td>
-              <td data-label="Creado">{{ item.createdAt ? (item.createdAt | date:'shortDate') : 'Sin fecha' }}</td>
-              <td data-label="Estado"><span class="status-pill" [class.inactive]="!item.active">{{ item.active ? 'Activo' : 'Inactivo' }}</span></td>
-              <td data-label="Acciones" class="actions">
-                <ion-button size="small" fill="outline" (click)="toggleActive(item); $event.stopPropagation()">
-                  {{ item.active ? 'Desactivar' : 'Activar' }}
-                </ion-button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+    <section class="admin-controls">
+      <ion-searchbar
+        [value]="query"
+        (ionInput)="onSearch($event)"
+        placeholder="Buscar por nombre, email, teléfono, ciudad o dirección">
+      </ion-searchbar>
+      <ion-select [(ngModel)]="statusFilter" (ionChange)="applyFilters()" interface="popover" label="Estado">
+        <ion-select-option value="all">Todos</ion-select-option>
+        <ion-select-option value="active">Activos</ion-select-option>
+        <ion-select-option value="inactive">Inactivos</ion-select-option>
+      </ion-select>
+      <ion-select [(ngModel)]="cityFilter" (ionChange)="applyFilters()" interface="popover" label="Ciudad">
+        <ion-select-option value="all">Todas</ion-select-option>
+        <ion-select-option *ngFor="let city of cityOptions" [value]="city">{{ city }}</ion-select-option>
+      </ion-select>
+      <ion-select [(ngModel)]="sort" (ionChange)="applyFilters()" interface="popover" label="Orden">
+        <ion-select-option value="nombre">Nombre</ion-select-option>
+        <ion-select-option value="estado">Estado</ion-select-option>
+        <ion-select-option value="ciudad">Ciudad</ion-select-option>
+        <ion-select-option value="createdAt">Fecha de creación</ion-select-option>
+      </ion-select>
+    </section>
 
-      <aside class="panel detail-panel" *ngIf="selected; else noSelection">
-        <div class="detail-heading">
-          <h2>{{ selected.nombre || 'Negocio' }}</h2>
-          <p class="detail-subtitle">{{ selected.email || 'Sin email' }}</p>
-          <span class="status-pill" [class.inactive]="!selected.active">{{ selected.active ? 'Activo' : 'Inactivo' }}</span>
+    <div class="management-grid enhanced">
+      <section class="list-panel">
+        <div class="list-heading">
+          <div>
+            <h2>Negocios</h2>
+            <p>{{ visibleBusinesses.length }} resultados visibles</p>
+          </div>
+          <ion-icon name="filter-outline"></ion-icon>
         </div>
-        <label>Nombre <ion-input [(ngModel)]="selected.nombre"></ion-input></label>
-        <label>Email <ion-input [(ngModel)]="selected.email"></ion-input></label>
-        <label>Teléfono <ion-input [(ngModel)]="selected.telefono"></ion-input></label>
-        <label>Dirección <ion-input [(ngModel)]="selected.direccion"></ion-input></label>
-        <label>Ciudad <ion-input [(ngModel)]="selected.ciudad"></ion-input></label>
-        <label>Tipo <ion-input [(ngModel)]="selected.tipo"></ion-input></label>
-        <label>Descripción <ion-textarea [(ngModel)]="selected.descripcion" auto-grow="true"></ion-textarea></label>
-        <div class="detail-meta">
-          <span>Creado<br>{{ selected.createdAt ? (selected.createdAt | date:'short') : 'Sin fecha' }}</span>
-          <span>Actualizado<br>{{ selected.updatedAt ? (selected.updatedAt | date:'short') : 'Sin fecha' }}</span>
+
+        <div class="table-wrap desktop-list" *ngIf="!loading && visibleBusinesses.length; else listState">
+          <table>
+            <thead>
+              <tr>
+                <th>Negocio</th>
+                <th>Email</th>
+                <th>Teléfono</th>
+                <th>Ubicación</th>
+                <th>Perfil</th>
+                <th>Estado</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of visibleBusinesses" (click)="select(item)" [class.active-row]="selected?.id === item.id">
+                <td data-label="Negocio">
+                  <strong>{{ item.nombre }}</strong>
+                  <span>{{ item.direccion || 'Sin dirección' }}</span>
+                </td>
+                <td data-label="Email" class="email-cell">{{ item.email || '-' }}</td>
+                <td data-label="Teléfono">{{ item.telefono || '-' }}</td>
+                <td data-label="Ubicación">
+                  <strong>{{ item.ciudad || 'Sin ciudad' }}</strong>
+                  <span>{{ item.direccion || 'Sin dirección' }}</span>
+                </td>
+                <td data-label="Perfil" class="date-stack">
+                  <span>{{ item.tipo || 'Sin tipo' }}</span>
+                  <span>Actualizado: {{ item.updatedAt ? (item.updatedAt | date:'shortDate') : 'Sin fecha' }}</span>
+                </td>
+                <td data-label="Estado">
+                  <span class="status-pill" [class.inactive]="!item.active">{{ item.active ? 'Activo' : 'Inactivo' }}</span>
+                </td>
+                <td class="actions" data-label="Acciones">
+                  <ion-button size="small" fill="clear" (click)="select(item); $event.stopPropagation()">
+                    <ion-icon name="business-outline" slot="icon-only"></ion-icon>
+                  </ion-button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-        <div class="detail-actions">
-          <ion-button fill="outline" color="medium" (click)="selected = null">Cancelar</ion-button>
-          <ion-button (click)="save()">
-            <ion-icon name="save-outline" slot="start"></ion-icon>
-            Guardar
+
+        <div class="mobile-cards" *ngIf="!loading && visibleBusinesses.length">
+          <article *ngFor="let item of visibleBusinesses" (click)="select(item)" [class.active-card]="selected?.id === item.id">
+            <div>
+              <strong>{{ item.nombre }}</strong>
+              <span>{{ item.email || 'Sin email' }}</span>
+              <small>{{ item.ciudad || 'Sin ciudad' }} · {{ item.tipo || 'Sin tipo' }}</small>
+            </div>
+            <aside>
+              <span class="status-pill" [class.inactive]="!item.active">{{ item.active ? 'Activo' : 'Inactivo' }}</span>
+            </aside>
+          </article>
+        </div>
+
+        <ng-template #listState>
+          <div class="empty-state-card compact">
+            <ion-spinner *ngIf="loading" name="crescent"></ion-spinner>
+            <h2>{{ loading ? 'Cargando negocios' : 'Sin negocios' }}</h2>
+            <p>{{ loading ? 'Consultando el directorio administrativo.' : 'No hay resultados para los filtros actuales.' }}</p>
+          </div>
+        </ng-template>
+      </section>
+
+      <aside class="panel detail-panel business-detail" *ngIf="selected; else noSelection">
+        <div class="detail-top">
+          <div class="avatar business-avatar" [class.has-photo]="selected.foto">
+            <img *ngIf="selected.foto" [src]="selected.foto" alt="" />
+            <ion-icon *ngIf="!selected.foto" name="storefront-outline"></ion-icon>
+          </div>
+          <div>
+            <h2>{{ selected.nombre || 'Negocio' }}</h2>
+            <p>{{ selected.email || 'Sin email' }}</p>
+            <span class="status-pill" [class.inactive]="!selected.active">{{ selected.active ? 'Activo' : 'Inactivo' }}</span>
+          </div>
+          <ion-button fill="clear" class="close-detail" (click)="closeDetail()">
+            <ion-icon name="close-circle-outline" slot="icon-only"></ion-icon>
           </ion-button>
-          <ion-button class="span-2" fill="clear" color="medium" (click)="toggleActive(selected)">
+        </div>
+
+        <ion-segment [value]="activeTab" (ionChange)="setTab($event)" scrollable="true">
+          <ion-segment-button *ngFor="let tab of tabs" [value]="tab.id">
+            <ion-label>{{ tab.label }}</ion-label>
+          </ion-segment-button>
+        </ion-segment>
+
+        <div class="detail-loading" *ngIf="detailLoading">
+          <ion-spinner name="crescent"></ion-spinner>
+        </div>
+
+        <section class="tab-section" *ngIf="!detailLoading && activeTab === 'summary'">
+          <div class="summary-grid">
+            <article><span>Movimientos</span><strong>{{ selected.movementsCount || 0 }}</strong></article>
+            <article><span>Reservas</span><strong>{{ selected.reservationsCount || 0 }}</strong></article>
+            <article><span>Ciudad</span><strong>{{ selected.ciudad || 'Sin ciudad' }}</strong></article>
+            <article><span>Tipo</span><strong>{{ selected.tipo || 'Sin tipo' }}</strong></article>
+            <article><span>Creado</span><strong>{{ selected.createdAt ? (selected.createdAt | date:'short') : 'Sin fecha' }}</strong></article>
+            <article><span>Actualizado</span><strong>{{ selected.updatedAt ? (selected.updatedAt | date:'short') : 'Sin fecha' }}</strong></article>
+          </div>
+          <div class="info-block">
+            <span>Dirección</span>
+            <code>{{ selected.direccion || 'Sin dirección registrada' }}</code>
+          </div>
+          <div class="mini-list">
+            <h3>Descripción</h3>
+            <p>{{ selected.descripcion || 'Sin descripción pública registrada.' }}</p>
+          </div>
+          <div class="quick-actions">
+            <ion-button fill="outline" (click)="setTab('edit')">Editar</ion-button>
+            <ion-button fill="outline" (click)="setTab('activity')">Ver actividad</ion-button>
+            <ion-button fill="outline" (click)="setTab('activity')">Ver movimientos</ion-button>
+            <ion-button fill="outline" color="medium" [disabled]="true">Promociones</ion-button>
+            <ion-button fill="outline" (click)="toggleActive(selected)">
+              {{ selected.active ? 'Desactivar' : 'Activar' }}
+            </ion-button>
+          </div>
+        </section>
+
+        <section class="tab-section" *ngIf="!detailLoading && activeTab === 'edit'">
+          <form [formGroup]="editForm" class="detail-form">
+            <label>Nombre
+              <ion-input formControlName="nombre"></ion-input>
+              <small *ngIf="editForm.controls.nombre.touched && editForm.controls.nombre.invalid">Nombre obligatorio</small>
+            </label>
+            <label>Email
+              <ion-input type="email" formControlName="email"></ion-input>
+              <small *ngIf="editForm.controls.email.touched && editForm.controls.email.invalid">Email obligatorio y válido</small>
+            </label>
+            <label>Teléfono
+              <ion-input formControlName="telefono"></ion-input>
+              <small *ngIf="editForm.controls.telefono.touched && editForm.controls.telefono.invalid">Teléfono no válido</small>
+            </label>
+            <label>Ciudad
+              <ion-input formControlName="ciudad"></ion-input>
+            </label>
+            <label>Dirección
+              <ion-input formControlName="direccion"></ion-input>
+            </label>
+            <label>Tipo
+              <ion-input formControlName="tipo"></ion-input>
+            </label>
+            <label>Foto
+              <ion-input formControlName="foto"></ion-input>
+            </label>
+            <label>Descripción
+              <ion-textarea rows="3" formControlName="descripcion"></ion-textarea>
+            </label>
+            <ion-toggle formControlName="active">Negocio activo</ion-toggle>
+            <ion-button expand="block" (click)="save()" [disabled]="editForm.invalid || saving">
+              <ion-icon name="save-outline" slot="start"></ion-icon>
+              Guardar cambios
+            </ion-button>
+          </form>
+        </section>
+
+        <section class="tab-section" *ngIf="!detailLoading && activeTab === 'activity'">
+          <div class="mini-list">
+            <h3>Logs administrativos</h3>
+            <p *ngIf="!(selected.adminLogs?.length)">Sin logs administrativos.</p>
+            <div *ngFor="let item of selected.adminLogs || []">
+              <strong>{{ item.action }}</strong>
+              <span>{{ item.description }} · {{ item.adminEmail }} · {{ item.createdAt | date:'short' }}</span>
+            </div>
+          </div>
+          <div class="mini-list">
+            <h3>Últimos movimientos</h3>
+            <p *ngIf="!(selected.movements?.length)">Sin movimientos recientes.</p>
+            <div *ngFor="let item of selected.movements || []">
+              <strong>{{ item.tipo || 'Movimiento' }} · {{ item.puntos || 0 }} pts</strong>
+              <span>{{ item.descripcion || 'Sin descripción' }} · {{ item.fecha | date:'short' }}</span>
+            </div>
+          </div>
+          <div class="mini-list">
+            <h3>Reservas recientes</h3>
+            <p *ngIf="!(selected.reservations?.length)">Sin reservas recientes.</p>
+            <div *ngFor="let item of selected.reservations || []">
+              <strong>{{ item.clientName || 'Cliente' }} · {{ item.status }}</strong>
+              <span>{{ item.date | date:'short' }} · {{ item.people || 0 }} personas</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="tab-section security-section" *ngIf="!detailLoading && activeTab === 'security'">
+          <div class="danger-note">
+            <ion-icon name="time-outline"></ion-icon>
+            <div>
+              <strong>Acciones sensibles</strong>
+              <span>Se pedirá confirmación y el backend generará admin_logs.</span>
+            </div>
+          </div>
+          <ion-button expand="block" fill="outline" (click)="toggleActive(selected)">
             {{ selected.active ? 'Desactivar negocio' : 'Activar negocio' }}
           </ion-button>
-        </div>
+          <ion-button expand="block" color="danger" (click)="softDelete()">
+            <ion-icon name="archive-outline" slot="start"></ion-icon>
+            Eliminar de forma lógica
+          </ion-button>
+        </section>
       </aside>
 
       <ng-template #noSelection>
         <aside class="panel detail-panel empty-state-card compact">
+          <ion-icon name="storefront-outline"></ion-icon>
           <h2>Selecciona un negocio</h2>
-          <p>Verás aquí sus datos principales, estado y edición segura.</p>
+          <p>Verás su resumen, edición, actividad, reservas y acciones de seguridad.</p>
         </aside>
       </ng-template>
     </div>

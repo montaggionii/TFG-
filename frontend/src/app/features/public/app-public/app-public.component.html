@@ -1,0 +1,75 @@
+<ion-content class="public-page" [fullscreen]="true">
+  <main>
+    <section class="hero">
+      <div class="hero__media" aria-hidden="true">
+        <img src="assets/img/restaurants/restaurant-table.jpg" alt="">
+      </div>
+
+      <nav class="topbar" aria-label="FidelyFood">
+        <a class="brand" routerLink="/fidelyfood" aria-label="FidelyFood inicio">
+          <img src="assets/img/logo_fidelyfood.png" alt="FidelyFood">
+        </a>
+        <div class="topbar__links">
+          <a routerLink="/privacy">Privacidad</a>
+          <a routerLink="/terms">Terminos</a>
+          <a routerLink="/login">Acceso</a>
+        </div>
+      </nav>
+
+      <div class="hero__content">
+        <p class="eyebrow">Fidelizacion para restaurantes y clientes</p>
+        <h1>FidelyFood</h1>
+        <p class="lead">
+          Una app para descubrir restaurantes, acumular puntos, canjear recompensas y gestionar promociones en una misma experiencia.
+        </p>
+        <div class="hero__actions">
+          <a class="primary-action" routerLink="/login">Entrar en la app</a>
+          <a class="secondary-action" [href]="'mailto:' + supportEmail">Soporte</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="intro">
+      <div>
+        <span class="section-kicker">Informacion oficial</span>
+        <h2>Pagina publica de soporte e informacion</h2>
+      </div>
+      <p>
+        FidelyFood conecta clientes y restaurantes con puntos, recompensas, promociones y herramientas de gestion.
+      </p>
+    </section>
+
+    <section class="feature-grid" aria-label="Funciones principales">
+      <article *ngFor="let feature of features" class="feature-card">
+        <h3>{{ feature.title }}</h3>
+        <p>{{ feature.text }}</p>
+      </article>
+    </section>
+
+    <section class="showcase">
+      <div class="showcase__copy">
+        <span class="section-kicker">Experiencia</span>
+        <h2>Una app pensada para el uso diario</h2>
+        <p>
+          FidelyFood combina perfiles de cliente, restaurantes cercanos, recompensas, promociones y herramientas internas para operar el programa de fidelizacion.
+        </p>
+      </div>
+      <div class="showcase__images" aria-label="Restaurantes en FidelyFood">
+        <img src="assets/img/restaurants/restaurant-colombian.webp" alt="Restaurante asociado">
+        <img src="assets/img/restaurants/restaurant-roast.jpg" alt="Mesa de restaurante">
+      </div>
+    </section>
+
+    <section class="support">
+      <div>
+        <span class="section-kicker">Soporte</span>
+        <h2>Contacto oficial</h2>
+        <p>Para ayuda, revision de tienda o consultas sobre FidelyFood, escribe a <a [href]="'mailto:' + supportEmail">{{ supportEmail }}</a>.</p>
+      </div>
+      <div class="legal-links">
+        <a routerLink="/privacy">Politica de privacidad</a>
+        <a routerLink="/terms">Terminos de uso</a>
+      </div>
+    </section>
+  </main>
+</ion-content>

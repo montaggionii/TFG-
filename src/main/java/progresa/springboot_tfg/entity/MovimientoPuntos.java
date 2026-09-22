@@ -20,6 +20,12 @@ public class MovimientoPuntos {
 
     private LocalDateTime fecha;
 
+    private Double monto;
+
+    private String adminEmail;
+
+    private String motivoInterno;
+
     @ManyToOne
     @JoinColumn(name = "usuario_id", nullable = false)
     private Usuario usuario;
@@ -27,8 +33,6 @@ public class MovimientoPuntos {
     @ManyToOne
     @JoinColumn(name = "restaurante_id")
     private Restaurante restaurante;
-
-    private Double monto;
 
     public MovimientoPuntos() {
         this.fecha = LocalDateTime.now();
@@ -85,19 +89,35 @@ public class MovimientoPuntos {
         this.usuario = usuario;
     }
 
-    public Restaurante getRestaurante() {
-        return restaurante;
-    }
-
-    public void setRestaurante(Restaurante restaurante) {
-        this.restaurante = restaurante;
-    }
-
     public Double getMonto() {
         return monto;
     }
 
     public void setMonto(Double monto) {
         this.monto = monto;
+    }
+
+    public String getAdminEmail() {
+        return adminEmail;
+    }
+
+    public void setAdminEmail(String adminEmail) {
+        this.adminEmail = adminEmail;
+    }
+
+    public String getMotivoInterno() {
+        return motivoInterno;
+    }
+
+    public void setMotivoInterno(String motivoInterno) {
+        this.motivoInterno = motivoInterno;
+    }
+
+    public Restaurante getRestaurante() {
+        return restaurante;
+    }
+
+    public void setRestaurante(Restaurante restaurante) {
+        this.restaurante = restaurante;
     }
 }
