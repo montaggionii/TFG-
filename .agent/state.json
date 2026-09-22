@@ -29,12 +29,24 @@
     "note": "No hay API publica de Anthropic para consultar uso/creditos fuera de una sesion de Claude Code. Estas cifras son una foto fija, no un valor en vivo."
   },
   "build": {
-    "status": "NO_VALIDADO"
+    "status": "OK",
+    "backend": "mvn compile OK (Java 17)",
+    "frontend": "ng build OK (solo warnings)"
   },
   "tests": {
     "total": 3,
-    "passing": null,
-    "failing": null,
-    "note": "No ejecutados todavia en esta sesion"
+    "passing": 1,
+    "failing": 0,
+    "notRun": 2,
+    "note": "Backend test pasa con BD real. 2 specs de frontend no ejecutados (falta Chrome/Chromium)."
+  },
+  "e2eValidation": {
+    "date": "2026-09-22",
+    "backendRunning": true,
+    "frontendRunning": true,
+    "dbConnected": true,
+    "adminLoginWorks": true,
+    "adminDashboardWorks": true,
+    "adminBusinessesPageWorks": true
   }
 }
