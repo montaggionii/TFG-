@@ -80,3 +80,4 @@ frontend/ios/App/App/config 2.xml
 ### Capacitor generated build folders ###
 frontend/android/app/build/
 frontend/ios/App/build/
+backups/
