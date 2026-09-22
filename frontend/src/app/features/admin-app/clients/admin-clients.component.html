@@ -77,30 +77,38 @@
           <table>
             <thead>
               <tr>
-                <th>Cliente</th>
-                <th>Email</th>
-                <th>Teléfono</th>
-                <th>Puntos</th>
-                <th>Fechas</th>
-                <th>Estado</th>
-                <th></th>
+                <th class="col-client">Cliente</th>
+                <th class="col-email">Email</th>
+                <th class="col-phone">Teléfono</th>
+                <th class="col-points">Puntos</th>
+                <th class="col-dates">Fechas</th>
+                <th class="col-status">Estado</th>
+                <th class="col-actions"></th>
               </tr>
             </thead>
             <tbody>
               <tr *ngFor="let item of clients" (click)="select(item)" [class.active-row]="selected?.id === item.id">
-                <td data-label="Cliente">
+                <td data-label="Cliente" class="client-cell">
                   <strong>{{ item.nombre }}</strong>
                   <span>{{ item.qrCode ? 'QR disponible' : 'Sin QR' }}</span>
                 </td>
-                <td data-label="Email" class="email-cell">{{ item.email }}</td>
-                <td data-label="Teléfono">{{ item.telefono || '-' }}</td>
-                <td data-label="Puntos"><strong>{{ item.puntos || 0 }}</strong></td>
+                <td data-label="Email" class="email-cell" [title]="item.email">{{ item.email }}</td>
+                <td data-label="Teléfono" class="phone-cell">{{ item.telefono || '-' }}</td>
+                <td data-label="Puntos" class="points-cell"><strong>{{ item.puntos || 0 }}</strong></td>
                 <td data-label="Fechas" class="date-stack">
-                  <span>Creado: {{ item.createdAt ? (item.createdAt | date:'shortDate') : 'Sin fecha' }}</span>
-                  <span>Actualizado: {{ item.updatedAt ? (item.updatedAt | date:'shortDate') : 'Sin fecha' }}</span>
+                  <div class="date-row">
+                    <span class="date-label">Creado</span>
+                    <span class="date-value">{{ item.createdAt ? (item.createdAt | date:'dd/MM/yyyy') : 'Sin fecha' }}</span>
+                  </div>
+                  <div class="date-row">
+                    <span class="date-label">Actualizado</span>
+                    <span class="date-value">{{ item.updatedAt ? (item.updatedAt | date:'dd/MM/yyyy') : 'Sin fecha' }}</span>
+                  </div>
                 </td>
-                <td data-label="Estado">
-                  <span class="status-pill" [class.inactive]="!item.active">{{ item.active ? 'Activo' : 'Inactivo' }}</span>
+                <td data-label="Estado" class="status-cell">
+                  <span class="status-pill" [class.inactive]="!item.active">
+                    <span class="status-dot"></span>{{ item.active ? 'Activo' : 'Inactivo' }}
+                  </span>
                 </td>
                 <td class="actions" data-label="Acciones">
                   <ion-button size="small" fill="clear" (click)="select(item); $event.stopPropagation()">
