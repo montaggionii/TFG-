@@ -9,9 +9,9 @@
   "agent": {
     "status": "ACTIVO",
     "mode": "LIVE",
-    "currentTask": "Fase 5/9 completadas (estado persistente + widget). Siguiente: Fase 4 (validacion real: build y tests).",
-    "lastActivity": "2026-09-22T12:40:00Z",
-    "progress": "Consolidacion de proyecto: auditoria + PR mergeado + secretos corregidos + estado persistente + widget. Pendiente: validacion real, agente autonomo (Fase 7), tests."
+    "currentTask": "Fase 6/9 completadas (validacion real de build y tests). Siguiente: FID-004 (E2E restaurante) y Fase 7 (agente autonomo continuo).",
+    "lastActivity": "2026-09-23T23:13:00Z",
+    "progress": "Consolidacion + estado persistente + widget + monitor en vivo (hooks reales) + validacion real completada: build backend y frontend OK, tests reales pasando. Pendiente: mas cobertura E2E (restaurante), agente autonomo continuo (Fase 7)."
   },
   "pr": {
     "lastMerged": "https://github.com/montaggionii/TFG-/pull/1"
@@ -29,12 +29,14 @@
     "note": "No hay API publica de Anthropic para consultar uso/creditos fuera de una sesion de Claude Code. Estas cifras son una foto fija, no un valor en vivo."
   },
   "build": {
-    "status": "NO_VALIDADO"
+    "status": "OK",
+    "backend": "mvn clean package -> BUILD SUCCESS (jar generado)",
+    "frontend": "ng build --configuration production -> OK (solo warnings de Sass @import y presupuesto CSS, sin errores)",
+    "validatedAt": "2026-09-23T23:13:00Z"
   },
   "tests": {
-    "total": 3,
-    "passing": null,
-    "failing": null,
-    "note": "No ejecutados todavia en esta sesion"
+    "backend": { "total": 1, "passing": 1, "failing": 0, "note": "SpringBootTfgApplicationTests (contextLoads)" },
+    "e2e": { "total": 7, "passing": 7, "failing": 0, "note": "Playwright: login (3 roles) + cliente (home/mapa/historial/perfil+logout), FID-002/FID-003" },
+    "note": "Ejecutados de verdad en esta sesion contra el backend/frontend reales, con MySQL conectada."
   }
 }
