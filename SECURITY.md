@@ -64,13 +64,12 @@ Auditoría real del código (no una checklist genérica). Cada hallazgo indica s
 - **Problema**: la clave viaja en el bundle público del frontend (normal para Maps JS API), pero conviene confirmar que está restringida por HTTP referrer al dominio real de producción en Google Cloud Console.
 - **Solución propuesta**: acción manual del usuario en Google Cloud Console — no es un cambio de código.
 
-### 10. Vulnerabilidades XSS conocidas en la versión de Angular instalada
+### 10. Vulnerabilidades XSS conocidas en la versión de Angular instalada — ✅ CORREGIDO
 - **Riesgo**: Alto (`npm audit`, severidad "high", 3 CVEs/advisories de GitHub).
 - **Ubicación**: `@angular/core`/`@angular/compiler`/`@angular/animations` 20.3.23 (rango afectado: `20.0.0-next.0 - 20.3.27`).
 - **Problema**: sanitización insuficiente permite XSS vía property binding bidireccional, atributos de manejadores de eventos en i18n, y host bindings de directivas — las tres son parte del propio framework, no del código de la app.
 - **Impacto**: si se explota, un atacante podría inyectar/ejecutar JavaScript arbitrario en el navegador de un usuario de FidelyFood.
-- **Corregido parcialmente**: `npm audit fix` (sin `--force`) ya resolvió 14 de 22 vulnerabilidades detectadas (todas en dependencias de build, no en código servido al usuario: `postcss`, `vite`, `uuid`, `webpack-dev-server`, etc.) — verificado que el build de producción y la suite E2E completa siguen funcionando igual tras aplicarlo.
-- **NO corregido, requiere decisión del usuario**: la vulnerabilidad de Angular en sí necesita subir `@angular/core` y paquetes hermanos (`@angular/compiler`, `@angular/common`, `@angular/forms`, `@angular/router`, `@angular/platform-browser`, `@angular/animations`, `@angular/cli`) juntos y a la misma versión exacta — Angular exige que todos coincidan. `ng update` solo ofrece un salto de versión MAYOR (20 → 21), que puede traer cambios incompatibles y necesitaría una ronda completa de pruebas de regresión antes de aplicarse. No lo he aplicado sin confirmación explícita, seguiendo la regla de no hacer cambios de arquitectura/versión mayor sin avisar antes. Ver `AGENT_TASKS.md` (FID-012, nueva).
+- **Corregido**: `npm audit fix` resolvió primero 14 de 22 vulnerabilidades (dependencias de build). Las 3 restantes de Angular se corrigieron con `ng update @angular/core@20 @angular/cli@20` — sube `@angular/core` y todos los paquetes hermanos a la misma versión exacta (20.3.32), quedándose dentro de Angular 20 (sin saltar a la v21, que `ng update` sin argumentos ofrecía por defecto y habría sido un cambio de mayor riesgo). Verificado: `npm audit --omit=dev` → 0 vulnerabilidades; build de producción limpio; suite E2E completa (14/14) pasando contra el frontend reconstruido. Ver `AGENT_TASKS.md` (FID-012).
 
 ## Verificado y correcto (sin acción necesaria)
 
