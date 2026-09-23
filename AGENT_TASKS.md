@@ -9,7 +9,7 @@ si el archivo aparece como modificado sin commitear allí, se salta esa tarea.
 
 ## P0 — Seguridad / bloqueante
 
-- **FID-001** · SECURITY · Auditar rate-limiting ausente en `/api/auth/**` (login) — ya detectado en la Fase 15 preliminar, pendiente de decidir mecanismo (bucket4j vs. filtro propio).
+- ~~**FID-001** · SECURITY · Auditar rate-limiting ausente en `/api/auth/**` (login).~~ **COMPLETADA — implementado y verificado** (ver cierre abajo). **REQUIERE ACCIÓN DEL USUARIO tras integrar: reiniciar el backend de desarrollo (puerto 8081).**
 
 ## P1 — Alta prioridad
 
@@ -20,15 +20,16 @@ si el archivo aparece como modificado sin commitear allí, se salta esa tarea.
 
 ## P2 — Media prioridad
 
-- **FID-006** · DOCS · Crear `ARCHITECTURE.md` con el diagrama real backend/frontend/BD/hooks/widget.
-- **FID-007** · DOCS · Crear `SECURITY.md` con el informe RIESGO/UBICACIÓN/PROBLEMA/IMPACTO/SOLUCIÓN (Fase 15 completa).
-- **FID-008** · DOCS · Crear `TESTING.md` documentando cómo correr la suite E2E una vez exista.
-- **FID-009** · QA · Revisar responsive/UX en las vistas de cliente (mapa, home) en viewport móvil.
+- ~~**FID-006** · DOCS · Crear `ARCHITECTURE.md` con el diagrama real backend/frontend/BD/hooks/widget.~~ **COMPLETADA**.
+- ~~**FID-007** · DOCS · Crear `SECURITY.md` con el informe RIESGO/UBICACIÓN/PROBLEMA/IMPACTO/SOLUCIÓN.~~ **COMPLETADA**.
+- ~~**FID-008** · DOCS · Crear `TESTING.md` documentando cómo correr la suite E2E.~~ **COMPLETADA**.
+- ~~**FID-009** · QA · Revisar responsive/UX en las vistas de cliente (mapa, home) en viewport móvil.~~ **COMPLETADA** (ver cierre abajo).
 
 ## P3 — Baja prioridad / mantenimiento
 
-- **FID-010** · MAINTENANCE · Revisar dependencias desactualizadas (`npm outdated`, `mvn versions:display-dependency-updates`).
-- **FID-011** · DOCS · Actualizar `DEPLOYMENT.md` con el estado real de Railway/Vercel según avance el despliegue.
+- ~~**FID-010** · MAINTENANCE · Revisar dependencias desactualizadas.~~ **COMPLETADA — 14 vulnerabilidades corregidas, 1 encontrada y pendiente de decisión** (ver cierre abajo).
+- ~~**FID-011** · DOCS · Crear `DEPLOYMENT.md` con el estado real del despliegue.~~ **COMPLETADA** (ver cierre abajo).
+- **FID-012** · MAINTENANCE · Actualizar `@angular/core` y paquetes hermanos (misma versión exacta en todos) para cerrar 3 vulnerabilidades XSS conocidas (ver `SECURITY.md` #10). Requiere decisión del usuario: ¿subir solo de parche (20.3.23 → 20.3.32, sin salto de major) o evaluar Angular 21? Necesita ronda de regresión completa (build + suite E2E) antes de fusionar, dado que toca el framework entero.
 
 ---
 
@@ -133,3 +134,72 @@ Archivos modificados: `src/main/java/progresa/springboot_tfg/controller/Restaura
 `frontend/e2e/security-restaurant-stats.spec.ts` (nuevo),
 `frontend/e2e/helpers/auth.ts` y `frontend/e2e/global-setup.ts` (URL de API configurable vía
 `E2E_API_URL`, necesario para poder probar contra la instancia temporal corregida).
+
+### FID-001 — completada 2026-09-23
+
+**Mecanismo elegido**: filtro propio en memoria (`LoginRateLimiter` + `LoginRateLimitFilter`), no
+bucket4j — para el tamaño de este proyecto (una sola instancia, sin Redis) añadir una librería nueva
+solo para esto no se justificaba; un `ConcurrentHashMap` con ventana deslizante de 10 minutos es
+suficiente y no añade una dependencia.
+
+**Diseño**: cuenta solo intentos **fallidos**, con clave `IP + email` (no solo IP). Así un login
+legítimo repetido (los propios tests E2E, un usuario que corrige una errata) nunca cuenta contra el
+límite, y bloquear una cuenta no bloquea a las demás desde la misma IP. Límite: 8 intentos fallidos en
+10 minutos → `429 Too Many Requests` con cabecera `Retry-After`. Limitación conocida y documentada en
+el propio código: no frena a un atacante que reparte intentos entre muchas cuentas distintas desde la
+misma IP — si eso se vuelve una amenaza real, haría falta un límite adicional por IP sola.
+
+**Hallazgo secundario corregido en el mismo cambio**: `login()` y `login-restaurante()` distinguían
+"email no registrado" (404) de "contraseña incorrecta" (500, por un `RuntimeException` sin capturar)
+— esa diferencia de código HTTP permite enumerar qué emails están registrados. Ahora ambos casos
+devuelven `401` idéntico ("Credenciales incorrectas").
+
+**Verificación empírica** (instancia de prueba temporal en el puerto 8083, sin tocar el 8081 en uso):
+9 intentos fallidos seguidos contra la misma cuenta → intentos 1-8 devuelven `401`, el 9º devuelve
+`429`; una cuenta distinta desde la misma IP sigue funcionando con normalidad (`200` con credenciales
+correctas). Instancia de prueba detenida tras la verificación.
+
+Archivos modificados/creados: `security/LoginRateLimiter.java` (nuevo), `security/LoginRateLimitFilter.java`
+(nuevo), `security/SecurityConfig.java` (registra el filtro), `service/UsuarioService.java` y
+`service/RestauranteService.java` (401 uniforme en login), `frontend/e2e/security-login-rate-limit.spec.ts`
+(nuevo, test de regresión).
+
+**⚠️ ACCIÓN REQUERIDA DEL USUARIO**: igual que FID-005, este arreglo vive en `agent/fidelyfood-autonomous`
+y no tiene efecto en el backend real (puerto 8081) hasta integrarlo y reiniciar ese proceso. Contra el
+8081 sin integrar, el nuevo test de regresión falla correctamente (detecta que el rate-limiting no está
+activo ahí todavía) — es el comportamiento esperado, no un fallo del test.
+
+### FID-006/007/008 — completadas 2026-09-23
+`ARCHITECTURE.md`, `SECURITY.md` y `TESTING.md` creados en la raíz del proyecto, con contenido real
+extraído de la auditoría de esta sesión (no plantillas genéricas). `SECURITY.md` sigue el formato
+RIESGO/UBICACIÓN/PROBLEMA/IMPACTO/SOLUCIÓN pedido, incluyendo tanto lo ya corregido como lo pendiente.
+
+### FID-009 — completada 2026-09-23
+Verificado con capturas reales (Playwright, viewport 375×812 con permisos de geolocalización
+concedidos), no solo revisando CSS: `/u/home`, `/u/mapa`, `/u/historial`, `/u/perfil` con la cuenta
+cliente E2E autenticada. Las cuatro pantallas se ven correctamente en móvil — sin desbordamientos,
+tab bar inferior visible y utilizable, tarjetas y contenido bien ajustados al ancho. Sin hallazgos que
+requieran corrección. Capturas descartadas tras la revisión (no se commitean).
+
+### FID-010 — completada 2026-09-23
+`npm outdated` (frontend): nada crítico — actualizaciones menores dentro de Angular 20.x, sin saltos de
+versión mayor urgentes. `npm audit` detectó 22 vulnerabilidades; `npm audit fix` (sin `--force`, sin
+riesgo de romper nada) corrigió 14 — todas en dependencias de build (`postcss`, `vite`, `uuid`,
+`webpack-dev-server`, etc.), no en código servido a los usuarios. Verificado después: build de
+producción y suite E2E completa (10/10) siguen funcionando igual.
+
+Las 8 vulnerabilidades restantes son las 3 de Angular (XSS, severidad alta) — no corregidas porque
+requieren subir `@angular/core` y todos sus paquetes hermanos juntos, y `ng update` solo ofrece un
+salto de versión mayor (20 → 21) que necesitaría una ronda completa de pruebas de regresión antes de
+aplicarse. Documentado en `SECURITY.md` (#10) y como nueva tarea `FID-012`, a la espera de que el
+usuario decida el alcance (solo parche dentro de v20, o evaluar v21).
+
+Archivos modificados: `frontend/package-lock.json` (346 inserciones/237 eliminaciones, solo
+resoluciones de versión, sin tocar `package.json`).
+
+### FID-011 — completada 2026-09-23
+`DEPLOYMENT.md` creado en la raíz, honesto sobre el estado real: el proyecto código está preparado
+para producción (Dockerfile, variables externalizadas, JWT/CORS/Swagger corregidos — todo ya en
+`main`), pero **todavía no está desplegado en Internet**. Documenta exactamente qué falta y por qué
+esos pasos concretos (crear cuentas, autenticar CLIs) no se pueden automatizar sin que el usuario
+apruebe el login en su propio navegador.
