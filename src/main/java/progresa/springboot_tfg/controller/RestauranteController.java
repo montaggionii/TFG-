@@ -75,8 +75,10 @@ public class RestauranteController {
             description = "Devuelve un resumen de puntos otorgados, canjeados y actividad reciente"
     )
     @GetMapping("/{id}/stats")
-    public ResponseEntity<DashboardStatsDTO> obtenerStats(@PathVariable Long id) {
-        return ResponseEntity.ok(restauranteService.obtenerStats(id));
+    public ResponseEntity<DashboardStatsDTO> obtenerStats(
+            @PathVariable Long id,
+            Authentication authentication) {
+        return ResponseEntity.ok(restauranteService.obtenerStats(id, SecurityUtils.email(authentication)));
     }
 
     @Operation(
@@ -84,8 +86,10 @@ public class RestauranteController {
             description = "Devuelve facturación, ticket promedio e historial completo de movimientos"
     )
     @GetMapping("/{id}/stats-avanzadas")
-    public ResponseEntity<RestauranteAdvancedStatsDTO> obtenerStatsAvanzadas(@PathVariable Long id) {
-        return ResponseEntity.ok(restauranteService.obtenerStatsAvanzadas(id));
+    public ResponseEntity<RestauranteAdvancedStatsDTO> obtenerStatsAvanzadas(
+            @PathVariable Long id,
+            Authentication authentication) {
+        return ResponseEntity.ok(restauranteService.obtenerStatsAvanzadas(id, SecurityUtils.email(authentication)));
     }
 
     /*

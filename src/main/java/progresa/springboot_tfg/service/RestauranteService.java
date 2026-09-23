@@ -164,9 +164,10 @@ public class RestauranteService {
         }
     }
 
-    public DashboardStatsDTO obtenerStats(Long id) {
-        restauranteDAO.findById(id)
+    public DashboardStatsDTO obtenerStats(Long id, String emailAutenticado) {
+        Restaurante restaurante = restauranteDAO.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Restaurante no encontrado"));
+        requireOwner(restaurante, emailAutenticado);
 
         List<MovimientoPuntos> movimientos = movimientoPuntosDAO.findByRestauranteId(id);
 
@@ -193,9 +194,10 @@ public class RestauranteService {
         return new DashboardStatsDTO(clientesUnicos, puntosOtorgados, puntosCanjeados, promocionesActivas, actividadReciente);
     }
 
-    public RestauranteAdvancedStatsDTO obtenerStatsAvanzadas(Long id) {
-        restauranteDAO.findById(id)
+    public RestauranteAdvancedStatsDTO obtenerStatsAvanzadas(Long id, String emailAutenticado) {
+        Restaurante restaurante = restauranteDAO.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Restaurante no encontrado"));
+        requireOwner(restaurante, emailAutenticado);
 
         List<MovimientoPuntos> movimientos = movimientoPuntosDAO.findByRestauranteId(id);
 
