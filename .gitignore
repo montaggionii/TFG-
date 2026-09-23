@@ -61,6 +61,11 @@ node_modules/
 frontend/node_modules/
 .angular/
 frontend/.angular/
+
+### Playwright (E2E) ###
+frontend/test-results/
+frontend/playwright-report/
+frontend/e2e/.e2e-client.json
 dist/
 frontend/dist/
 www/
