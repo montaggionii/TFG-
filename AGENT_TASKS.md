@@ -14,7 +14,7 @@ si el archivo aparece como modificado sin commitear allí, se salta esa tarea.
 ## P1 — Alta prioridad
 
 - ~~**FID-002** · TEST · Crear `playwright.config.ts` y suite E2E mínima: login de los 3 roles.~~ **COMPLETADA** (ver cierre abajo).
-- **FID-003** · TEST · Tests E2E de cliente: home, mapa/geolocalización, historial, perfil, logout.
+- ~~**FID-003** · TEST · Tests E2E de cliente: home, mapa/geolocalización, historial, perfil, logout.~~ **COMPLETADA** (ver cierre abajo).
 - **FID-004** · TEST · Tests E2E de restaurante: dashboard, promociones, scanner.
 - **FID-005** · SECURITY · Revisión completa de endpoints REST (roles correctos por método/ruta) — checklist contra `SecurityConfig.java`.
 
@@ -55,3 +55,21 @@ Resultado: 3 passed, 0 failed, 0 skipped.
 Nota técnica: `@playwright/test` no estaba instalado (solo el driver base `playwright`); se
 añadió como devDependency. El worktree usa su propio `node_modules` aislado (no symlink al
 del checkout principal) para no modificar el entorno que el usuario tiene corriendo.
+
+### FID-003 — completada 2026-09-23
+Archivos modificados/creados: `frontend/e2e/helpers/auth.ts` (login vía API real + inyección de
+sesión en localStorage), `frontend/e2e/client-flows.spec.ts`.
+Tests realizados: 4 tests E2E de cliente contra el entorno real — home (carga y `app-user-card`
+visible), mapa (geolocalización mockeada con la API estándar de Playwright sobre Valencia,
+39.4699/-0.3763, sin quedarse en estado de error/denegado), historial (llega al estado vacío
+real `.empty-state`, cuenta E2E sin movimientos), perfil + logout (botón real de cerrar sesión,
+redirección a `/login` y `token` eliminado de localStorage).
+Resultado: 7/7 passed (3 de FID-002 + 4 nuevos).
+Incidencias encontradas y corregidas durante el desarrollo (no eran bugs de la app, sino del
+propio fixture de test):
+1. El helper de autenticación por API no guardaba `userId` en localStorage; sin él,
+   `GlobalStateService.loadInitialState()` no puede reconstruir el usuario y `home` se queda
+   cargando indefinidamente. Se corrigió capturando `id` de la respuesta de login real.
+2. La aserción de `historial` comprobaba ausencia de `ion-spinner`, pero `ion-refresher-content`
+   de Ionic siempre incluye su propio spinner en el DOM (oculto), independientemente del estado
+   de carga real de la página. Se corrigió comprobando el estado vacío real (`.empty-state`).
