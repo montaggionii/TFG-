@@ -19,6 +19,13 @@ export async function apiLoginClient(request: APIRequestContext, email: string, 
   return { token: body.token, role: 'ROLE_USER', nombre: body.nombre || 'Cliente E2E', userId: body.id };
 }
 
+export async function apiLoginRestaurant(request: APIRequestContext, email: string, password: string): Promise<Session> {
+  const res = await request.post(`${API_URL}/login-restaurante`, { data: { email, password } });
+  if (!res.ok()) throw new Error(`Login de restaurante falló (${res.status()}): ${await res.text()}`);
+  const body = await res.json();
+  return { token: body.token, role: 'ROLE_RESTAURANT', nombre: body.nombre || 'Restaurante E2E', userId: body.id };
+}
+
 // Inyecta la sesión real en localStorage con TODAS las claves que deja el
 // login real (ver AuthService.handleAuthResponse) — en particular `userId`,
 // sin la cual GlobalStateService.loadInitialState() no puede reconstruir el

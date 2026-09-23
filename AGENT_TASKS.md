@@ -15,7 +15,7 @@ si el archivo aparece como modificado sin commitear allí, se salta esa tarea.
 
 - ~~**FID-002** · TEST · Crear `playwright.config.ts` y suite E2E mínima: login de los 3 roles.~~ **COMPLETADA** (ver cierre abajo).
 - ~~**FID-003** · TEST · Tests E2E de cliente: home, mapa/geolocalización, historial, perfil, logout.~~ **COMPLETADA** (ver cierre abajo).
-- **FID-004** · TEST · Tests E2E de restaurante: dashboard, promociones, scanner.
+- ~~**FID-004** · TEST · Tests E2E de restaurante: dashboard, promociones, scanner.~~ **COMPLETADA** (ver cierre abajo).
 - **FID-005** · SECURITY · Revisión completa de endpoints REST (roles correctos por método/ruta) — checklist contra `SecurityConfig.java`.
 
 ## P2 — Media prioridad
@@ -73,3 +73,15 @@ propio fixture de test):
 2. La aserción de `historial` comprobaba ausencia de `ion-spinner`, pero `ion-refresher-content`
    de Ionic siempre incluye su propio spinner en el DOM (oculto), independientemente del estado
    de carga real de la página. Se corrigió comprobando el estado vacío real (`.empty-state`).
+
+### FID-004 — completada 2026-09-23
+Archivos modificados/creados: `frontend/e2e/helpers/auth.ts` (añadido `apiLoginRestaurant`),
+`frontend/e2e/restaurant-flows.spec.ts`.
+Tests realizados: 3 tests E2E de restaurante contra el entorno real, con la cuenta sembrada
+"Venezuela Food" (contraseña real desde `APP_SEED_RESTAURANT_PASSWORD`) — dashboard ("Centro de
+Mando" carga y sale del estado de loading/error), promociones ("Mis Promociones" carga el
+listado), scanner (la pantalla y el componente real `app-qr-scanner-ui` montan correctamente).
+El escaneo de un QR real no se simula: requiere cámara física y un headless E2E no puede
+producir ese dato sin inventarlo, así que el test se limita a verificar que la pantalla y el
+componente de cámara cargan de verdad, no un resultado de escaneo falso.
+Resultado: 10/10 passed (7 anteriores + 3 nuevos), a la primera ejecución.
