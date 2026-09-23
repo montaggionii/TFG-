@@ -3,8 +3,10 @@ import mysql from "mysql2/promise";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
+import { execFile } from "child_process";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const REPO_PATH = path.join(__dirname, "..");
 
 // Carga las mismas variables de entorno que usa el backend (fuente única).
 dotenv.config({ path: path.join(__dirname, "..", ".env") });
@@ -188,6 +190,138 @@ app.get("/api/agent-state", (req, res) => {
     return res.json({ status: "UNKNOWN", message: "Sin datos todavía — abre el panel admin de FidelyFood en el navegador." });
   }
   res.json(lastAgentState);
+});
+
+// --- Eventos reales del agente (Claude Code) vía hooks ---
+// Cada evento llega desde .claude/hooks/emit-event.sh, disparado por los
+// hooks PreToolUse/PostToolUse/Stop reales de esta sesión — nunca simulado.
+// Solo se guarda en memoria (se pierde al reiniciar el proceso), con un
+// límite de tamaño para no crecer indefinidamente.
+const MAX_EVENTS = 300;
+let agentEvents = [];
+let agentMetrics = resetMetrics();
+
+function resetMetrics() {
+  return {
+    date: new Date().toISOString().slice(0, 10),
+    tasksCompleted: 0,
+    testsPassed: 0,
+    testsFailed: 0,
+    bugsDetected: 0,
+    bugsFixed: 0,
+    filesChanged: 0,
+    builds: 0,
+    securityIssues: 0,
+  };
+}
+
+function ensureTodayMetrics() {
+  const today = new Date().toISOString().slice(0, 10);
+  if (agentMetrics.date !== today) {
+    agentMetrics = resetMetrics();
+  }
+}
+
+const METRIC_BY_EVENT = {
+  TASK_COMPLETED: "tasksCompleted",
+  TEST_PASSED: "testsPassed",
+  TEST_FAILED: "testsFailed",
+  BUG_FOUND: "bugsDetected",
+  BUG_FIXED: "bugsFixed",
+  FILE_MODIFIED: "filesChanged",
+  BUILD_PASSED: "builds",
+  BUILD_FAILED: "builds",
+  SECURITY_ISSUE_FOUND: "securityIssues",
+};
+
+// Nunca hay que reenviar contenido crudo de comandos/archivos (podría
+// contener secretos). Solo se aceptan campos ya resumidos/sanitizados por
+// el propio script del hook.
+function sanitizeEvent(body) {
+  const pick = (v, max = 300) => (typeof v === "string" ? v.slice(0, max) : null);
+  return {
+    type: pick(body.type, 60) || "UNKNOWN",
+    tool: pick(body.tool, 60),
+    file: pick(body.file, 300),
+    detail: pick(body.detail, 300),
+    ts: new Date().toISOString(),
+  };
+}
+
+// El widget consulta esto varias veces por segundo. `git status` puede
+// tomar brevemente el índice de git (.git/index.lock) — sin un mínimo de
+// espera entre llamadas reales, esas consultas tan frecuentes podrían
+// chocar justo con un comando git tuyo en curso. Se cachea el resultado
+// unos segundos para no ejecutar `git status` más rápido de lo necesario.
+let modifiedFilesCache = null;
+let modifiedFilesCacheAt = 0;
+const MODIFIED_FILES_TTL_MS = 3000;
+
+function currentModifiedFiles(cb) {
+  const now = Date.now();
+  if (modifiedFilesCache && now - modifiedFilesCacheAt < MODIFIED_FILES_TTL_MS) {
+    return cb(modifiedFilesCache);
+  }
+  execFile("git", ["status", "--porcelain"], { cwd: REPO_PATH, timeout: 3000 }, (err, stdout) => {
+    if (err) return cb(modifiedFilesCache || []);
+    const files = stdout
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => line.replace(/^[MADRCU?!]{1,2}\s+/, ""));
+    modifiedFilesCache = files;
+    modifiedFilesCacheAt = now;
+    cb(files);
+  });
+}
+
+app.post("/api/agent-events", (req, res) => {
+  ensureTodayMetrics();
+  const event = sanitizeEvent(req.body || {});
+
+  const metricKey = METRIC_BY_EVENT[event.type];
+  if (metricKey) agentMetrics[metricKey] += 1;
+
+  const finish = (conflict) => {
+    event.conflict = conflict;
+    agentEvents.push(event);
+    if (agentEvents.length > MAX_EVENTS) agentEvents = agentEvents.slice(-MAX_EVENTS);
+    res.json({ ok: true, conflict });
+  };
+
+  // Detección real de conflicto: si el archivo que el agente está a punto
+  // de tocar aparece en el `git status` real de este repo (trabajo tuyo sin
+  // commitear), se marca el evento como conflicto — el agente debe frenar
+  // en ese archivo (esto lo decide el propio Claude durante la sesión, el
+  // servidor solo reporta el hecho verificado).
+  if (event.file && (event.type === "PRE_TOOL_USE" || event.type === "FILE_ANALYZING")) {
+    currentModifiedFiles((files) => {
+      const conflict = files.some((f) => event.file.endsWith(f) || f.endsWith(event.file));
+      finish(conflict);
+    });
+  } else {
+    finish(false);
+  }
+});
+
+app.get("/api/agent-events", (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit, 10) || 50, MAX_EVENTS);
+  res.json({ events: agentEvents.slice(-limit).reverse() });
+});
+
+app.get("/api/agent-metrics", (req, res) => {
+  ensureTodayMetrics();
+  res.json(agentMetrics);
+});
+
+// --- "MY WORK" real: qué estás haciendo tú, leído directamente de git ---
+app.get("/api/my-work", (req, res) => {
+  execFile("git", ["branch", "--show-current"], { cwd: REPO_PATH, timeout: 3000 }, (err, branchOut) => {
+    const branch = err ? null : branchOut.trim();
+    currentModifiedFiles((files) => {
+      res.json({ branch, modifiedFiles: files, checkedAt: new Date().toISOString() });
+    });
+  });
 });
 
 app.get("/api/accounts", async (req, res) => {
