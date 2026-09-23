@@ -39,6 +39,23 @@
         </div>
       </div>
 
+      <!-- Estado de la ubicación del usuario -->
+      <div class="geo-status geo-status--info" *ngIf="geoStatus === 'requesting'">
+        <ion-spinner name="crescent"></ion-spinner>
+        <span>Obteniendo tu ubicación...</span>
+      </div>
+
+      <div class="geo-status geo-status--warning" *ngIf="geoStatus === 'denied' || geoStatus === 'unavailable' || geoStatus === 'timeout' || geoStatus === 'error'">
+        <ion-icon name="location-outline"></ion-icon>
+        <span>Necesitamos tu ubicación para mostrarte los restaurantes cercanos.</span>
+        <button type="button" (click)="reintentarUbicacion()">Reintentar</button>
+      </div>
+
+      <div class="geo-status geo-status--active" *ngIf="geoStatus === 'active' && showActiveBadge">
+        <ion-icon name="location"></ion-icon>
+        <span>Ubicación activa</span>
+      </div>
+
       <div class="radius-selector" [class.expanded]="showFilterPanel">
         <div class="radius-summary">
           <div class="radius-title">
@@ -103,7 +120,7 @@
         <div class="stats-row">
           <div class="stat-item clickable" (click)="abrirGoogleMaps($event)">
             <ion-icon name="location-outline" color="primary"></ion-icon>
-            <span>{{ 'map.distance' | ffTranslate:{ distance: (selectedRestaurant.distanciaNum | number:'1.1-1') } }}</span>
+            <span>{{ 'map.distance' | ffTranslate:{ distance: formatDistancia(selectedRestaurant.distanciaNum) } }}</span>
             <ion-icon name="navigate-outline" class="mini-nav"></ion-icon>
           </div>
           <div class="stat-item clickable" (click)="verPromociones($event)">
@@ -142,7 +159,7 @@
             <img [appSafeRestaurantImage]="r" [alt]="r.nombre">
             <div class="card-distance">
               <ion-icon name="location"></ion-icon>
-              {{ r.distanciaNum | number:'1.1-1' }} km
+              {{ formatDistancia(r.distanciaNum) }}
             </div>
           </div>
           

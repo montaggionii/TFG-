@@ -61,7 +61,7 @@
   "map.foundRestaurants": "{{count}} lieux trouvés",
   "map.noResults.title": "Aucun lieu trouvé",
   "map.noResults.subtitle": "Essayez une autre recherche ou augmentez le rayon.",
-  "map.distance": "À {{distance}} km",
+  "map.distance": "À {{distance}}",
   "map.promosToday": "Promos aujourd'hui",
   "map.viewRestaurant": "Voir le restaurant",
   "map.viewLocal": "Voir le lieu",
