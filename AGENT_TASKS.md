@@ -16,7 +16,7 @@ si el archivo aparece como modificado sin commitear allí, se salta esa tarea.
 - ~~**FID-002** · TEST · Crear `playwright.config.ts` y suite E2E mínima: login de los 3 roles.~~ **COMPLETADA** (ver cierre abajo).
 - ~~**FID-003** · TEST · Tests E2E de cliente: home, mapa/geolocalización, historial, perfil, logout.~~ **COMPLETADA** (ver cierre abajo).
 - ~~**FID-004** · TEST · Tests E2E de restaurante: dashboard, promociones, scanner.~~ **COMPLETADA** (ver cierre abajo).
-- **FID-005** · SECURITY · Revisión completa de endpoints REST (roles correctos por método/ruta) — checklist contra `SecurityConfig.java`.
+- ~~**FID-005** · SECURITY · Revisión completa de endpoints REST (roles correctos por método/ruta) — checklist contra `SecurityConfig.java`.~~ **COMPLETADA — vulnerabilidad real encontrada y corregida** (ver cierre abajo). **REQUIERE ACCIÓN DEL USUARIO: reiniciar el backend de desarrollo (puerto 8081) para que el arreglo tenga efecto — el proceso que ya tenías corriendo sigue con el código antiguo.**
 
 ## P2 — Media prioridad
 
@@ -85,3 +85,51 @@ El escaneo de un QR real no se simula: requiere cámara física y un headless E2
 producir ese dato sin inventarlo, así que el test se limita a verificar que la pantalla y el
 componente de cámara cargan de verdad, no un resultado de escaneo falso.
 Resultado: 10/10 passed (7 anteriores + 3 nuevos), a la primera ejecución.
+
+### FID-005 — completada 2026-09-23 — VULNERABILIDAD REAL ENCONTRADA Y CORREGIDA
+
+**Hallazgo (severidad alta — Broken Access Control / OWASP A01:2021)**: `GET /api/restaurantes/{id}/stats`
+y `GET /api/restaurantes/{id}/stats-avanzadas` no comprobaban que quien pedía los datos fuera el propio
+restaurante. `SecurityConfig.java` solo exige "estar autenticado con cualquier rol" (`ROLE_USER`,
+`ROLE_RESTAURANT` o `ROLE_ADMIN`) para cualquier GET bajo `/api/restaurantes/**`, y ni el controlador ni
+el servicio verificaban la propiedad del recurso — a diferencia de casi todos los demás endpoints
+sensibles del proyecto (`UsuarioController`, el resto de `RestauranteController`, `PuntosController`),
+que sí usan el patrón `requireOwner(...)` ya existente en el código.
+
+**Verificación empírica ANTES del arreglo** (no solo lectura de código): login real como cliente E2E →
+`GET /api/restaurantes/3/stats-avanzadas` con su token → **200 OK**, devolviendo facturación total,
+puntos entregados/canjeados e historial completo de movimientos de "Venezuela Food", un restaurante
+completamente ajeno a esa cuenta.
+
+Nota de alcance real: ningún frontend actual (ni admin ni restaurante) llama todavía a estos dos
+endpoints — no hay una explotación activa desde la UI hoy — pero la API queda expuesta igualmente a
+cualquiera con un token válido y el ID numérico del restaurante.
+
+**Corrección aplicada**: `RestauranteController.obtenerStats`/`obtenerStatsAvanzadas` ahora reciben
+`Authentication` y pasan el email autenticado al servicio; `RestauranteService.obtenerStats`/
+`obtenerStatsAvanzadas` llaman a `requireOwner(...)` (mismo método privado ya usado por
+`subirImagen`/`eliminarPropio`), lanzando `AccessDeniedException` (403) si el email autenticado no
+coincide con el del restaurante.
+
+**Verificación empírica DESPUÉS del arreglo**: se compiló y arrancó una instancia temporal del backend
+ya corregido en el puerto 8082 (sin tocar el 8081 que el usuario tenía en marcha) — el mismo token de
+cliente ahora recibe `403 {"message":"No puedes acceder a datos de otro restaurante"}`, y el propio
+restaurante (Venezuela Food) sigue recibiendo `200` con sus datos reales. Instancia de prueba detenida
+tras la verificación.
+
+**Test de regresión añadido**: `frontend/e2e/security-restaurant-stats.spec.ts` (2 tests, vía
+`E2E_API_URL` configurable). Contra el backend en vivo (puerto 8081, todavía sin el arreglo porque ese
+proceso sigue con el código antiguo cargado en memoria) el test de "cliente ajeno" falla correctamente
+(detecta la vulnerabilidad real, en vivo); contra la instancia de prueba ya corregida, ambos tests pasan.
+
+**⚠️ ACCIÓN REQUERIDA DEL USUARIO**: el arreglo está en el código de esta rama
+(`agent/fidelyfood-autonomous`), pero el backend que tienes corriendo en el puerto 8081 se inició antes
+de este cambio y sigue sirviendo el código antiguo. No tendrá efecto real hasta que:
+1. Decidas integrar este cambio a `main` (revisar el commit correspondiente), y
+2. Reinicies el backend de desarrollo.
+
+Archivos modificados: `src/main/java/progresa/springboot_tfg/controller/RestauranteController.java`,
+`src/main/java/progresa/springboot_tfg/service/RestauranteService.java`,
+`frontend/e2e/security-restaurant-stats.spec.ts` (nuevo),
+`frontend/e2e/helpers/auth.ts` y `frontend/e2e/global-setup.ts` (URL de API configurable vía
+`E2E_API_URL`, necesario para poder probar contra la instancia temporal corregida).

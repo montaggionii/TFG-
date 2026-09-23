@@ -12,7 +12,7 @@ export default async function globalSetup() {
   const password = `E2eTest!${suffix}`;
   const nombre = 'E2E Cliente Autogenerado';
 
-  const apiUrl = 'http://localhost:8081/api/auth/register';
+  const apiUrl = `${process.env.E2E_API_URL || 'http://localhost:8081'}/api/auth/register`;
   const ctx = await request.newContext();
   try {
     const res = await ctx.post(apiUrl, {

@@ -1,6 +1,6 @@
 import { APIRequestContext, Page } from '@playwright/test';
 
-const API_URL = 'http://localhost:8081/api/auth';
+const API_URL = `${process.env.E2E_API_URL || 'http://localhost:8081'}/api/auth`;
 
 export interface Session {
   token: string;
