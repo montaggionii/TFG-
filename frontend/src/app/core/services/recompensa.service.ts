@@ -7,7 +7,7 @@ import { Observable } from 'rxjs';
 export class RecompensaService {
   private http = inject(HttpClient);
   private get apiUrl(): string {
-    const base = environment.apiUrl?.replace(/\/$/, '') || 'http://localhost:8081';
+    const base = environment.apiUrl.replace(/\/$/, '');
     return `${base}/api/recompensas`;
   }
 
