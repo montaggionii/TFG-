@@ -9,7 +9,7 @@ si el archivo aparece como modificado sin commitear allí, se salta esa tarea.
 
 ## P0 — Seguridad / bloqueante
 
-- **FID-001** · SECURITY · Auditar rate-limiting ausente en `/api/auth/**` (login) — ya detectado en la Fase 15 preliminar, pendiente de decidir mecanismo (bucket4j vs. filtro propio).
+- ~~**FID-001** · SECURITY · Auditar rate-limiting ausente en `/api/auth/**` (login).~~ **COMPLETADA — implementado y verificado** (ver cierre abajo). **REQUIERE ACCIÓN DEL USUARIO tras integrar: reiniciar el backend de desarrollo (puerto 8081).**
 
 ## P1 — Alta prioridad
 
@@ -133,3 +133,37 @@ Archivos modificados: `src/main/java/progresa/springboot_tfg/controller/Restaura
 `frontend/e2e/security-restaurant-stats.spec.ts` (nuevo),
 `frontend/e2e/helpers/auth.ts` y `frontend/e2e/global-setup.ts` (URL de API configurable vía
 `E2E_API_URL`, necesario para poder probar contra la instancia temporal corregida).
+
+### FID-001 — completada 2026-09-23
+
+**Mecanismo elegido**: filtro propio en memoria (`LoginRateLimiter` + `LoginRateLimitFilter`), no
+bucket4j — para el tamaño de este proyecto (una sola instancia, sin Redis) añadir una librería nueva
+solo para esto no se justificaba; un `ConcurrentHashMap` con ventana deslizante de 10 minutos es
+suficiente y no añade una dependencia.
+
+**Diseño**: cuenta solo intentos **fallidos**, con clave `IP + email` (no solo IP). Así un login
+legítimo repetido (los propios tests E2E, un usuario que corrige una errata) nunca cuenta contra el
+límite, y bloquear una cuenta no bloquea a las demás desde la misma IP. Límite: 8 intentos fallidos en
+10 minutos → `429 Too Many Requests` con cabecera `Retry-After`. Limitación conocida y documentada en
+el propio código: no frena a un atacante que reparte intentos entre muchas cuentas distintas desde la
+misma IP — si eso se vuelve una amenaza real, haría falta un límite adicional por IP sola.
+
+**Hallazgo secundario corregido en el mismo cambio**: `login()` y `login-restaurante()` distinguían
+"email no registrado" (404) de "contraseña incorrecta" (500, por un `RuntimeException` sin capturar)
+— esa diferencia de código HTTP permite enumerar qué emails están registrados. Ahora ambos casos
+devuelven `401` idéntico ("Credenciales incorrectas").
+
+**Verificación empírica** (instancia de prueba temporal en el puerto 8083, sin tocar el 8081 en uso):
+9 intentos fallidos seguidos contra la misma cuenta → intentos 1-8 devuelven `401`, el 9º devuelve
+`429`; una cuenta distinta desde la misma IP sigue funcionando con normalidad (`200` con credenciales
+correctas). Instancia de prueba detenida tras la verificación.
+
+Archivos modificados/creados: `security/LoginRateLimiter.java` (nuevo), `security/LoginRateLimitFilter.java`
+(nuevo), `security/SecurityConfig.java` (registra el filtro), `service/UsuarioService.java` y
+`service/RestauranteService.java` (401 uniforme en login), `frontend/e2e/security-login-rate-limit.spec.ts`
+(nuevo, test de regresión).
+
+**⚠️ ACCIÓN REQUERIDA DEL USUARIO**: igual que FID-005, este arreglo vive en `agent/fidelyfood-autonomous`
+y no tiene efecto en el backend real (puerto 8081) hasta integrarlo y reiniciar ese proceso. Contra el
+8081 sin integrar, el nuevo test de regresión falla correctamente (detecta que el rate-limiting no está
+activo ahí todavía) — es el comportamiento esperado, no un fallo del test.

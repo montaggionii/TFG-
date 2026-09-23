@@ -65,12 +65,13 @@ public class RestauranteService {
 
     public RestauranteLoginResponseDTO login(RestauranteLoginRequestDTO dto) {
 
+        // Mismo error (401) tanto si el email no existe como si la contraseña
+        // es incorrecta — evita enumerar emails registrados vía el código HTTP.
         Restaurante restaurante = restauranteDAO.findByEmail(dto.getEmail())
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Email no registrado"));
+                .orElseThrow(() -> new SecurityException("Credenciales incorrectas"));
 
         if (!passwordEncoder.matches(dto.getPassword(), restaurante.getPassword())) {
-            throw new RuntimeException("Credenciales incorrectas");
+            throw new SecurityException("Credenciales incorrectas");
         }
 
         String token = jwtUtil.generateToken(

@@ -68,12 +68,14 @@ public class UsuarioService {
 
     public LoginResponseDTO login(LoginRequestDTO loginDTO) {
 
+        // Mismo error (401) tanto si el email no existe como si la contraseña
+        // es incorrecta — distinguirlos (antes: 404 vs 500) permitía enumerar
+        // qué emails están registrados a partir del código de estado HTTP.
         Usuario usuario = usuarioDAO.findByEmail(loginDTO.getEmail())
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Email no registrado"));
+                .orElseThrow(() -> new SecurityException("Credenciales incorrectas"));
 
         if (!passwordEncoder.matches(loginDTO.getPassword(), usuario.getPassword())) {
-            throw new RuntimeException("Credenciales incorrectas");
+            throw new SecurityException("Credenciales incorrectas");
         }
 
         String token = jwtUtil.generateToken(
