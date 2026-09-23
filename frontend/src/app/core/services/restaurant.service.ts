@@ -9,7 +9,7 @@ export class RestaurantService {
   // Nota: Siguiendo el snippet del usuario, usamos /recompensas, 
   // pero ajustamos a /api/recompensas si el backend sigue ese patrón.
   private get apiUrl(): string {
-    const base = environment.apiUrl?.replace(/\/$/, '') || 'http://localhost:8081';
+    const base = environment.apiUrl.replace(/\/$/, '');
     return `${base}/api/recompensas`;
   }
 
