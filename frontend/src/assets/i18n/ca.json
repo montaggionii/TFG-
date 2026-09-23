@@ -61,7 +61,7 @@
   "map.foundRestaurants": "{{count}} locals trobats",
   "map.noResults.title": "No hem trobat locals",
   "map.noResults.subtitle": "Prova una altra cerca o amplia el radi.",
-  "map.distance": "A {{distance}} km",
+  "map.distance": "A {{distance}}",
   "map.promosToday": "Promos hui",
   "map.viewRestaurant": "Veure restaurant",
   "map.viewLocal": "Veure local",

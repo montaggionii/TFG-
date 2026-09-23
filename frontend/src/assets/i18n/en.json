@@ -61,7 +61,7 @@
   "map.foundRestaurants": "{{count}} venues found",
   "map.noResults.title": "No venues found",
   "map.noResults.subtitle": "Try another search or increase the radius.",
-  "map.distance": "{{distance}} km away",
+  "map.distance": "{{distance}} away",
   "map.promosToday": "Promos today",
   "map.viewRestaurant": "View restaurant",
   "map.viewLocal": "View venue",

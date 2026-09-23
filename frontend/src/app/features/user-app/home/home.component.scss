@@ -24,6 +24,44 @@
   margin-bottom: clamp(22px, 5vw, 32px);
 }
 
+.geo-inline-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  margin-bottom: clamp(16px, 4vw, 22px);
+  font-size: 13px;
+  font-weight: 600;
+
+  ion-icon {
+    font-size: 18px;
+    flex: 0 0 auto;
+  }
+
+  button {
+    margin-left: auto;
+    flex: 0 0 auto;
+    background: rgba(0, 0, 0, 0.08);
+    border: none;
+    color: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 5px 12px;
+    border-radius: 100px;
+  }
+
+  &--info {
+    background: rgba(88, 166, 255, 0.12);
+    color: #2563a8;
+  }
+
+  &--warning {
+    background: rgba(240, 180, 41, 0.16);
+    color: #8a6710;
+  }
+}
+
 // CARDS DE RECOMPENSAS PREMIUM (HORIZONTAL CAROUSEL)
 .rewards-premium-carousel {
   display: flex;

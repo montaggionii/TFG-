@@ -1,11 +1,12 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { IonicModule, ToastController } from '@ionic/angular';
 import { FormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
 import { MapComponent } from '../../../shared/components/map/map.component';
-import { MapsService } from '../../../core/services/maps.service';
 import { RestauranteService } from '../../../core/services/restaurante.service';
+import { GeolocationService, GeoStatus } from '../../../core/services/geolocation.service';
 import { addIcons } from 'ionicons';
 import { 
   locationOutline, restaurantOutline, star, cafeOutline, 
@@ -25,16 +26,21 @@ import { SafeRestaurantImageDirective } from '../../../shared/directives/safe-re
   standalone: true,
   imports: [IonicModule, CommonModule, MapComponent, FormsModule, RouterModule, CustomerTranslatePipe, SafeRestaurantImageDirective]
 })
-export class MapaPageComponent implements OnInit {
-  private mapsService = inject(MapsService);
+export class MapaPageComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private restauranteService = inject(RestauranteService);
   private toastCtrl = inject(ToastController);
+  private geoService = inject(GeolocationService);
   private apiUrl = environment.apiUrl;
 
   map: any;
   userLocation: { lat: number, lng: number } | null = null;
-  
+  geoStatus: GeoStatus = 'idle';
+  showActiveBadge = false;
+  private activeBadgeTimer: ReturnType<typeof setTimeout> | undefined;
+  private geoSub?: Subscription;
+  private statusSub?: Subscription;
+
   // Datos
   restaurantesOriginales: any[] = [];
   restaurantesFiltrados: any[] = [];
@@ -49,6 +55,7 @@ export class MapaPageComponent implements OnInit {
   selectedRestaurant: any = null;
   showDetailSheet = false;
   showFilterPanel = false;
+  private hasShownRadarToast = false;
 
   constructor() {
     addIcons({ 
@@ -60,19 +67,43 @@ export class MapaPageComponent implements OnInit {
     });
   }
 
-  async ngOnInit() {
-    await this.obtenerUbicacion();
+  ngOnInit() {
+    this.statusSub = this.geoService.status$.subscribe(status => {
+      const becameActive = status === 'active' && this.geoStatus !== 'active';
+      this.geoStatus = status;
+
+      if (becameActive) {
+        // Confirmación breve, no un badge permanente en pantalla.
+        this.showActiveBadge = true;
+        clearTimeout(this.activeBadgeTimer);
+        this.activeBadgeTimer = setTimeout(() => (this.showActiveBadge = false), 2500);
+      }
+    });
+
+    this.geoSub = this.geoService.location$.subscribe(coords => {
+      if (!coords) return;
+      const isFirstFix = !this.userLocation;
+      this.userLocation = coords;
+      this.cargarRestaurantes();
+      if (!isFirstFix) {
+        // El usuario se ha desplazado lo suficiente como para recalcular —
+        // no interrumpimos con un toast por cada corrección de posición.
+        this.actualizarMarcadores();
+      }
+    });
+
+    this.geoService.startWatching();
   }
 
-  async obtenerUbicacion() {
-    try {
-      this.userLocation = await this.mapsService.getCurrentLocation();
-      this.cargarRestaurantes();
-    } catch (error) {
-      console.error('Error obteniendo ubicación', error);
-      this.userLocation = { lat: 39.4699, lng: -0.3763 };
-      this.cargarRestaurantes();
-    }
+  ngOnDestroy() {
+    this.geoSub?.unsubscribe();
+    this.statusSub?.unsubscribe();
+    clearTimeout(this.activeBadgeTimer);
+    this.geoService.stopWatching();
+  }
+
+  reintentarUbicacion() {
+    this.geoService.retry();
   }
 
   cargarRestaurantes() {
@@ -98,13 +129,19 @@ export class MapaPageComponent implements OnInit {
         this.filtrarPorDistancia();
         this.isLoading = false;
 
-        const toast = await this.toastCtrl.create({
-          message: `Radar activo: ${this.restaurantesOriginales.length} locales en zona`,
-          duration: 1500,
-          position: 'top',
-          color: 'primary'
-        });
-        toast.present();
+        // Solo la primera vez: con el watch activo, cargarRestaurantes() se
+        // repite en cada actualización real de posición, y no queremos un
+        // toast por cada una.
+        if (!this.hasShownRadarToast) {
+          this.hasShownRadarToast = true;
+          const toast = await this.toastCtrl.create({
+            message: `Radar activo: ${this.restaurantesOriginales.length} locales en zona`,
+            duration: 1500,
+            position: 'top',
+            color: 'primary'
+          });
+          toast.present();
+        }
       },
       error: (err: any) => {
         console.error('Error cargando restaurantes:', err);
@@ -207,18 +244,11 @@ export class MapaPageComponent implements OnInit {
   }
 
   calcularDistancia(lat1: number, lng1: number, lat2: number, lng2: number): number {
-    const R = 6371;
-    const dLat = this.toRad(lat2 - lat1);
-    const dLng = this.toRad(lng2 - lng1);
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(this.toRad(lat1)) * Math.cos(this.toRad(lat2)) *
-              Math.sin(dLng / 2) * Math.sin(dLng / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
+    return this.geoService.distanceKm({ lat: lat1, lng: lng1 }, { lat: lat2, lng: lng2 });
   }
 
-  toRad(value: number) {
-    return value * Math.PI / 180;
+  formatDistancia(km: number): string {
+    return GeolocationService.formatDistance(km);
   }
 
   handleMarkerClick(rest: any) {

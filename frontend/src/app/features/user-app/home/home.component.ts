@@ -1,11 +1,12 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule, ToastController, ModalController } from '@ionic/angular';
 import { Router, RouterLink } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { UsuarioService } from '../../../core/services/usuario.service';
 import { RestauranteService } from '../../../core/services/restaurante.service';
-import { MapsService } from '../../../core/services/maps.service';
 import { PuntosService } from '../../../core/services/puntos.service';
+import { GeolocationService, GeoStatus } from '../../../core/services/geolocation.service';
 import { GlobalStateService, UserState } from '../../../core/state/global-state.service';
 import { UserCardComponent } from '../../../shared/components/user-card/user-card.component';
 import { SectionHeaderComponent } from '../../../shared/components/section-header/section-header.component';
@@ -47,10 +48,10 @@ interface HomeNewsBanner {
     SafeRestaurantImageDirective
   ]
 })
-export class HomeComponent implements OnInit {
+export class HomeComponent implements OnInit, OnDestroy {
   private usuarioService = inject(UsuarioService);
   private restauranteService = inject(RestauranteService);
-  private mapsService = inject(MapsService);
+  private geoService = inject(GeolocationService);
   private puntosService = inject(PuntosService);
   private globalState = inject(GlobalStateService);
   private toastCtrl = inject(ToastController);
@@ -103,6 +104,9 @@ export class HomeComponent implements OnInit {
   promotionalBanners: HomeNewsBanner[] = [this.createInstitutionalBanner()];
 
   private lastProcessedId: number | null = null;
+  geoStatus: GeoStatus = 'idle';
+  private geoSub?: Subscription;
+  private statusSub?: Subscription;
 
   async ngOnInit() {
     // Sincronización reactiva con el estado global (Senior Engineering)
@@ -123,19 +127,32 @@ export class HomeComponent implements OnInit {
         this.lastProcessedId = null;
       }
     });
+
+    this.cargarPromocionesReales();
   }
 
-  async inicializarMapa() {
-    try {
-      this.userLocation = await this.mapsService.getCurrentLocation();
+  ngOnDestroy() {
+    this.geoSub?.unsubscribe();
+    this.statusSub?.unsubscribe();
+    this.geoService.stopWatching();
+  }
+
+  inicializarMapa() {
+    this.statusSub = this.geoService.status$.subscribe(status => (this.geoStatus = status));
+
+    this.geoSub = this.geoService.location$.subscribe(coords => {
+      if (!coords) return;
+      this.userLocation = coords;
+      // Se recalculan restaurantes cercanos, distancias, orden y marcadores
+      // cada vez que llega una posición nueva (no solo la primera).
       this.cargarLocalesValencia();
-      this.cargarPromocionesReales();
-    } catch (err) {
-      // Fallback Valencia Centro si falla la geolocalización
-      this.userLocation = { lat: 39.4699, lng: -0.3763 };
-      this.cargarLocalesValencia();
-      this.cargarPromocionesReales();
-    }
+    });
+
+    this.geoService.startWatching();
+  }
+
+  reintentarUbicacion() {
+    this.geoService.retry();
   }
 
   cargarPromocionesReales() {
@@ -181,6 +198,8 @@ export class HomeComponent implements OnInit {
   radioKm = 10; // Radio por defecto visto en UI
 
   cargarLocalesValencia() {
+    if (!this.userLocation) return;
+
     // Eliminados locales Mock para usar exclusivamente la base de datos real
     const localesMock: any[] = [];
 
@@ -202,7 +221,7 @@ export class HomeComponent implements OnInit {
           return {
             ...r,
             distance: dist,
-            distanceText: dist < 1 ? `${Math.round(dist * 1000)}m` : `${dist.toFixed(1)}km`,
+            distanceText: GeolocationService.formatDistance(dist),
             ptsPerEuro: 10
           };
         }).sort((a, b) => a.distance - b.distance);
@@ -220,7 +239,7 @@ export class HomeComponent implements OnInit {
           return {
             ...r,
             distance: dist,
-            distanceText: dist < 1 ? `${Math.round(dist * 1000)}m` : `${dist.toFixed(1)}km`,
+            distanceText: GeolocationService.formatDistance(dist),
             ptsPerEuro: 10
           };
         }).sort((a, b) => a.distance - b.distance);
@@ -307,15 +326,7 @@ export class HomeComponent implements OnInit {
   }
 
   calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const R = 6371;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
+    return this.geoService.distanceKm({ lat: lat1, lng: lon1 }, { lat: lat2, lng: lon2 });
   }
 
 

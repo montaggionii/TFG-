@@ -78,6 +78,17 @@
 
       <!-- COLUMNA SECUNDARIA (LOCALES SUGERIDOS) -->
       <div class="side-column">
+        <div class="geo-inline-status geo-inline-status--info" *ngIf="geoStatus === 'requesting'">
+          <ion-icon name="location-outline"></ion-icon>
+          <span>Obteniendo tu ubicación...</span>
+        </div>
+
+        <div class="geo-inline-status geo-inline-status--warning" *ngIf="geoStatus === 'denied' || geoStatus === 'unavailable' || geoStatus === 'timeout' || geoStatus === 'error'">
+          <ion-icon name="location-outline"></ion-icon>
+          <span>Necesitamos tu ubicación para mostrarte los restaurantes cercanos.</span>
+          <button type="button" (click)="reintentarUbicacion()">Reintentar</button>
+        </div>
+
         <section class="section-container animate__animated animate__fadeIn animate__delay-1s" *ngIf="nearbyRestaurants && nearbyRestaurants.length > 0">
           <app-section-header 
             [title]="'home.sections.nearby.title' | ffTranslate" 
