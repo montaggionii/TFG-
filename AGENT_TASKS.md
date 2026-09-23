@@ -28,7 +28,7 @@ si el archivo aparece como modificado sin commitear allí, se salta esa tarea.
 ## P3 — Baja prioridad / mantenimiento
 
 - ~~**FID-010** · MAINTENANCE · Revisar dependencias desactualizadas.~~ **COMPLETADA — 14 vulnerabilidades corregidas, 1 encontrada y pendiente de decisión** (ver cierre abajo).
-- **FID-011** · DOCS · Actualizar `DEPLOYMENT.md` con el estado real de Railway/Vercel según avance el despliegue.
+- ~~**FID-011** · DOCS · Crear `DEPLOYMENT.md` con el estado real del despliegue.~~ **COMPLETADA** (ver cierre abajo).
 - **FID-012** · MAINTENANCE · Actualizar `@angular/core` y paquetes hermanos (misma versión exacta en todos) para cerrar 3 vulnerabilidades XSS conocidas (ver `SECURITY.md` #10). Requiere decisión del usuario: ¿subir solo de parche (20.3.23 → 20.3.32, sin salto de major) o evaluar Angular 21? Necesita ronda de regresión completa (build + suite E2E) antes de fusionar, dado que toca el framework entero.
 
 ---
@@ -196,3 +196,10 @@ usuario decida el alcance (solo parche dentro de v20, o evaluar v21).
 
 Archivos modificados: `frontend/package-lock.json` (346 inserciones/237 eliminaciones, solo
 resoluciones de versión, sin tocar `package.json`).
+
+### FID-011 — completada 2026-09-23
+`DEPLOYMENT.md` creado en la raíz, honesto sobre el estado real: el proyecto código está preparado
+para producción (Dockerfile, variables externalizadas, JWT/CORS/Swagger corregidos — todo ya en
+`main`), pero **todavía no está desplegado en Internet**. Documenta exactamente qué falta y por qué
+esos pasos concretos (crear cuentas, autenticar CLIs) no se pueden automatizar sin que el usuario
+apruebe el login en su propio navegador.
