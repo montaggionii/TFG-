@@ -1,0 +1,39 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /Users/montaggioni/projects/TFG-repaired-20260917/access-center/hooks/emit-event.mjs",
+            "timeout": 2
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /Users/montaggioni/projects/TFG-repaired-20260917/access-center/hooks/emit-event.mjs",
+            "timeout": 2
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /Users/montaggioni/projects/TFG-repaired-20260917/access-center/hooks/emit-event.mjs",
+            "timeout": 2
+          }
+        ]
+      }
+    ]
+  }
+}
