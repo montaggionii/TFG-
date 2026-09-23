@@ -20,15 +20,16 @@ si el archivo aparece como modificado sin commitear allí, se salta esa tarea.
 
 ## P2 — Media prioridad
 
-- **FID-006** · DOCS · Crear `ARCHITECTURE.md` con el diagrama real backend/frontend/BD/hooks/widget.
-- **FID-007** · DOCS · Crear `SECURITY.md` con el informe RIESGO/UBICACIÓN/PROBLEMA/IMPACTO/SOLUCIÓN (Fase 15 completa).
-- **FID-008** · DOCS · Crear `TESTING.md` documentando cómo correr la suite E2E una vez exista.
-- **FID-009** · QA · Revisar responsive/UX en las vistas de cliente (mapa, home) en viewport móvil.
+- ~~**FID-006** · DOCS · Crear `ARCHITECTURE.md` con el diagrama real backend/frontend/BD/hooks/widget.~~ **COMPLETADA**.
+- ~~**FID-007** · DOCS · Crear `SECURITY.md` con el informe RIESGO/UBICACIÓN/PROBLEMA/IMPACTO/SOLUCIÓN.~~ **COMPLETADA**.
+- ~~**FID-008** · DOCS · Crear `TESTING.md` documentando cómo correr la suite E2E.~~ **COMPLETADA**.
+- ~~**FID-009** · QA · Revisar responsive/UX en las vistas de cliente (mapa, home) en viewport móvil.~~ **COMPLETADA** (ver cierre abajo).
 
 ## P3 — Baja prioridad / mantenimiento
 
-- **FID-010** · MAINTENANCE · Revisar dependencias desactualizadas (`npm outdated`, `mvn versions:display-dependency-updates`).
+- ~~**FID-010** · MAINTENANCE · Revisar dependencias desactualizadas.~~ **COMPLETADA — 14 vulnerabilidades corregidas, 1 encontrada y pendiente de decisión** (ver cierre abajo).
 - **FID-011** · DOCS · Actualizar `DEPLOYMENT.md` con el estado real de Railway/Vercel según avance el despliegue.
+- **FID-012** · MAINTENANCE · Actualizar `@angular/core` y paquetes hermanos (misma versión exacta en todos) para cerrar 3 vulnerabilidades XSS conocidas (ver `SECURITY.md` #10). Requiere decisión del usuario: ¿subir solo de parche (20.3.23 → 20.3.32, sin salto de major) o evaluar Angular 21? Necesita ronda de regresión completa (build + suite E2E) antes de fusionar, dado que toca el framework entero.
 
 ---
 
@@ -167,3 +168,31 @@ Archivos modificados/creados: `security/LoginRateLimiter.java` (nuevo), `securit
 y no tiene efecto en el backend real (puerto 8081) hasta integrarlo y reiniciar ese proceso. Contra el
 8081 sin integrar, el nuevo test de regresión falla correctamente (detecta que el rate-limiting no está
 activo ahí todavía) — es el comportamiento esperado, no un fallo del test.
+
+### FID-006/007/008 — completadas 2026-09-23
+`ARCHITECTURE.md`, `SECURITY.md` y `TESTING.md` creados en la raíz del proyecto, con contenido real
+extraído de la auditoría de esta sesión (no plantillas genéricas). `SECURITY.md` sigue el formato
+RIESGO/UBICACIÓN/PROBLEMA/IMPACTO/SOLUCIÓN pedido, incluyendo tanto lo ya corregido como lo pendiente.
+
+### FID-009 — completada 2026-09-23
+Verificado con capturas reales (Playwright, viewport 375×812 con permisos de geolocalización
+concedidos), no solo revisando CSS: `/u/home`, `/u/mapa`, `/u/historial`, `/u/perfil` con la cuenta
+cliente E2E autenticada. Las cuatro pantallas se ven correctamente en móvil — sin desbordamientos,
+tab bar inferior visible y utilizable, tarjetas y contenido bien ajustados al ancho. Sin hallazgos que
+requieran corrección. Capturas descartadas tras la revisión (no se commitean).
+
+### FID-010 — completada 2026-09-23
+`npm outdated` (frontend): nada crítico — actualizaciones menores dentro de Angular 20.x, sin saltos de
+versión mayor urgentes. `npm audit` detectó 22 vulnerabilidades; `npm audit fix` (sin `--force`, sin
+riesgo de romper nada) corrigió 14 — todas en dependencias de build (`postcss`, `vite`, `uuid`,
+`webpack-dev-server`, etc.), no en código servido a los usuarios. Verificado después: build de
+producción y suite E2E completa (10/10) siguen funcionando igual.
+
+Las 8 vulnerabilidades restantes son las 3 de Angular (XSS, severidad alta) — no corregidas porque
+requieren subir `@angular/core` y todos sus paquetes hermanos juntos, y `ng update` solo ofrece un
+salto de versión mayor (20 → 21) que necesitaría una ronda completa de pruebas de regresión antes de
+aplicarse. Documentado en `SECURITY.md` (#10) y como nueva tarea `FID-012`, a la espera de que el
+usuario decida el alcance (solo parche dentro de v20, o evaluar v21).
+
+Archivos modificados: `frontend/package-lock.json` (346 inserciones/237 eliminaciones, solo
+resoluciones de versión, sin tocar `package.json`).
