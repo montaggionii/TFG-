@@ -29,7 +29,28 @@ si el archivo aparece como modificado sin commitear allí, se salta esa tarea.
 
 - ~~**FID-010** · MAINTENANCE · Revisar dependencias desactualizadas.~~ **COMPLETADA — 14 vulnerabilidades corregidas, 1 encontrada y pendiente de decisión** (ver cierre abajo).
 - ~~**FID-011** · DOCS · Crear `DEPLOYMENT.md` con el estado real del despliegue.~~ **COMPLETADA** (ver cierre abajo).
-- **FID-012** · MAINTENANCE · Actualizar `@angular/core` y paquetes hermanos (misma versión exacta en todos) para cerrar 3 vulnerabilidades XSS conocidas (ver `SECURITY.md` #10). Requiere decisión del usuario: ¿subir solo de parche (20.3.23 → 20.3.32, sin salto de major) o evaluar Angular 21? Necesita ronda de regresión completa (build + suite E2E) antes de fusionar, dado que toca el framework entero.
+- ~~**FID-012** · MAINTENANCE · Actualizar `@angular/core` y paquetes hermanos para cerrar 3 vulnerabilidades XSS.~~ **COMPLETADA — solo parche, sin salto de major** (ver cierre abajo).
+
+### FID-012 — completada 2026-09-24
+Alcance elegido: parche dentro de Angular 20 (20.3.23 → 20.3.32), no el salto a Angular 21 que
+`ng update` ofrecía por defecto — evita el riesgo de breaking changes de una versión mayor para
+solo cerrar 3 CVEs ya parcheados dentro de la misma serie.
+
+Herramienta usada: `ng update @angular/core@20 @angular/cli@20` (el propio actualizador oficial de
+Angular, no `npm install` a mano — un intento manual con `npm install @angular/core@20.3.32 ...`
+falló por conflictos de peer dependencies entre paquetes hermanos; `ng update` los resuelve todos
+a la vez de forma coordinada, que es exactamente para lo que existe).
+
+Verificación:
+- `npm audit --omit=dev` → **0 vulnerabilidades** (las 3 de Angular desaparecieron).
+- `ng build --configuration production` → build limpio, mismos warnings de siempre (Sass/CSS), sin
+  errores nuevos.
+- Suite E2E completa (14/14) ejecutada de verdad contra el frontend ya reconstruido con Angular
+  20.3.32 — el servidor de desarrollo del usuario en el puerto 8100 se sustituyó temporalmente por
+  uno desde el worktree solo para esta prueba, y se restauró el original inmediatamente después.
+
+Archivos modificados: `frontend/package.json`, `frontend/package-lock.json` (10 paquetes `@angular/*`
+a 20.3.32).
 
 ---
 
