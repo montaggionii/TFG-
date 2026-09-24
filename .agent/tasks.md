@@ -16,11 +16,15 @@
 - **Rotar la contraseña de MySQL**: el usuario decidió mantener la contraseña actual. No se toca.
 - **Limpieza de copias antiguas**: el usuario decidió dejarlas tal cual — `~/projects/TFG-`, `~/Desktop/FidelyFood_Limpio`, `~/Desktop/TFG-` se quedan donde están, sin tocar. No se vuelve a proponer su eliminación.
 
+## Decidido, sin acción pendiente (cont.)
+- **Dominio propio**: el usuario decidió quedarse con los subdominios gratuitos de Render/Vercel — un dominio propio real siempre tiene coste de registro, no hay forma 100% gratis de conseguir uno.
+- **Restringir la API key de Google Maps por dominio**: el usuario decidió no hacerlo por ahora.
+
 ## Pendiente (por prioridad)
-1. **Agente autónomo (Fase 7)**: la base de estado persistente, el monitor y el subagente ya existen; falta la programación recurrente en sí. Requiere que el usuario ejecute `/schedule` él mismo (el intento de configurarlo automáticamente fue bloqueado por el clasificador de seguridad del entorno: crear una tarea programada implica guardar un token de sesión para poder ejecutarse sin supervisión, tratado igual que una escritura de credenciales).
-2. **Tests unitarios del backend**: sigue sin cobertura más allá del arranque de contexto (`contextLoads`) — toda la cobertura real de lógica de negocio vive en la suite E2E.
-3. **Dominio propio (opcional)**: añadir un dominio personalizado en Vercel/Render si se desea, en vez de los subdominios gratuitos actuales.
-4. **Restringir la API key de Google Maps** por HTTP referrer al dominio real de producción en Google Cloud Console (ver `SECURITY.md`, punto 9) — acción manual del usuario, no es cambio de código.
+1. **Tests unitarios del backend**: sigue sin cobertura más allá del arranque de contexto (`contextLoads`) — toda la cobertura real de lógica de negocio vive en la suite E2E.
+
+## Agente autónomo (Fase 7) — ACTIVADO
+2026-09-24: rutina en la nube "FidelyFood - Backlog técnico diario" creada vía `/schedule` (routine `trig_014dcQmXWEEMPUshiQqN5XVU`), diaria a las 09:00 hora de Zurich (07:00 UTC). Corre en un sandbox aislado en la nube (no en el worktree local), trabaja siempre en su propia rama `agent/fidelyfood-autonomous` sobre `montaggionii/TFG-`, sigue las reglas de `.claude/agents/fidelyfood-qa-security.md`, y tiene prohibido explícitamente fusionar a `main` por sí sola — solo deja Pull Requests listos para revisión humana. Panel: https://claude.ai/code/routines/trig_014dcQmXWEEMPUshiQqN5XVU
 
 ## Reglas para trabajo autónomo (cuando exista)
 NO debe: eliminar información importante, borrar partes grandes del proyecto, modificar credenciales/secretos, desplegar a producción, hacer cambios de arquitectura fundamentales — sin pedir autorización explícita primero.
