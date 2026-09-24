@@ -62,7 +62,7 @@
     "note": "Ejecutados de verdad en esta sesion contra el backend/frontend reales, con MySQL conectada."
   },
   "security": {
-    "vulnerabilitiesFixed": ["login sin rate-limiting", "enumeracion de emails en login", "swagger publico", "JWT secret de desarrollo en produccion", "stats de restaurante sin control de propiedad", "3 XSS de Angular (npm audit)", "500 en vez de 404 en rutas sin recurso", "contrasena de admin por defecto (admin123) visible en el codigo fuente, en proceso de cambio"],
+    "vulnerabilitiesFixed": ["login sin rate-limiting", "enumeracion de emails en login", "swagger publico", "JWT secret de desarrollo en produccion", "stats de restaurante sin control de propiedad", "3 XSS de Angular (npm audit)", "500 en vez de 404 en rutas sin recurso", "contrasena de admin por defecto (admin123) visible en el codigo fuente, en proceso de cambio", "contrasena por defecto (change-me-restaurant-password) de los 3 restaurantes historicos sembrados automaticamente (HistoricalRestaurantSeeder) en produccion, sin que APP_SEED_RESTAURANT_PASSWORD estuviera configurada en Render -- corregido 2026-09-24 cambiando la contrasena de cada uno via PUT /api/restaurantes/{id} autenticado con su propio token, contrasenas nuevas guardadas en el widget de escritorio"],
     "pendingUserDecision": ["rotar credenciales expuestas historicamente (usuario decidio NO hacerlo por ahora)"]
   }
 }
