@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: fidelyfood-backend
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /ping
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: DB_URL
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: APP_JWT_SECRET
+        generateValue: true
+      - key: APP_CORS_ORIGINS
+        sync: false
