@@ -9,8 +9,8 @@
   "agent": {
     "status": "ACTIVO",
     "mode": "LIVE",
-    "currentTask": "Despliegue real completo y verificado. Agente autonomo en la nube (Fase 7) activado. Unico pendiente real: aplicar el reinicio del backend en Render para que tome la nueva contrasena de admin ya guardada.",
-    "lastActivity": "2026-09-24T18:00:00Z",
+    "currentTask": "Despliegue real completo y verificado, con dominio de frontend definitivo (fidelyfoodapp.vercel.app) y CORS actualizado. Agente autonomo en la nube (Fase 7) activado. Unico pendiente real: aplicar el reinicio del backend en Render para que tome la nueva contrasena de admin ya guardada.",
+    "lastActivity": "2026-09-24T19:40:00Z",
     "progress": "Backlog FID-001 a FID-012 completo + despliegue real gratuito (backend en Render/Aiven, frontend en Vercel) + fix de bug real post-despliegue (GET / devolvia 500 en vez de 404, PR #25, con test unitario nuevo) + agente autonomo en la nube activado (rutina diaria vía /schedule, trabaja en su propia rama, nunca fusiona solo) + contrasena de admin de produccion cambiada del valor por defecto del codigo a una elegida por el usuario (guardada en Render como FIDELYFOOD_ADMIN_PASSWORD, pendiente de que el backend se reinicie para aplicarla)."
   },
   "production": {
@@ -21,10 +21,12 @@
       "status": "Live, verificado con /ping, login real y ruta 404 corregida"
     },
     "frontend": {
-      "url": "https://tfg-glf5.vercel.app",
-      "adminLoginUrl": "https://tfg-glf5.vercel.app/admin/login",
+      "url": "https://fidelyfoodapp.vercel.app",
+      "adminLoginUrl": "https://fidelyfoodapp.vercel.app/admin/login",
       "host": "Vercel (plan Hobby)",
-      "status": "Live, sirviendo el build de produccion de Angular"
+      "status": "Live, sirviendo el build de produccion de Angular",
+      "note": "Proyecto nuevo (fidelyfoodapp) creado el 2026-09-24 porque el proyecto original (renombrado varias veces: tfg-glf5 -> fidelyapp -> fidelyfood) quedo en un estado corrupto en Vercel: el dashboard marcaba el dominio como 'Valid Configuration'/'Production' pero devolvia 404 real, incluso tras renombrar, anadir dominio manualmente, editar/redirigir, y forzar un redeploy limpio. El proyecto viejo se dejo sin tocar (no se borro).",
+      "legacyUrl": "https://tfg-glf5.vercel.app (proyecto original, funcionaba pero se abandono a favor de fidelyfoodapp)"
     },
     "adminAccount": {
       "email": "admin@fidelyfood.local",
@@ -34,7 +36,8 @@
     "domainDecision": "El usuario decidio quedarse con los subdominios gratuitos (Render/Vercel) — un dominio propio real siempre tiene coste de registro, no existe forma 100% gratis de conseguir uno de verdad.",
     "pendingUserAction": [
       "Restringir la API key de Google Maps por HTTP referrer en Google Cloud Console (SECURITY.md punto 9) — el usuario decidio no hacerlo por ahora",
-      "Forzar 'Manual Deploy' en Render cuando se quiera aplicar ya la nueva contrasena de admin, en vez de esperar al auto-deploy (que ha sido lento/poco fiable en el plan gratuito)"
+      "Forzar 'Manual Deploy' en Render cuando se quiera aplicar ya la nueva contrasena de admin, en vez de esperar al auto-deploy (que ha sido lento/poco fiable en el plan gratuito)",
+      "Decidir que hacer con el proyecto viejo de Vercel (fidelyfood, antes tfg-glf5/fidelyapp) que quedo roto — se puede borrar cuando se quiera, no se toco por decision de dejarlo intacto mientras se investigaba"
     ]
   },
   "autonomousAgent": {
