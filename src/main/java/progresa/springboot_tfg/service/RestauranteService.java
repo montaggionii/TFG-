@@ -101,7 +101,8 @@ public class RestauranteService {
                 r.getDescripcion(),
                 r.getFoto(),
                 r.getLatitud(),
-                r.getLongitud()
+                r.getLongitud(),
+                r.getCodigoPostal()
         );
     }
 
@@ -267,6 +268,7 @@ public class RestauranteService {
         restaurante.setNombre(actualizado.getNombre());
         restaurante.setDireccion(actualizado.getDireccion());
         restaurante.setCiudad(actualizado.getCiudad());
+        restaurante.setCodigoPostal(actualizado.getCodigoPostal());
         restaurante.setTelefono(actualizado.getTelefono());
         restaurante.setEmail(actualizado.getEmail());
         restaurante.setTipo(actualizado.getTipo());
