@@ -13,17 +13,24 @@ import { apiLoginClient, apiLoginRestaurant } from './helpers/auth';
 // RestauranteController/UsuarioController.
 
 const API_URL = `${process.env.E2E_API_URL || 'http://localhost:8081'}/api`;
-// Venezuela Food — cuenta sembrada real, ver .agent/discoveries.md.
-const RESTAURANT_ID = 3;
+// Venezuela Food — cuenta sembrada real, ver .agent/discoveries.md. Su ID
+// numérico depende de qué otras cuentas existan ya en la base de datos
+// (p.ej. un "Restaurante E2E" previo la desplaza), así que no se
+// hardcodea: se obtiene del propio login, igual que hace el resto de la
+// suite (ver auth.ts).
 const RESTAURANT_EMAIL = 'venezuelafood@gmail.com';
 
 test.describe('Seguridad — stats de restaurante', () => {
   test('un cliente NO puede ver las stats de un restaurante ajeno', async ({ request }) => {
-    const creds = JSON.parse(readFileSync(path.join(__dirname, '.e2e-client.json'), 'utf-8'));
-    const session = await apiLoginClient(request, creds.email, creds.password);
+    const seedPassword = process.env.APP_SEED_RESTAURANT_PASSWORD;
+    test.skip(!seedPassword, 'APP_SEED_RESTAURANT_PASSWORD no está definida en el entorno de este proceso.');
 
-    const res = await request.get(`${API_URL}/restaurantes/${RESTAURANT_ID}/stats-avanzadas`, {
-      headers: { Authorization: `Bearer ${session.token}` },
+    const creds = JSON.parse(readFileSync(path.join(__dirname, '.e2e-client.json'), 'utf-8'));
+    const clientSession = await apiLoginClient(request, creds.email, creds.password);
+    const restaurantSession = await apiLoginRestaurant(request, RESTAURANT_EMAIL, seedPassword!);
+
+    const res = await request.get(`${API_URL}/restaurantes/${restaurantSession.userId}/stats-avanzadas`, {
+      headers: { Authorization: `Bearer ${clientSession.token}` },
     });
     expect(res.status()).toBe(403);
   });
@@ -33,7 +40,7 @@ test.describe('Seguridad — stats de restaurante', () => {
     test.skip(!seedPassword, 'APP_SEED_RESTAURANT_PASSWORD no está definida en el entorno de este proceso.');
 
     const session = await apiLoginRestaurant(request, RESTAURANT_EMAIL, seedPassword!);
-    const res = await request.get(`${API_URL}/restaurantes/${RESTAURANT_ID}/stats-avanzadas`, {
+    const res = await request.get(`${API_URL}/restaurantes/${session.userId}/stats-avanzadas`, {
       headers: { Authorization: `Bearer ${session.token}` },
     });
     expect(res.status()).toBe(200);
