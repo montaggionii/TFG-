@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-24T14:40:00Z",
+  "updatedAt": "2026-09-24T18:00:00Z",
   "project": {
     "name": "FidelyFood (TFG)",
     "path": "/Users/montaggioni/projects/TFG-repaired-20260917",
@@ -9,29 +9,43 @@
   "agent": {
     "status": "ACTIVO",
     "mode": "LIVE",
-    "currentTask": "Despliegue real completado. Backend y frontend en produccion, verificados de extremo a extremo. Solo queda Fase 7 (agente autonomo continuo, requiere que el usuario ejecute /schedule) como pendiente real.",
-    "lastActivity": "2026-09-24T14:40:00Z",
-    "progress": "Backlog FID-001 a FID-012 completo + despliegue real gratuito: backend en Render (Docker, MySQL en Aiven) y frontend en Vercel. Corregido en el camino: pom.xml sin spring-boot-maven-plugin (jar no ejecutable, PR #23), variables de entorno del blueprint de Render mal rellenadas (DB_USERNAME/DB_URL, corregido manualmente), frontend configurado para apuntar al backend real y desplegado en Vercel (PR #24), CORS configurado con el dominio real de Vercel. Verificado con peticiones reales (no solo logs): /ping -> 200, preflight CORS -> 200 con el origen correcto, POST /api/auth/login con credenciales falsas -> 401 real (confirma conexion a MySQL en produccion)."
+    "currentTask": "Despliegue real completo y verificado. Agente autonomo en la nube (Fase 7) activado. Unico pendiente real: aplicar el reinicio del backend en Render para que tome la nueva contrasena de admin ya guardada.",
+    "lastActivity": "2026-09-24T18:00:00Z",
+    "progress": "Backlog FID-001 a FID-012 completo + despliegue real gratuito (backend en Render/Aiven, frontend en Vercel) + fix de bug real post-despliegue (GET / devolvia 500 en vez de 404, PR #25, con test unitario nuevo) + agente autonomo en la nube activado (rutina diaria vía /schedule, trabaja en su propia rama, nunca fusiona solo) + contrasena de admin de produccion cambiada del valor por defecto del codigo a una elegida por el usuario (guardada en Render como FIDELYFOOD_ADMIN_PASSWORD, pendiente de que el backend se reinicie para aplicarla)."
   },
   "production": {
     "backend": {
       "url": "https://fidelyfood-backend.onrender.com",
       "host": "Render (plan free, Docker)",
       "database": "MySQL en Aiven (free tier)",
-      "status": "Live, verificado con /ping y login real"
+      "status": "Live, verificado con /ping, login real y ruta 404 corregida"
     },
     "frontend": {
       "url": "https://tfg-glf5.vercel.app",
+      "adminLoginUrl": "https://tfg-glf5.vercel.app/admin/login",
       "host": "Vercel (plan Hobby)",
       "status": "Live, sirviendo el build de produccion de Angular"
     },
+    "adminAccount": {
+      "email": "admin@fidelyfood.local",
+      "activePasswordNote": "admin123 (valor por defecto del codigo) sigue activo hasta que el backend se reinicie",
+      "pendingPasswordNote": "Nueva contrasena elegida por el usuario ya guardada en Render (FIDELYFOOD_ADMIN_PASSWORD); se activara sola en el proximo reinicio del servicio, o antes si se fuerza un Manual Deploy"
+    },
+    "domainDecision": "El usuario decidio quedarse con los subdominios gratuitos (Render/Vercel) — un dominio propio real siempre tiene coste de registro, no existe forma 100% gratis de conseguir uno de verdad.",
     "pendingUserAction": [
-      "Anadir dominio propio si se desea (Vercel: Add Domain / Render: Custom Domains)",
-      "Restringir la API key de Google Maps por HTTP referrer en Google Cloud Console (SECURITY.md punto 9)"
+      "Restringir la API key de Google Maps por HTTP referrer en Google Cloud Console (SECURITY.md punto 9) — el usuario decidio no hacerlo por ahora",
+      "Forzar 'Manual Deploy' en Render cuando se quiera aplicar ya la nueva contrasena de admin, en vez de esperar al auto-deploy (que ha sido lento/poco fiable en el plan gratuito)"
     ]
   },
+  "autonomousAgent": {
+    "status": "ACTIVADO",
+    "routineId": "trig_014dcQmXWEEMPUshiQqN5XVU",
+    "routineUrl": "https://claude.ai/code/routines/trig_014dcQmXWEEMPUshiQqN5XVU",
+    "schedule": "Diario, 09:00 hora de Zurich (07:00 UTC)",
+    "rules": "Corre en un sandbox aislado en la nube (no en el worktree local), trabaja siempre en su propia rama agent/fidelyfood-autonomous, sigue las reglas de .claude/agents/fidelyfood-qa-security.md, y tiene prohibido explicitamente fusionar a main por si sola — solo deja Pull Requests listos para revision humana."
+  },
   "pr": {
-    "lastMerged": "https://github.com/montaggionii/TFG-/pull/24"
+    "lastMerged": "https://github.com/montaggionii/TFG-/pull/25"
   },
   "build": {
     "status": "OK",
@@ -40,12 +54,12 @@
     "validatedAt": "2026-09-24T14:15:00Z"
   },
   "tests": {
-    "backend": { "total": 1, "passing": 1, "failing": 0, "note": "SpringBootTfgApplicationTests (contextLoads)" },
+    "backend": { "total": 2, "passing": 2, "failing": 0, "note": "SpringBootTfgApplicationTests (contextLoads) + GlobalExceptionHandlerTest (fix del 404, PR #25)" },
     "e2e": { "total": 14, "passing": 14, "failing": 0, "note": "Playwright: login (3 roles) + cliente + restaurante + 2 tests de seguridad (rate-limiting, autorizacion de stats)" },
     "note": "Ejecutados de verdad en esta sesion contra el backend/frontend reales, con MySQL conectada."
   },
   "security": {
-    "vulnerabilitiesFixed": ["login sin rate-limiting", "enumeracion de emails en login", "swagger publico", "JWT secret de desarrollo en produccion", "stats de restaurante sin control de propiedad", "3 XSS de Angular (npm audit)"],
+    "vulnerabilitiesFixed": ["login sin rate-limiting", "enumeracion de emails en login", "swagger publico", "JWT secret de desarrollo en produccion", "stats de restaurante sin control de propiedad", "3 XSS de Angular (npm audit)", "500 en vez de 404 en rutas sin recurso", "contrasena de admin por defecto (admin123) visible en el codigo fuente, en proceso de cambio"],
     "pendingUserDecision": ["rotar credenciales expuestas historicamente (usuario decidio NO hacerlo por ahora)"]
   }
 }
