@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -22,6 +23,19 @@ public class GlobalExceptionHandler {
                 HttpStatus.NOT_FOUND,
                 "Not Found",
                 ex.getMessage()
+        );
+    }
+
+    /* =========================
+       404 - RUTA SIN RECURSO ESTÁTICO NI CONTROLADOR
+       (p.ej. GET "/" sin index.html)
+       ========================= */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Map<String, Object>> manejarRecursoNoEncontrado(NoResourceFoundException ex) {
+        return buildResponse(
+                HttpStatus.NOT_FOUND,
+                "Not Found",
+                "Recurso no encontrado"
         );
     }
 
