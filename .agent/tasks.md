@@ -13,11 +13,11 @@
 
 ## Decidido, sin acción pendiente
 - **Rotar la contraseña de MySQL**: el usuario decidió mantener la contraseña actual. No se toca.
+- **Limpieza de copias antiguas**: el usuario decidió dejarlas tal cual — `~/projects/TFG-`, `~/Desktop/FidelyFood_Limpio`, `~/Desktop/TFG-` se quedan donde están, sin tocar. No se vuelve a proponer su eliminación.
 
 ## Pendiente (por prioridad)
 1. **Agente autónomo (Fase 7)**: la base de estado persistente, el monitor y el subagente ya existen; falta la programación recurrente en sí. Requiere que el usuario ejecute `/schedule` él mismo (el intento de configurarlo automáticamente fue bloqueado por el clasificador de seguridad del entorno: crear una tarea programada implica guardar un token de sesión para poder ejecutarse sin supervisión, tratado igual que una escritura de credenciales).
-2. **Limpieza de copias antiguas**: de las carpetas identificadas en la auditoría original, 3 siguen existiendo — `~/projects/TFG-`, `~/Desktop/FidelyFood_Limpio`, `~/Desktop/TFG-`. Pendiente de que el usuario confirme si quiere que se eliminen (nunca se borran archivos del usuario sin confirmación explícita).
-3. **Tests unitarios del backend**: sigue sin cobertura más allá del arranque de contexto (`contextLoads`) — toda la cobertura real de lógica de negocio vive en la suite E2E.
+2. **Tests unitarios del backend**: sigue sin cobertura más allá del arranque de contexto (`contextLoads`) — toda la cobertura real de lógica de negocio vive en la suite E2E.
 
 ## Reglas para trabajo autónomo (cuando exista)
 NO debe: eliminar información importante, borrar partes grandes del proyecto, modificar credenciales/secretos, desplegar a producción, hacer cambios de arquitectura fundamentales — sin pedir autorización explícita primero.
