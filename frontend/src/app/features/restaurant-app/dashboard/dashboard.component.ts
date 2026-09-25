@@ -74,6 +74,9 @@ export class DashboardComponent implements OnInit {
   promociones: any[] = [];
   activityStats: any;
 
+  // Rendimiento semanal (tarjeta clicable -> /r/analiticas)
+  rendimientoSemanal: { dias: { dia: string; monto: number; alturaPct: number; esMejorDia: boolean }[]; totalSemanal: number } | null = null;
+
   // Mapa
   location: { lat: number, lng: number } | null = null;
   markers: any[] = [];
@@ -121,6 +124,7 @@ export class DashboardComponent implements OnInit {
 
         this.cargarPromocionesDashboard();
         this.cargarStatsDashboard(event);
+        this.cargarRendimientoSemanal();
       },
       error: (err) => {
         console.error('[DASHBOARD] Error cargando perfil del restaurante:', err);
@@ -179,6 +183,43 @@ export class DashboardComponent implements OnInit {
         this.isLoading = false;
         if (event) event.target.complete();
       }
+    });
+  }
+
+  cargarRendimientoSemanal() {
+    if (!this.business?.id) return;
+
+    this.restauranteService.getEstadisticasPeriodo(this.business.id, 'SEMANA', false).subscribe({
+      next: (resp) => {
+        const actual = resp?.actual;
+        if (!actual) return;
+
+        const desde = new Date(actual.desde);
+        const etiquetas = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+        const porFecha = new Map<string, number>(
+          (actual.ventasPorDia || []).map((d: any) => [d.fecha, d.monto])
+        );
+
+        const montosPorDia = etiquetas.map((_, i) => {
+          const fecha = new Date(desde);
+          fecha.setDate(desde.getDate() + i);
+          const key = fecha.toISOString().slice(0, 10);
+          return porFecha.get(key) || 0;
+        });
+
+        const maxMonto = Math.max(...montosPorDia, 1);
+
+        this.rendimientoSemanal = {
+          totalSemanal: actual.ventasTotal || 0,
+          dias: etiquetas.map((dia, i) => ({
+            dia,
+            monto: montosPorDia[i],
+            alturaPct: Math.max(4, Math.round((montosPorDia[i] / maxMonto) * 100)),
+            esMejorDia: montosPorDia[i] === maxMonto && maxMonto > 0
+          }))
+        };
+      },
+      error: (err) => console.error('[DASHBOARD] Error cargando rendimiento semanal:', err)
     });
   }
 
