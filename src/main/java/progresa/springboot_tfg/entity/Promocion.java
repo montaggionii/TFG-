@@ -2,6 +2,7 @@ package progresa.springboot_tfg.entity;
 
 
 import jakarta.persistence.*;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "promociones")
@@ -22,6 +23,19 @@ public class Promocion {
     @ManyToOne
     @JoinColumn(name = "restaurante_id", nullable = false)
     private Restaurante restaurante;
+
+    /** GANAR (el cliente acumula) o CANJEAR (el cliente gasta) — mismos valores que usa el frontend. */
+    @Column(nullable = false)
+    private String tipo = "GANAR";
+
+    private String imagenUrl;
+
+    private LocalDate fechaInicio;
+
+    private LocalDate fechaFin;
+
+    @Column(nullable = false)
+    private boolean activa = true;
 
     // getters y setters
 
@@ -65,5 +79,43 @@ public class Promocion {
         this.restaurante = restaurante;
     }
 
+    public String getTipo() {
+        return tipo;
+    }
 
+    public void setTipo(String tipo) {
+        this.tipo = tipo;
+    }
+
+    public String getImagenUrl() {
+        return imagenUrl;
+    }
+
+    public void setImagenUrl(String imagenUrl) {
+        this.imagenUrl = imagenUrl;
+    }
+
+    public LocalDate getFechaInicio() {
+        return fechaInicio;
+    }
+
+    public void setFechaInicio(LocalDate fechaInicio) {
+        this.fechaInicio = fechaInicio;
+    }
+
+    public LocalDate getFechaFin() {
+        return fechaFin;
+    }
+
+    public void setFechaFin(LocalDate fechaFin) {
+        this.fechaFin = fechaFin;
+    }
+
+    public boolean isActiva() {
+        return activa;
+    }
+
+    public void setActiva(boolean activa) {
+        this.activa = activa;
+    }
 }
