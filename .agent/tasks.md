@@ -23,8 +23,11 @@
 - **Dominio propio**: el usuario decidió quedarse con los subdominios gratuitos de Render/Vercel — un dominio propio real siempre tiene coste de registro, no hay forma 100% gratis de conseguir uno.
 - **Restringir la API key de Google Maps por dominio**: el usuario decidió no hacerlo por ahora.
 
+## Hecho (cont.)
+- [x] **Tests unitarios del backend (FID-013)** — 2026-09-25: `UsuarioServiceTest` y `RestauranteServiceTest` (26 tests, Mockito puro, sin BD) cubriendo login (FID-001: mismo error ante email inexistente y password incorrecta) y `requireOwner` (FID-005: acceso denegado a datos de otro usuario/restaurante, incluida regresión directa de `obtenerStats`/`obtenerStatsAvanzadas`). Detalle en `AGENT_TASKS.md`.
+
 ## Pendiente (por prioridad)
-1. **Tests unitarios del backend**: sigue sin cobertura más allá del arranque de contexto (`contextLoads`) — toda la cobertura real de lógica de negocio vive en la suite E2E.
+1. Sin tareas pendientes razonables detectadas en esta sesión (2026-09-25) más allá de lo ya recogido en "Hecho". Ver `AGENT_TASKS.md` para el detalle de cada cierre.
 
 ## Agente autónomo (Fase 7) — ACTIVADO
 2026-09-24: rutina en la nube "FidelyFood - Backlog técnico diario" creada vía `/schedule` (routine `trig_014dcQmXWEEMPUshiQqN5XVU`), diaria a las 09:00 hora de Zurich (07:00 UTC). Corre en un sandbox aislado en la nube (no en el worktree local), trabaja siempre en su propia rama `agent/fidelyfood-autonomous` sobre `montaggionii/TFG-`, sigue las reglas de `.claude/agents/fidelyfood-qa-security.md`, y tiene prohibido explícitamente fusionar a `main` por sí sola — solo deja Pull Requests listos para revisión humana. Panel: https://claude.ai/code/routines/trig_014dcQmXWEEMPUshiQqN5XVU

@@ -30,6 +30,43 @@ si el archivo aparece como modificado sin commitear allí, se salta esa tarea.
 - ~~**FID-010** · MAINTENANCE · Revisar dependencias desactualizadas.~~ **COMPLETADA — 14 vulnerabilidades corregidas, 1 encontrada y pendiente de decisión** (ver cierre abajo).
 - ~~**FID-011** · DOCS · Crear `DEPLOYMENT.md` con el estado real del despliegue.~~ **COMPLETADA** (ver cierre abajo).
 - ~~**FID-012** · MAINTENANCE · Actualizar `@angular/core` y paquetes hermanos para cerrar 3 vulnerabilidades XSS.~~ **COMPLETADA — solo parche, sin salto de major** (ver cierre abajo).
+- ~~**FID-013** · TEST · Tests unitarios del backend — sin cobertura más allá de `contextLoads`.~~ **COMPLETADA** (ver cierre abajo).
+
+### FID-013 — completada 2026-09-25
+Único pendiente que quedaba en `.agent/tasks.md`: el backend no tenía cobertura de tests unitarios
+más allá del arranque de contexto (`contextLoads`, que además requiere MySQL real) y de
+`GlobalExceptionHandlerTest`. Toda la cobertura de lógica de negocio vivía solo en la suite E2E
+(Playwright, requiere backend+frontend+MySQL ya en marcha).
+
+Alcance elegido: `UsuarioServiceTest` y `RestauranteServiceTest`, con Mockito puro (DAOs, `JwtUtil`
+y `QrService` mockeados) — sin depender de una base de datos real, así corren en cualquier entorno
+(incluido CI) sin necesitar MySQL levantada. Prioricé la lógica ya identificada como sensible en
+auditorías previas de este mismo backlog, en vez de cobertura genérica:
+
+- **Login (`UsuarioService`/`RestauranteService`)**: credenciales correctas devuelven token; email
+  inexistente y contraseña incorrecta lanzan el *mismo* `SecurityException("Credenciales
+  incorrectas")` — regresión directa de FID-001 (antes de esa corrección, el código HTTP permitía
+  enumerar qué emails estaban registrados).
+- **`requireOwner` (patrón de autorización de recurso)**: cada método que lo usa
+  (`obtenerPropio`/`eliminarPropio`/`changePassword` en `UsuarioService`;
+  `obtenerStats`/`obtenerStatsAvanzadas`/`eliminarPropio`/`actualizar` en `RestauranteService`)
+  tiene un test que verifica que un email autenticado distinto del dueño real lanza
+  `AccessDeniedException` y no llega a tocar el DAO de escritura/lectura de datos sensibles —
+  regresión directa de FID-005, la vulnerabilidad real de Broken Access Control ya encontrada y
+  corregida en `RestauranteController.obtenerStats`/`obtenerStatsAvanzadas`.
+- Casos adicionales de validación ya existentes en el código (`changePassword` con contraseña
+  actual incorrecta o nueva contraseña demasiado corta, `register` con email duplicado,
+  `identificarPorQr` con código vacío o inexistente) para no dejar esos `if` sin cubrir.
+
+**Verificación real**: `mvn test -Dtest=UsuarioServiceTest,RestauranteServiceTest` → 26/26 passed
+(15 + 11). `mvn test` completo → los 26 tests nuevos y `GlobalExceptionHandlerTest` pasan;
+`SpringBootTfgApplicationTests.contextLoads` falla, pero por un motivo ajeno a este cambio y ya
+documentado (`Communications link failure` — no hay MySQL disponible en este sandbox de sesión, ese
+test siempre ha necesitado el backend/BD ya en marcha, como el resto de la suite E2E). No se tocó
+ningún test existente.
+
+Archivos creados: `src/test/java/progresa/springboot_tfg/service/UsuarioServiceTest.java`,
+`src/test/java/progresa/springboot_tfg/service/RestauranteServiceTest.java`.
 
 ### FID-012 — completada 2026-09-24
 Alcance elegido: parche dentro de Angular 20 (20.3.23 → 20.3.32), no el salto a Angular 21 que
