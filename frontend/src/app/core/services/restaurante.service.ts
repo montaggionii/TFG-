@@ -29,6 +29,11 @@ export class RestauranteService {
     return this.http.get<any>(`${this.apiUrl}/${id}/stats-avanzadas?t=${t}`);
   }
 
+  getEstadisticasPeriodo(id: number, periodo: 'SEMANA' | 'MES' | 'ANIO', comparar: boolean = true): Observable<any> {
+    const t = new Date().getTime();
+    return this.http.get<any>(`${this.apiUrl}/${id}/estadisticas?periodo=${periodo}&comparar=${comparar}&t=${t}`);
+  }
+
   getRestaurantesCercanos(lat: number, lng: number, radio?: number): Observable<any[]> {
     const radioParam = radio ? `&radio=${radio}` : '';
     return this.http.get<any[]>(`${this.apiUrl}/cercanos?lat=${lat}&lng=${lng}${radioParam}`);

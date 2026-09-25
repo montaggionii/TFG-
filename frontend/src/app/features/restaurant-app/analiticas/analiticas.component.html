@@ -1,0 +1,105 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/r/dashboard" text=""></ion-back-button>
+    </ion-buttons>
+    <ion-title>Rendimiento</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="analiticas-content">
+  <div class="page-wrapper">
+
+    <div class="periodo-selector">
+      <button class="periodo-btn" [class.active]="periodo === 'SEMANA'" (click)="cambiarPeriodo('SEMANA')">Semana</button>
+      <button class="periodo-btn" [class.active]="periodo === 'MES'" (click)="cambiarPeriodo('MES')">Mes</button>
+      <button class="periodo-btn" [class.active]="periodo === 'ANIO'" (click)="cambiarPeriodo('ANIO')">Año</button>
+    </div>
+
+    <div class="loading-state" *ngIf="isLoading">
+      <ion-spinner name="crescent" color="primary"></ion-spinner>
+      <p>Calculando estadísticas reales...</p>
+    </div>
+
+    <div class="error-state" *ngIf="error && !isLoading">
+      <p>No se pudieron cargar las estadísticas. Inténtalo de nuevo.</p>
+      <ion-button size="small" fill="outline" (click)="cargar()">Reintentar</ion-button>
+    </div>
+
+    <ng-container *ngIf="data && !isLoading && !error">
+
+      <div class="rango-label">
+        {{ formatRango(data.actual.desde) }} — {{ formatRango(data.actual.hasta) }}
+        <span class="vs" *ngIf="data.anterior">vs. periodo anterior ({{ formatRango(data.anterior.desde) }} — {{ formatRango(data.anterior.hasta) }})</span>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card glass-card">
+          <span class="kpi-label">Ventas totales</span>
+          <span class="kpi-value">{{ data.actual.ventasTotal | currency:'EUR':'symbol':'1.0-2' }}</span>
+          <span class="kpi-variacion" [ngClass]="variacionClase(data.variacionVentasPct)" *ngIf="data.variacionVentasPct !== null">
+            <ion-icon [name]="variacionIcon(data.variacionVentasPct)"></ion-icon>
+            {{ data.variacionVentasPct | number:'1.0-1' }}%
+          </span>
+        </div>
+
+        <div class="kpi-card glass-card">
+          <span class="kpi-label">Ticket medio</span>
+          <span class="kpi-value">{{ data.actual.ticketPromedio | currency:'EUR':'symbol':'1.0-2' }}</span>
+        </div>
+
+        <div class="kpi-card glass-card">
+          <span class="kpi-label">Transacciones</span>
+          <span class="kpi-value">{{ data.actual.numTransacciones }}</span>
+          <span class="kpi-variacion" [ngClass]="variacionClase(data.variacionTransaccionesPct)" *ngIf="data.variacionTransaccionesPct !== null">
+            <ion-icon [name]="variacionIcon(data.variacionTransaccionesPct)"></ion-icon>
+            {{ data.variacionTransaccionesPct | number:'1.0-1' }}%
+          </span>
+        </div>
+
+        <div class="kpi-card glass-card">
+          <span class="kpi-label">Clientes activos</span>
+          <span class="kpi-value">{{ data.actual.clientesActivos }}</span>
+          <span class="kpi-variacion" [ngClass]="variacionClase(data.variacionClientesPct)" *ngIf="data.variacionClientesPct !== null">
+            <ion-icon [name]="variacionIcon(data.variacionClientesPct)"></ion-icon>
+            {{ data.variacionClientesPct | number:'1.0-1' }}%
+          </span>
+        </div>
+
+        <div class="kpi-card glass-card">
+          <span class="kpi-label">Clientes nuevos</span>
+          <span class="kpi-value">{{ data.actual.clientesNuevos }}</span>
+        </div>
+
+        <div class="kpi-card glass-card">
+          <span class="kpi-label">Puntos otorgados</span>
+          <span class="kpi-value">{{ data.actual.puntosOtorgados }}</span>
+        </div>
+
+        <div class="kpi-card glass-card">
+          <span class="kpi-label">Puntos canjeados</span>
+          <span class="kpi-value">{{ data.actual.puntosCanjeados }}</span>
+        </div>
+
+        <div class="kpi-card glass-card" *ngIf="data.actual.mejorDiaFecha">
+          <span class="kpi-label">Mejor día</span>
+          <span class="kpi-value small">{{ formatFecha(data.actual.mejorDiaFecha) }}</span>
+          <span class="kpi-sub">{{ data.actual.mejorDiaMonto | currency:'EUR':'symbol':'1.0-2' }}</span>
+        </div>
+      </div>
+
+      <div class="chart-card glass-card">
+        <h3>Ventas por día</h3>
+        <div class="scroll-chart">
+          <div class="gradient-bar-chart">
+            <div class="chart-column" *ngFor="let b of barras" [attr.title]="(b.monto | currency:'EUR':'symbol':'1.0-2')">
+              <div class="bar" [class.highlight]="b.esMejorDia" [style.height.%]="b.alturaPct"></div>
+              <span class="day">{{ formatFecha(b.fecha) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </ng-container>
+  </div>
+</ion-content>
