@@ -8,6 +8,7 @@ import java.util.Deque;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Supplier;
 
 /**
  * Limitador de intentos de login en memoria, por clave (IP + email).
@@ -28,6 +29,16 @@ public class LoginRateLimiter {
     private static final Duration WINDOW = Duration.ofMinutes(10);
 
     private final ConcurrentMap<String, Deque<Instant>> failuresByKey = new ConcurrentHashMap<>();
+    private final Supplier<Instant> clock;
+
+    public LoginRateLimiter() {
+        this(Instant::now);
+    }
+
+    /** Constructor de paquete solo para tests: permite controlar el reloj sin esperar 10 minutos reales. */
+    LoginRateLimiter(Supplier<Instant> clock) {
+        this.clock = clock;
+    }
 
     public boolean isBlocked(String key) {
         return prune(key).size() >= MAX_FAILURES;
@@ -35,7 +46,7 @@ public class LoginRateLimiter {
 
     public void recordFailure(String key) {
         Deque<Instant> attempts = prune(key);
-        attempts.addLast(Instant.now());
+        attempts.addLast(clock.get());
         failuresByKey.put(key, attempts);
     }
 
@@ -45,7 +56,7 @@ public class LoginRateLimiter {
 
     private Deque<Instant> prune(String key) {
         Deque<Instant> attempts = failuresByKey.getOrDefault(key, new ConcurrentLinkedDeque<>());
-        Instant cutoff = Instant.now().minus(WINDOW);
+        Instant cutoff = clock.get().minus(WINDOW);
         while (!attempts.isEmpty() && attempts.peekFirst() != null && attempts.peekFirst().isBefore(cutoff)) {
             attempts.pollFirst();
         }

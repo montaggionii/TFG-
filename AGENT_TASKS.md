@@ -68,6 +68,61 @@ ningún test existente.
 Archivos creados: `src/test/java/progresa/springboot_tfg/service/UsuarioServiceTest.java`,
 `src/test/java/progresa/springboot_tfg/service/RestauranteServiceTest.java`.
 
+- ~~**FID-014** · TEST · Cobertura unitaria de `LoginRateLimiter` (ventana deslizante de rate-limiting de login).~~ **COMPLETADA** (ver cierre abajo).
+
+### FID-014 — completada 2026-09-25
+
+**Nota de concurrencia**: esta tarea se identificó de forma independiente y en paralelo a FID-013
+(ambas ejecuciones autónomas partieron del mismo `main` sin tareas "Pendiente" explícitas y, siguiendo
+el mismo orden de preferencia del backlog, llegaron a la misma conclusión: "sin cobertura de tests
+unitarios de backend" era el hallazgo de bajo riesgo más claro). Al converger sobre el mismo hueco del
+backlog, se renumeró esta entrada de FID-013 a FID-014 al integrar ambas ramas — no hay solapamiento
+de archivos entre las dos: FID-013 cubre `UsuarioService`/`RestauranteService`, esta cubre
+`LoginRateLimiter`.
+
+**Motivo de la elección**: se descartó tocar `pom.xml` (Spring Boot 3.2.1 → 3.2.12 disponible en Maven
+Central, verificado con `curl` contra `repo.maven.apache.org`): aunque es un salto dentro de la misma
+serie menor, son 11 releases de parche que tocan transitivamente seguridad/web/JPA y no se puede
+verificar en runtime real en este entorno (sin MySQL ni servidor) — demasiado alcance para "bajo
+riesgo y verificable de verdad" en esta sesión, se deja para una sesión con BD disponible. En su lugar
+se eligió cerrar el hueco de cobertura en `LoginRateLimiter` (lógica de ventana deslizante del
+rate-limiting de FID-001), que no tenía ningún test unitario — solo el E2E
+`frontend/e2e/security-login-rate-limit.spec.ts`, que necesita backend+red reales y no se puede
+ejecutar en este entorno.
+
+**Cambio de código de producción**: mínimo y aditivo. `LoginRateLimiter` usaba `Instant.now()`
+directamente, lo que hace imposible probar la ventana de 10 minutos sin esperarla de verdad. Se
+extrajo el reloj a un `Supplier<Instant>` con un constructor de paquete adicional solo para tests
+(`LoginRateLimiter(Supplier<Instant> clock)`); el constructor público sin argumentos (el que usa
+Spring vía `@Component`) sigue usando `Instant::now` real, comportamiento en producción sin cambios.
+
+Archivos modificados: `src/main/java/progresa/springboot_tfg/security/LoginRateLimiter.java` (reloj
+inyectable para tests, sin cambio de comportamiento en producción).
+Archivos creados: `src/test/java/progresa/springboot_tfg/security/LoginRateLimiterTest.java` (7 tests
+unitarios puros, sin Spring ni BD): clave nueva no bloqueada, 7 fallos no bloquean, el 8º sí bloquea
+(coincide con el límite `MAX_FAILURES=8` de FID-001), un login correcto (`recordSuccess`) resetea el
+contador y desbloquea, dos claves (IP+email) distintas son independientes, y dos casos de ventana
+deslizante (fallos que expiran tras 10 min+1s dejan de contar; fallos repartidos entre antes/después
+de la expiración nunca coexisten 8 a la vez).
+
+Tests realizados (reales, no simulados):
+- `mvn compile` → éxito (dependencias resueltas vía proxy configurado del entorno).
+- `mvn test -Dtest=LoginRateLimiterTest` → **7/7 passed** (`target/surefire-reports/...LoginRateLimiterTest.txt`).
+- `mvn test` (suite completa) → `GlobalExceptionHandlerTest` (1/1, no requiere BD) y
+  `LoginRateLimiterTest` (7/7, nuevo) pasan; `SpringBootTfgApplicationTests.contextLoads` falla con
+  `Communications link failure` (MySQL no disponible en este entorno) — **fallo preexistente y
+  esperado, no causado por este cambio**: ese test necesita una base de datos real que no existe en
+  este entorno de sesión (confirmado leyendo la traza: `Connection refused` al intentar conectar).
+
+**No se pudo verificar en este entorno**: el comportamiento en runtime real contra tráfico HTTP
+(el filtro `LoginRateLimitFilter` completo, que sí depende de Spring/Servlet) — eso ya lo cubre el
+E2E existente `security-login-rate-limit.spec.ts` contra un backend real, no se duplicó aquí.
+
+Resultado: cobertura unitaria nueva para la lógica de negocio de rate-limiting (antes 0%), sin tocar
+comportamiento de producción ni arquitectura. Pendiente para una futura sesión con MySQL disponible:
+evaluar el salto de `spring-boot-starter-parent` 3.2.1 → 3.2.12 (mismo minor, últimos parches de
+seguridad) descartado aquí por no poder verificarse en runtime real en este entorno.
+
 ### FID-012 — completada 2026-09-24
 Alcance elegido: parche dentro de Angular 20 (20.3.23 → 20.3.32), no el salto a Angular 21 que
 `ng update` ofrecía por defecto — evita el riesgo de breaking changes de una versión mayor para
