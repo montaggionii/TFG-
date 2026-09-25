@@ -25,6 +25,7 @@
 
 ## Hecho (cont.)
 - [x] **Tests unitarios del backend (FID-013)** — 2026-09-25: `UsuarioServiceTest` y `RestauranteServiceTest` (26 tests, Mockito puro, sin BD) cubriendo login (FID-001: mismo error ante email inexistente y password incorrecta) y `requireOwner` (FID-005: acceso denegado a datos de otro usuario/restaurante, incluida regresión directa de `obtenerStats`/`obtenerStatsAvanzadas`). Detalle en `AGENT_TASKS.md`.
+- [x] **Cobertura unitaria de `LoginRateLimiter` (FID-014)** — 2026-09-25: identificado de forma independiente por otra ejecución paralela de la misma rutina, que llegó a la misma conclusión (falta de tests unitarios de backend) por el mismo camino; sin solapamiento de archivos con FID-013. 7 tests unitarios puros (sin Spring, sin BD) de la ventana deslizante de rate-limiting (FID-001): límite de 8 fallos, reseteo por login correcto, independencia entre claves IP+email, expiración de la ventana de 10 minutos. Cambio de producción mínimo (reloj inyectable vía `Supplier<Instant>`, comportamiento real sin cambios). Detalle en `AGENT_TASKS.md`.
 
 ## Pendiente (por prioridad)
 1. Sin tareas pendientes razonables detectadas en esta sesión (2026-09-25) más allá de lo ya recogido en "Hecho". Ver `AGENT_TASKS.md` para el detalle de cada cierre.
