@@ -431,6 +431,25 @@
   }
 }
 
+// En tablet/laptop/desktop los 4 botones de accion se veian estirados
+// y desequilibrados al ocupar todo el ancho disponible (huecos internos
+// crecientes con el viewport). Se limita el ancho maximo de cada tarjeta
+// y se centra la fila en vez de forzarla a rellenar todo el ancho.
+@media (min-width: 768px) {
+  .quick-actions-grid {
+    grid-template-columns: repeat(4, minmax(0, 200px));
+    justify-content: center;
+    gap: 20px;
+  }
+}
+
+@media (min-width: 1440px) {
+  .quick-actions-grid {
+    grid-template-columns: repeat(4, minmax(0, 220px));
+    gap: 28px;
+  }
+}
+
 // ACTION BUTTONS
 .primary-action-btn {
   --border-radius: 14px;

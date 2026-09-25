@@ -89,14 +89,24 @@ $modal-bg: transparent;
   overflow-y: auto;
   position: relative;
   z-index: 2;
+  // El layout a 2 columnas de abajo debe reaccionar al ancho REAL del
+  // modal (limitado globalmente a max-width: min(94vw, 520px) en
+  // global.scss), no al ancho de la ventana del navegador. Con un
+  // @media normal, en pantallas >=992px el formulario intentaba partirse
+  // en 2 columnas dentro de un modal de ~520px, dejando los campos del
+  // formulario colapsados a un ancho casi nulo e inutilizables. Una
+  // container query usa el ancho disponible real, así que en un modal
+  // de 520px simplemente nunca activa las 2 columnas (comportamiento
+  // correcto), y si el modal alguna vez se ensancha, seguirá funcionando.
+  container-type: inline-size;
 
   .main-content {
     display: grid;
     grid-template-columns: 1fr;
     gap: 32px;
 
-    @media (min-width: 992px) {
-      grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
+    @container (min-width: 700px) {
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
     }
   }
 

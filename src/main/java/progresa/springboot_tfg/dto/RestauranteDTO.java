@@ -30,6 +30,12 @@ public class RestauranteDTO {
     private String ciudad;
 
     @Schema(
+            description = "Codigo postal del restaurante",
+            example = "46001"
+    )
+    private String codigoPostal;
+
+    @Schema(
             description = "Número de teléfono de contacto del restaurante",
             example = "+34600123456"
     )
@@ -65,13 +71,15 @@ public class RestauranteDTO {
     }
 
     public RestauranteDTO(Long id, String nombre, String direccion, String ciudad, String telefono, String email,
-                           String tipo, String descripcion, String foto, Double latitud, Double longitud) {
+                           String tipo, String descripcion, String foto, Double latitud, Double longitud,
+                           String codigoPostal) {
         this(id, nombre, direccion, ciudad, telefono, email);
         this.tipo = tipo;
         this.descripcion = descripcion;
         this.foto = foto;
         this.latitud = latitud;
         this.longitud = longitud;
+        this.codigoPostal = codigoPostal;
     }
 
     public Long getId() {
@@ -88,6 +96,10 @@ public class RestauranteDTO {
 
     public String getCiudad() {
         return ciudad;
+    }
+
+    public String getCodigoPostal() {
+        return codigoPostal;
     }
 
     public String getTelefono() {
@@ -132,6 +144,10 @@ public class RestauranteDTO {
 
     public void setCiudad(String ciudad) {
         this.ciudad = ciudad;
+    }
+
+    public void setCodigoPostal(String codigoPostal) {
+        this.codigoPostal = codigoPostal;
     }
 
     public void setTelefono(String telefono) {
