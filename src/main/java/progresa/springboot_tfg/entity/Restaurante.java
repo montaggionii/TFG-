@@ -16,6 +16,7 @@ public class Restaurante {
 
     private String direccion;
     private String ciudad;
+    private String codigoPostal;
     private String telefono;
     private String tipo;
     @Column(length = 1200)
@@ -99,6 +100,14 @@ public class Restaurante {
 
     public void setCiudad(String ciudad) {
         this.ciudad = ciudad;
+    }
+
+    public String getCodigoPostal() {
+        return codigoPostal;
+    }
+
+    public void setCodigoPostal(String codigoPostal) {
+        this.codigoPostal = codigoPostal;
     }
 
     public String getTelefono() {

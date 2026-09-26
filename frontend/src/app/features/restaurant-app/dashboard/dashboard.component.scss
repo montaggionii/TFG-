@@ -234,6 +234,13 @@
   border-radius: 20px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
 
+  &.clickable {
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    &:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08); }
+    &:active { transform: translateY(0); }
+  }
+
   .chart-header {
     margin-bottom: 24px;
     h3 { font-size: 1.1rem; font-weight: 800; color: var(--text-title); }
@@ -428,6 +435,25 @@
 @media (min-width: 1024px) {
   .kpi-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+// En tablet/laptop/desktop los 4 botones de accion se veian estirados
+// y desequilibrados al ocupar todo el ancho disponible (huecos internos
+// crecientes con el viewport). Se limita el ancho maximo de cada tarjeta
+// y se centra la fila en vez de forzarla a rellenar todo el ancho.
+@media (min-width: 768px) {
+  .quick-actions-grid {
+    grid-template-columns: repeat(4, minmax(0, 200px));
+    justify-content: center;
+    gap: 20px;
+  }
+}
+
+@media (min-width: 1440px) {
+  .quick-actions-grid {
+    grid-template-columns: repeat(4, minmax(0, 220px));
+    gap: 28px;
   }
 }
 

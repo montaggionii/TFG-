@@ -16,6 +16,10 @@ export const restaurantRoutes: Routes = [
         loadComponent: () => import('./dashboard/dashboard.component').then(m => m.DashboardComponent)
       },
       {
+        path: 'analiticas',
+        loadComponent: () => import('./analiticas/analiticas.component').then(m => m.AnaliticasComponent)
+      },
+      {
         path: 'scanner',
         loadComponent: () => import('./scanner/scanner.page').then(m => m.ScannerPage)
       },

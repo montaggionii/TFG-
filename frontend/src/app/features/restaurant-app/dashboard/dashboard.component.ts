@@ -21,7 +21,7 @@ import {
   listOutline
 } from 'ionicons/icons';
 import { RestauranteService } from '../../../core/services/restaurante.service';
-import { RestaurantService } from '../../../core/services/restaurant.service';
+import { PromocionService } from '../../../core/services/promocion.service';
 import { GlobalStateService, UserState } from '../../../core/state/global-state.service';
 import { MapComponent } from '../../../shared/components/map/map.component';
 import { RouterModule } from '@angular/router';
@@ -37,7 +37,7 @@ import { FormPromocionComponent } from '../mis-promociones/form-promocion/form-p
 })
 export class DashboardComponent implements OnInit {
   private restauranteService = inject(RestauranteService);
-  private restaurantService = inject(RestaurantService);
+  private promocionService = inject(PromocionService);
   private globalState = inject(GlobalStateService);
   private toastCtrl = inject(ToastController);
   private modalCtrl = inject(ModalController);
@@ -73,6 +73,9 @@ export class DashboardComponent implements OnInit {
 
   promociones: any[] = [];
   activityStats: any;
+
+  // Rendimiento semanal (tarjeta clicable -> /r/analiticas)
+  rendimientoSemanal: { dias: { dia: string; monto: number; alturaPct: number; esMejorDia: boolean }[]; totalSemanal: number } | null = null;
 
   // Mapa
   location: { lat: number, lng: number } | null = null;
@@ -121,6 +124,7 @@ export class DashboardComponent implements OnInit {
 
         this.cargarPromocionesDashboard();
         this.cargarStatsDashboard(event);
+        this.cargarRendimientoSemanal();
       },
       error: (err) => {
         console.error('[DASHBOARD] Error cargando perfil del restaurante:', err);
@@ -132,19 +136,29 @@ export class DashboardComponent implements OnInit {
   }
 
   cargarPromocionesDashboard(event?: any) {
-    // 2. Recompensas/Promociones (Petición secundaria)
+    // 2. Promociones del propio restaurante (Petición secundaria)
+    // OJO: antes esto llamaba a RestaurantService.getPromociones(), que en
+    // realidad apunta a /api/recompensas (un recurso distinto, solo
+    // accesible por ROLE_USER) -> siempre devolvía 403 para un restaurante
+    // y la sección "Tus Ofertas Activas" del dashboard nunca se mostraba,
+    // aunque el restaurante sí tuviera promociones reales. El endpoint
+    // correcto es el mismo que usa la pantalla "Mis Ofertas".
+    if (!this.business?.id) {
+      this.isLoading = false;
+      if (event) event.target.complete();
+      return;
+    }
     try {
-      this.restaurantService.getPromociones().subscribe({
+      this.promocionService.getPromocionesByRestaurante(this.business.id).subscribe({
         next: (data) => {
           this.promociones = data || [];
           this.isLoading = false;
           if (event) event.target.complete();
         },
         error: (err) => {
-          // BLINDAJE: Si fallan las recompensas, NO redirigimos ni bloqueamos el dashboard
-          console.error('[DASHBOARD] Error 401 o fallo de carga en promociones:', err);
-          console.warn('[DASHBOARD] Ignorando error para mantener la sesión abierta.');
-          this.promociones = []; 
+          // BLINDAJE: Si fallan las promociones, NO redirigimos ni bloqueamos el dashboard
+          console.error('[DASHBOARD] Error cargando promociones:', err);
+          this.promociones = [];
           this.isLoading = false;
           if (event) event.target.complete();
         }
@@ -169,6 +183,43 @@ export class DashboardComponent implements OnInit {
         this.isLoading = false;
         if (event) event.target.complete();
       }
+    });
+  }
+
+  cargarRendimientoSemanal() {
+    if (!this.business?.id) return;
+
+    this.restauranteService.getEstadisticasPeriodo(this.business.id, 'SEMANA', false).subscribe({
+      next: (resp) => {
+        const actual = resp?.actual;
+        if (!actual) return;
+
+        const desde = new Date(actual.desde);
+        const etiquetas = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+        const porFecha = new Map<string, number>(
+          (actual.ventasPorDia || []).map((d: any) => [d.fecha, d.monto])
+        );
+
+        const montosPorDia = etiquetas.map((_, i) => {
+          const fecha = new Date(desde);
+          fecha.setDate(desde.getDate() + i);
+          const key = fecha.toISOString().slice(0, 10);
+          return porFecha.get(key) || 0;
+        });
+
+        const maxMonto = Math.max(...montosPorDia, 1);
+
+        this.rendimientoSemanal = {
+          totalSemanal: actual.ventasTotal || 0,
+          dias: etiquetas.map((dia, i) => ({
+            dia,
+            monto: montosPorDia[i],
+            alturaPct: Math.max(4, Math.round((montosPorDia[i] / maxMonto) * 100)),
+            esMejorDia: montosPorDia[i] === maxMonto && maxMonto > 0
+          }))
+        };
+      },
+      error: (err) => console.error('[DASHBOARD] Error cargando rendimiento semanal:', err)
     });
   }
 

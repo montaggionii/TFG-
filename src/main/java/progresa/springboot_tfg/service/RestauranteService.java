@@ -19,8 +19,14 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.TemporalAdjusters;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class RestauranteService {
@@ -101,7 +107,8 @@ public class RestauranteService {
                 r.getDescripcion(),
                 r.getFoto(),
                 r.getLatitud(),
-                r.getLongitud()
+                r.getLongitud(),
+                r.getCodigoPostal()
         );
     }
 
@@ -232,6 +239,161 @@ public class RestauranteService {
         );
     }
 
+    /**
+     * Estadisticas reales por periodo (SEMANA/MES/ANIO), con comparacion
+     * opcional contra el periodo inmediatamente anterior de la misma
+     * duracion. Todo se calcula en memoria sobre los MovimientoPuntos del
+     * restaurante (mismo patron que obtenerStats/obtenerStatsAvanzadas) -
+     * no hay entidad ni tabla nueva, solo se filtra y agrega por fecha.
+     */
+    public EstadisticasComparativasDTO obtenerEstadisticasPeriodo(
+            Long id, String emailAutenticado, String periodo, boolean comparar) {
+
+        Restaurante restaurante = restauranteDAO.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Restaurante no encontrado"));
+        requireOwner(restaurante, emailAutenticado);
+
+        List<MovimientoPuntos> todos = movimientoPuntosDAO.findByRestauranteId(id);
+
+        LocalDate hoy = LocalDate.now();
+        LocalDate[] rangoActual = calcularRango(periodo, hoy);
+        LocalDate[] rangoAnterior = calcularRangoAnterior(periodo, rangoActual[0]);
+
+        EstadisticasPeriodoDTO actual = calcularPeriodo(todos, rangoActual[0], rangoActual[1], todos);
+        EstadisticasPeriodoDTO anterior = comparar
+                ? calcularPeriodo(todos, rangoAnterior[0], rangoAnterior[1], todos)
+                : null;
+
+        Double variacionVentas = variacionPct(anterior, actual, EstadisticasPeriodoDTO::getVentasTotal);
+        Double variacionClientes = variacionPct(anterior, actual,
+                dto -> (double) dto.getClientesActivos());
+        Double variacionTransacciones = variacionPct(anterior, actual,
+                dto -> (double) dto.getNumTransacciones());
+
+        return new EstadisticasComparativasDTO(actual, anterior, variacionVentas, variacionClientes, variacionTransacciones);
+    }
+
+    private LocalDate[] calcularRango(String periodo, LocalDate referencia) {
+        return switch (periodo == null ? "SEMANA" : periodo.toUpperCase()) {
+            case "MES" -> new LocalDate[]{
+                    referencia.with(TemporalAdjusters.firstDayOfMonth()),
+                    referencia.with(TemporalAdjusters.lastDayOfMonth())
+            };
+            case "ANIO", "AÑO" -> new LocalDate[]{
+                    referencia.with(TemporalAdjusters.firstDayOfYear()),
+                    referencia.with(TemporalAdjusters.lastDayOfYear())
+            };
+            default -> new LocalDate[]{
+                    referencia.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY)),
+                    referencia.with(TemporalAdjusters.nextOrSame(java.time.DayOfWeek.SUNDAY))
+            };
+        };
+    }
+
+    private LocalDate[] calcularRangoAnterior(String periodo, LocalDate inicioActual) {
+        return switch (periodo == null ? "SEMANA" : periodo.toUpperCase()) {
+            case "MES" -> {
+                LocalDate inicioAnterior = inicioActual.minusMonths(1);
+                yield new LocalDate[]{inicioAnterior, inicioAnterior.with(TemporalAdjusters.lastDayOfMonth())};
+            }
+            case "ANIO", "AÑO" -> {
+                LocalDate inicioAnterior = inicioActual.minusYears(1);
+                yield new LocalDate[]{inicioAnterior, inicioAnterior.with(TemporalAdjusters.lastDayOfYear())};
+            }
+            default -> {
+                LocalDate inicioAnterior = inicioActual.minusWeeks(1);
+                yield new LocalDate[]{inicioAnterior, inicioAnterior.plusDays(6)};
+            }
+        };
+    }
+
+    private EstadisticasPeriodoDTO calcularPeriodo(
+            List<MovimientoPuntos> enRango, LocalDate desde, LocalDate hasta, List<MovimientoPuntos> historicoCompleto) {
+
+        List<MovimientoPuntos> movimientos = enRango.stream()
+                .filter(m -> {
+                    LocalDate f = m.getFecha().toLocalDate();
+                    return !f.isBefore(desde) && !f.isAfter(hasta);
+                })
+                .toList();
+
+        double ventasTotal = movimientos.stream()
+                .filter(m -> m.getMonto() != null)
+                .mapToDouble(MovimientoPuntos::getMonto)
+                .sum();
+        int numTransacciones = movimientos.size();
+        double ticketPromedio = numTransacciones == 0 ? 0 : ventasTotal / numTransacciones;
+        int clientesActivos = (int) movimientos.stream()
+                .map(m -> m.getUsuario().getId())
+                .distinct()
+                .count();
+        int puntosOtorgados = movimientos.stream()
+                .filter(m -> m.getPuntos() > 0)
+                .mapToInt(MovimientoPuntos::getPuntos)
+                .sum();
+        int puntosCanjeados = movimientos.stream()
+                .filter(m -> m.getPuntos() < 0)
+                .mapToInt(m -> -m.getPuntos())
+                .sum();
+
+        // Cliente "nuevo" = su primer movimiento con este restaurante en toda
+        // la historia cae dentro de este periodo.
+        Map<Long, LocalDate> primeraVisitaPorCliente = historicoCompleto.stream()
+                .collect(Collectors.toMap(
+                        m -> m.getUsuario().getId(),
+                        m -> m.getFecha().toLocalDate(),
+                        (a, b) -> a.isBefore(b) ? a : b));
+        int clientesNuevos = (int) movimientos.stream()
+                .map(m -> m.getUsuario().getId())
+                .distinct()
+                .filter(uid -> {
+                    LocalDate primera = primeraVisitaPorCliente.get(uid);
+                    return primera != null && !primera.isBefore(desde) && !primera.isAfter(hasta);
+                })
+                .count();
+
+        Map<LocalDate, List<MovimientoPuntos>> porDia = movimientos.stream()
+                .collect(Collectors.groupingBy(m -> m.getFecha().toLocalDate()));
+
+        List<EstadisticasPeriodoDTO.VentaDiaDTO> ventasPorDia = porDia.entrySet().stream()
+                .map(e -> new EstadisticasPeriodoDTO.VentaDiaDTO(
+                        e.getKey(),
+                        e.getValue().stream().filter(m -> m.getMonto() != null).mapToDouble(MovimientoPuntos::getMonto).sum(),
+                        e.getValue().size()))
+                .sorted(Comparator.comparing(EstadisticasPeriodoDTO.VentaDiaDTO::getFecha))
+                .toList();
+
+        EstadisticasPeriodoDTO.VentaDiaDTO mejorDia = ventasPorDia.stream()
+                .max(Comparator.comparingDouble(EstadisticasPeriodoDTO.VentaDiaDTO::getMonto))
+                .orElse(null);
+
+        EstadisticasPeriodoDTO dto = new EstadisticasPeriodoDTO();
+        dto.setDesde(desde);
+        dto.setHasta(hasta);
+        dto.setVentasTotal(ventasTotal);
+        dto.setTicketPromedio(ticketPromedio);
+        dto.setNumTransacciones(numTransacciones);
+        dto.setClientesActivos(clientesActivos);
+        dto.setClientesNuevos(clientesNuevos);
+        dto.setPuntosOtorgados(puntosOtorgados);
+        dto.setPuntosCanjeados(puntosCanjeados);
+        dto.setVentasPorDia(ventasPorDia);
+        if (mejorDia != null) {
+            dto.setMejorDiaFecha(mejorDia.getFecha());
+            dto.setMejorDiaMonto(mejorDia.getMonto());
+        }
+        return dto;
+    }
+
+    private Double variacionPct(EstadisticasPeriodoDTO anterior, EstadisticasPeriodoDTO actual,
+                                 java.util.function.Function<EstadisticasPeriodoDTO, Double> extractor) {
+        if (anterior == null) return null;
+        double valorAnterior = extractor.apply(anterior);
+        double valorActual = extractor.apply(actual);
+        if (valorAnterior == 0) return valorActual == 0 ? 0.0 : 100.0;
+        return ((valorActual - valorAnterior) / valorAnterior) * 100.0;
+    }
+
     public void eliminar(Long id) {
         restauranteDAO.deleteById(id);
     }
@@ -267,6 +429,7 @@ public class RestauranteService {
         restaurante.setNombre(actualizado.getNombre());
         restaurante.setDireccion(actualizado.getDireccion());
         restaurante.setCiudad(actualizado.getCiudad());
+        restaurante.setCodigoPostal(actualizado.getCodigoPostal());
         restaurante.setTelefono(actualizado.getTelefono());
         restaurante.setEmail(actualizado.getEmail());
         restaurante.setTipo(actualizado.getTipo());

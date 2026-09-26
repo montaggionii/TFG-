@@ -120,6 +120,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   private mapMarkers: any[] = [];
   private accuracyCircle: any;
   private radiusCircleObj: any;
+  private resizeObserver?: ResizeObserver;
   public map: any;
   public loading = true;
   public error = false;
@@ -174,6 +175,7 @@ export class MapComponent implements AfterViewInit, OnDestroy {
       this.loading = false;
       this.updateMarkers();
       this.updateRadiusCircle();
+      this.observeContainerResize();
     } catch (err) {
       console.error('MAP ERROR', err);
       this.loading = false;
@@ -183,6 +185,43 @@ export class MapComponent implements AfterViewInit, OnDestroy {
 
   retry() {
     this.initMap();
+  }
+
+  /**
+   * Google Maps calcula su tamaño una única vez, en el momento en que se
+   * crea. Si el contenedor todavía no tenía su tamaño final en ese instante
+   * (p.ej. porque la sección padre está en medio de una animación de
+   * entrada, o el mapa se muestra dentro de un ion-tab/ion-modal que aún no
+   * ha terminado su transición), Maps se queda con tiles sin cargar en la
+   * zona que "ganó" tamaño después — la típica franja/zona blanca. Un
+   * ResizeObserver detecta cualquier cambio real de tamaño del contenedor
+   * (animación, resize de ventana, cambio de orientación, reentrar en la
+   * pestaña) y le pide a Maps que recalcule.
+   */
+  private observeContainerResize() {
+    if (typeof ResizeObserver === 'undefined' || !this.mapElement?.nativeElement) return;
+
+    let lastWidth = 0;
+    let lastHeight = 0;
+    let debounceTimer: any;
+
+    this.resizeObserver = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      const { width, height } = entry.contentRect;
+      if (width === lastWidth && height === lastHeight) return;
+      lastWidth = width;
+      lastHeight = height;
+
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        if (!this.map || typeof google === 'undefined' || width === 0 || height === 0) return;
+        google.maps.event.trigger(this.map, 'resize');
+        this.map.setCenter(this.center);
+      }, 100);
+    });
+
+    this.resizeObserver.observe(this.mapElement.nativeElement);
   }
 
   centerOnUser() {
@@ -345,6 +384,9 @@ export class MapComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+    }
     if (this.mapMarkers) {
       this.mapMarkers.forEach(m => m && m.setMap && m.setMap(null));
     }

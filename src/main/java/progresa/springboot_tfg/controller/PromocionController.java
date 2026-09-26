@@ -14,6 +14,7 @@ import progresa.springboot_tfg.security.SecurityUtils;
 import progresa.springboot_tfg.service.PromocionService;
 import progresa.springboot_tfg.dto.AplicarPromocionDTO;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -60,13 +61,28 @@ public class PromocionController {
             @ApiResponse(responseCode = "401", description = "Restaurante no autenticado"),
             @ApiResponse(responseCode = "400", description = "Datos de promoción inválidos")
     })
-    @PostMapping
+    @PostMapping(consumes = org.springframework.http.MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Promocion> crear(
             @RequestBody Map<String, Object> data,
             Authentication authentication
     ) {
         return ResponseEntity.ok(
                 promocionService.crear(toPromocion(data), SecurityUtils.email(authentication))
+        );
+    }
+
+    @Operation(
+            summary = "Crear promoción con imagen",
+            description = "Igual que crear(), pero admite subir la imagen de la promoción en la misma petición"
+    )
+    @PostMapping(consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Promocion> crearConImagen(
+            @RequestParam Map<String, String> data,
+            @RequestParam(value = "imagen", required = false) org.springframework.web.multipart.MultipartFile imagen,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok(
+                promocionService.crearConImagen(toPromocion(data), imagen, SecurityUtils.email(authentication))
         );
     }
 
@@ -77,6 +93,21 @@ public class PromocionController {
             Authentication authentication) {
         return ResponseEntity.ok(
                 promocionService.actualizar(id, toPromocion(data), SecurityUtils.email(authentication))
+        );
+    }
+
+    @Operation(
+            summary = "Actualizar promoción con imagen",
+            description = "Igual que actualizar(), pero admite cambiar la imagen de la promoción en la misma petición"
+    )
+    @PostMapping(value = "/{id}", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Promocion> actualizarConImagen(
+            @PathVariable Long id,
+            @RequestParam Map<String, String> data,
+            @RequestParam(value = "imagen", required = false) org.springframework.web.multipart.MultipartFile imagen,
+            Authentication authentication) {
+        return ResponseEntity.ok(
+                promocionService.actualizarConImagen(id, toPromocion(data), imagen, SecurityUtils.email(authentication))
         );
     }
 
@@ -108,11 +139,18 @@ public class PromocionController {
         return ResponseEntity.ok("Promoción aplicada y puntos sumados");
     }
 
-    private Promocion toPromocion(Map<String, Object> data) {
+    private Promocion toPromocion(Map<String, ?> data) {
         Promocion promocion = new Promocion();
         promocion.setTitulo(stringValue(data.get("titulo")));
         promocion.setDescripcion(stringValue(data.get("descripcion")));
         promocion.setPuntosOtorgados(intValue(data.get("puntosOtorgados"), intValue(data.get("puntosNecesarios"), 0)));
+        String tipo = stringValue(data.get("tipo"));
+        promocion.setTipo(tipo != null ? tipo : "GANAR");
+        promocion.setImagenUrl(stringValue(data.get("imagenUrl")));
+        promocion.setFechaInicio(dateValue(data.get("fechaInicio")));
+        promocion.setFechaFin(dateValue(data.get("fechaFin")));
+        Object activa = data.get("activa");
+        promocion.setActiva(activa == null || Boolean.parseBoolean(String.valueOf(activa)));
         return promocion;
     }
 
@@ -127,6 +165,15 @@ public class PromocionController {
             return Integer.parseInt(String.valueOf(value));
         } catch (NumberFormatException ex) {
             return fallback;
+        }
+    }
+
+    private LocalDate dateValue(Object value) {
+        if (value == null) return null;
+        try {
+            return LocalDate.parse(String.valueOf(value).substring(0, 10));
+        } catch (Exception ex) {
+            return null;
         }
     }
 }

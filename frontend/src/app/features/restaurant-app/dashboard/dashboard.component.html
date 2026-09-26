@@ -128,25 +128,28 @@
       </div>
 
       <!-- ANALYTICS SECTOR: BAR CHART -->
-      <div class="glass-card chart-container animate__animated animate__fadeInUp">
+      <div class="glass-card chart-container animate__animated animate__fadeInUp clickable"
+           [routerLink]="['/r/analiticas']" role="button" tabindex="0">
         <div class="chart-header">
           <div class="header-left">
             <h3>Rendimiento Semanal</h3>
-            <p>Transacciones fidelizadas por día</p>
+            <p>Ventas reales por día · toca para ver el detalle</p>
           </div>
           <div class="header-right">
-            <span class="total-label">Total semanal: <strong>8.430 €</strong></span>
+            <span class="total-label">Total semanal: <strong>{{ (rendimientoSemanal?.totalSemanal || 0) | currency:'EUR':'symbol':'1.0-2' }}</strong></span>
           </div>
         </div>
-        
-        <div class="gradient-bar-chart">
-          <div class="chart-column"><div class="bar" style="height: 60%"></div><span class="day">L</span></div>
-          <div class="chart-column"><div class="bar" style="height: 45%"></div><span class="day">M</span></div>
-          <div class="chart-column"><div class="bar" style="height: 80%"></div><span class="day">X</span></div>
-          <div class="chart-column"><div class="bar highlight" style="height: 95%"></div><span class="day">J</span></div>
-          <div class="chart-column"><div class="bar" style="height: 70%"></div><span class="day">V</span></div>
-          <div class="chart-column"><div class="bar" style="height: 55%"></div><span class="day">S</span></div>
-          <div class="chart-column"><div class="bar" style="height: 40%"></div><span class="day">D</span></div>
+
+        <div class="gradient-bar-chart" *ngIf="rendimientoSemanal">
+          <div class="chart-column" *ngFor="let d of rendimientoSemanal.dias" [attr.title]="d.monto | currency:'EUR':'symbol':'1.0-2'">
+            <div class="bar" [class.highlight]="d.esMejorDia" [style.height.%]="d.alturaPct"></div>
+            <span class="day">{{ d.dia }}</span>
+          </div>
+        </div>
+        <div class="gradient-bar-chart" *ngIf="!rendimientoSemanal">
+          <div class="chart-column" *ngFor="let dia of ['L','M','X','J','V','S','D']">
+            <div class="bar" style="height: 8%"></div><span class="day">{{ dia }}</span>
+          </div>
         </div>
       </div>
 
@@ -198,8 +201,8 @@
         <div class="promo-scroll">
           <div *ngFor="let promo of promociones" class="glass-card promo-mini-card">
             <div class="promo-glow-icon"><ion-icon name="gift-outline"></ion-icon></div>
-            <h4>{{ promo.nombre }}</h4>
-            <p>{{ promo.puntosRequeridos }} PTS</p>
+            <h4>{{ promo.titulo }}</h4>
+            <p>{{ promo.puntosOtorgados }} PTS</p>
           </div>
         </div>
       </div>

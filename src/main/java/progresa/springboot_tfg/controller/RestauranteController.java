@@ -92,6 +92,21 @@ public class RestauranteController {
         return ResponseEntity.ok(restauranteService.obtenerStatsAvanzadas(id, SecurityUtils.email(authentication)));
     }
 
+    @Operation(
+            summary = "Estadisticas por periodo con comparacion",
+            description = "Ventas, clientes y puntos reales de la semana/mes/anio actual, opcionalmente comparados con el periodo anterior"
+    )
+    @GetMapping("/{id}/estadisticas")
+    public ResponseEntity<progresa.springboot_tfg.dto.EstadisticasComparativasDTO> obtenerEstadisticasPeriodo(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "SEMANA") String periodo,
+            @RequestParam(defaultValue = "true") boolean comparar,
+            Authentication authentication) {
+        return ResponseEntity.ok(
+                restauranteService.obtenerEstadisticasPeriodo(id, SecurityUtils.email(authentication), periodo, comparar)
+        );
+    }
+
     /*
     @Operation(
         summary = "Crear restaurante",

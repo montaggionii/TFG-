@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-24T18:00:00Z",
+  "updatedAt": "2026-09-25T09:45:00Z",
   "project": {
     "name": "FidelyFood (TFG)",
     "path": "/Users/montaggioni/projects/TFG-repaired-20260917",
@@ -9,9 +9,9 @@
   "agent": {
     "status": "ACTIVO",
     "mode": "LIVE",
-    "currentTask": "Despliegue real completo y verificado, con dominio de frontend definitivo (fidelyfoodapp.vercel.app) y CORS actualizado. Agente autonomo en la nube (Fase 7) activado. Unico pendiente real: aplicar el reinicio del backend en Render para que tome la nueva contrasena de admin ya guardada.",
-    "lastActivity": "2026-09-24T19:40:00Z",
-    "progress": "Backlog FID-001 a FID-012 completo + despliegue real gratuito (backend en Render/Aiven, frontend en Vercel) + fix de bug real post-despliegue (GET / devolvia 500 en vez de 404, PR #25, con test unitario nuevo) + agente autonomo en la nube activado (rutina diaria vía /schedule, trabaja en su propia rama, nunca fusiona solo) + contrasena de admin de produccion cambiada del valor por defecto del codigo a una elegida por el usuario (guardada en Render como FIDELYFOOD_ADMIN_PASSWORD, pendiente de que el backend se reinicie para aplicarla)."
+    "currentTask": "Sesion nocturna del 2026-09-25 completada y fusionada (PR #26 mapa + PR #27 responsive/promociones/codigo postal/E2E). PR #28 (tests unitarios de la rutina diaria) revisado y recomendado, pendiente de que el usuario confirme la fusion.",
+    "lastActivity": "2026-09-25T09:45:00Z",
+    "progress": "Despliegue en produccion estable (backend Render/Aiven, frontend Vercel fidelyfoodapp.vercel.app). Sesion nocturna autonoma (rutina de una sola vez) corrigio de verdad: zona blanca en Google Maps (ResizeObserver, PR #26), 3 bugs reales en promociones (endpoint equivocado devolvia 403 siempre, campos del template mal mapeados, modal de crear promo inutilizable en desktop por conflicto de media query vs ancho fijo de modal), codigo postal del restaurante que nunca se persistia pese a ser obligatorio en el formulario, responsive de los 4 botones de accion del dashboard, y ampliacion de la suite E2E con un flujo completo de restaurante de punta a punta (PR #27). Todo verificado con build + tests reales, no solo descrito. Backend y frontend recompilados localmente esta manana tras la fusion: build OK, tests backend 2/2 pasando, migracion de codigo_postal aplicada sola via Hibernate ddl-auto=update sin intervencion manual."
   },
   "production": {
     "backend": {
@@ -24,8 +24,8 @@
       "url": "https://fidelyfoodapp.vercel.app",
       "adminLoginUrl": "https://fidelyfoodapp.vercel.app/admin/login",
       "host": "Vercel (plan Hobby)",
-      "status": "Live, sirviendo el build de produccion de Angular",
-      "note": "Proyecto nuevo (fidelyfoodapp) creado el 2026-09-24 porque el proyecto original (renombrado varias veces: tfg-glf5 -> fidelyapp -> fidelyfood) quedo en un estado corrupto en Vercel: el dashboard marcaba el dominio como 'Valid Configuration'/'Production' pero devolvia 404 real, incluso tras renombrar, anadir dominio manualmente, editar/redirigir, y forzar un redeploy limpio. El proyecto viejo se dejo sin tocar (no se borro).",
+      "status": "Live, sirviendo el build de produccion de Angular con el fix de mapas y promociones ya fusionado",
+      "note": "Proyecto nuevo (fidelyfoodapp) creado el 2026-09-24 porque el proyecto original (renombrado varias veces: tfg-glf5 -> fidelyapp -> fidelyfood) quedo en un estado corrupto en Vercel. El proyecto viejo se dejo sin tocar (no se borro).",
       "legacyUrl": "https://tfg-glf5.vercel.app (proyecto original, funcionaba pero se abandono a favor de fidelyfoodapp)"
     },
     "adminAccount": {
@@ -33,11 +33,13 @@
       "activePasswordNote": "admin123 (valor por defecto del codigo) sigue activo hasta que el backend se reinicie",
       "pendingPasswordNote": "Nueva contrasena elegida por el usuario ya guardada en Render (FIDELYFOOD_ADMIN_PASSWORD); se activara sola en el proximo reinicio del servicio, o antes si se fuerza un Manual Deploy"
     },
-    "domainDecision": "El usuario decidio quedarse con los subdominios gratuitos (Render/Vercel) — un dominio propio real siempre tiene coste de registro, no existe forma 100% gratis de conseguir uno de verdad.",
+    "domainDecision": "El usuario decidio quedarse con los subdominios gratuitos (Render/Vercel) — un dominio propio real siempre tiene coste de registro.",
     "pendingUserAction": [
       "Restringir la API key de Google Maps por HTTP referrer en Google Cloud Console (SECURITY.md punto 9) — el usuario decidio no hacerlo por ahora",
-      "Forzar 'Manual Deploy' en Render cuando se quiera aplicar ya la nueva contrasena de admin, en vez de esperar al auto-deploy (que ha sido lento/poco fiable en el plan gratuito)",
-      "Decidir que hacer con el proyecto viejo de Vercel (fidelyfood, antes tfg-glf5/fidelyapp) que quedo roto — se puede borrar cuando se quiera, no se toco por decision de dejarlo intacto mientras se investigaba"
+      "Forzar 'Manual Deploy' en Render cuando se quiera aplicar ya la nueva contrasena de admin",
+      "Decidir que hacer con el proyecto viejo de Vercel (fidelyfood, antes tfg-glf5/fidelyapp) que quedo roto — se puede borrar cuando se quiera",
+      "Confirmar si se fusiona el PR #28 (tests unitarios FID-013/FID-014, ya revisado y recomendado por Claude esta manana)",
+      "Verificar visualmente en fidelyfoodapp.vercel.app que el mapa y las promociones quedaron bien tras la fusion de esta madrugada"
     ]
   },
   "autonomousAgent": {
@@ -45,24 +47,34 @@
     "routineId": "trig_014dcQmXWEEMPUshiQqN5XVU",
     "routineUrl": "https://claude.ai/code/routines/trig_014dcQmXWEEMPUshiQqN5XVU",
     "schedule": "Diario, 09:00 hora de Zurich (07:00 UTC)",
-    "rules": "Corre en un sandbox aislado en la nube (no en el worktree local), trabaja siempre en su propia rama agent/fidelyfood-autonomous, sigue las reglas de .claude/agents/fidelyfood-qa-security.md, y tiene prohibido explicitamente fusionar a main por si sola — solo deja Pull Requests listos para revision humana."
+    "rules": "Corre en un sandbox aislado en la nube, trabaja siempre en su propia rama agent/fidelyfood-autonomous, nunca fusiona a main por si sola — solo deja Pull Requests. Abrio el PR #28 esta manana (dos ejecuciones paralelas cubrieron FID-013 y FID-014 sin colisionar)."
+  },
+  "nightlySession": {
+    "date": "2026-09-24/25",
+    "routineId": "trig_016pjiNZ5JhAj6V15PeqVSAu",
+    "prsMerged": [
+      "https://github.com/montaggionii/TFG-/pull/26 (Google Maps ResizeObserver)",
+      "https://github.com/montaggionii/TFG-/pull/27 (responsive dashboard, 3 bugs de promociones, codigo postal, E2E ampliado)"
+    ],
+    "mergedBy": "El usuario, desde el panel propio de la rutina en claude.ai, confirmando explicitamente saltarse la regla de 'nunca fusionar sola' que el la propia rutina llevaba configurada",
+    "note": "La rutina se paso varias horas vigilando el PR #27 (checks de Vercel, sin reviews) antes de que el usuario aprobara la fusion por la manana."
   },
   "pr": {
-    "lastMerged": "https://github.com/montaggionii/TFG-/pull/25"
+    "lastMerged": "https://github.com/montaggionii/TFG-/pull/27",
+    "openForReview": ["https://github.com/montaggionii/TFG-/pull/28 (tests unitarios, revisado y recomendado por Claude, pendiente confirmacion del usuario)"]
   },
   "build": {
     "status": "OK",
-    "backend": "mvn clean package -> BUILD SUCCESS (jar ejecutable tras PR #23)",
-    "frontend": "ng build --configuration production -> OK (solo warnings de Sass @import y presupuesto CSS, sin errores)",
-    "validatedAt": "2026-09-24T14:15:00Z"
+    "backend": "mvn clean test -> BUILD SUCCESS (verificado 2026-09-25 tras la fusion nocturna, con .env local cargado)",
+    "frontend": "ng build --configuration production -> OK (solo warnings preexistentes de Sass/CSS)",
+    "validatedAt": "2026-09-25T09:44:00Z"
   },
   "tests": {
-    "backend": { "total": 2, "passing": 2, "failing": 0, "note": "SpringBootTfgApplicationTests (contextLoads) + GlobalExceptionHandlerTest (fix del 404, PR #25)" },
-    "e2e": { "total": 14, "passing": 14, "failing": 0, "note": "Playwright: login (3 roles) + cliente + restaurante + 2 tests de seguridad (rate-limiting, autorizacion de stats)" },
-    "note": "Ejecutados de verdad en esta sesion contra el backend/frontend reales, con MySQL conectada."
+    "backend": { "total": 2, "passing": 2, "failing": 0, "note": "SpringBootTfgApplicationTests (contextLoads) + GlobalExceptionHandlerTest. PR #28 (sin fusionar aun) anadiria 34 tests unitarios mas (UsuarioServiceTest, RestauranteServiceTest, LoginRateLimiterTest)." },
+    "e2e": { "total": 15, "passing": null, "note": "PR #27 amplio restaurant-flows.spec.ts con un flujo completo de restaurante de punta a punta y corrigio security-restaurant-stats.spec.ts (ID hardcodeado). No re-ejecutada localmente esta manana por falta de tiempo, verificada por la propia rutina nocturna antes de abrir el PR." }
   },
   "security": {
-    "vulnerabilitiesFixed": ["login sin rate-limiting", "enumeracion de emails en login", "swagger publico", "JWT secret de desarrollo en produccion", "stats de restaurante sin control de propiedad", "3 XSS de Angular (npm audit)", "500 en vez de 404 en rutas sin recurso", "contrasena de admin por defecto (admin123) visible en el codigo fuente, en proceso de cambio", "contrasena por defecto (change-me-restaurant-password) de los 3 restaurantes historicos sembrados automaticamente (HistoricalRestaurantSeeder) en produccion, sin que APP_SEED_RESTAURANT_PASSWORD estuviera configurada en Render -- corregido 2026-09-24 cambiando la contrasena de cada uno via PUT /api/restaurantes/{id} autenticado con su propio token, contrasenas nuevas guardadas en el widget de escritorio"],
+    "vulnerabilitiesFixed": ["login sin rate-limiting", "enumeracion de emails en login", "swagger publico", "JWT secret de desarrollo en produccion", "stats de restaurante sin control de propiedad", "3 XSS de Angular (npm audit)", "500 en vez de 404 en rutas sin recurso", "contrasena de admin por defecto (admin123) visible en el codigo fuente, en proceso de cambio", "contrasena por defecto (change-me-restaurant-password) de los 3 restaurantes historicos, corregida"],
     "pendingUserDecision": ["rotar credenciales expuestas historicamente (usuario decidio NO hacerlo por ahora)"]
   }
 }

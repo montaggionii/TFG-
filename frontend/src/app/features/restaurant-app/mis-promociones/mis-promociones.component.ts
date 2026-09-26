@@ -71,6 +71,11 @@ export class MisPromocionesComponent implements OnInit {
         this.promos = data.map(p => {
           return {
             ...p,
+            // El backend devuelve `puntosOtorgados` (campo real de la entidad
+            // Promocion), pero el formulario y esta vista usan
+            // `puntosNecesarios` para el mismo dato -> sin este mapeo la
+            // insignia de puntos y el formulario de edición quedaban vacíos.
+            puntosNecesarios: p.puntosOtorgados,
             imagenUrl: this.restauranteService.resolvePromotionImage(p, {
               id: restauranteId,
               nombre: state?.nombre
