@@ -31,6 +31,7 @@ si el archivo aparece como modificado sin commitear allí, se salta esa tarea.
 - ~~**FID-011** · DOCS · Crear `DEPLOYMENT.md` con el estado real del despliegue.~~ **COMPLETADA** (ver cierre abajo).
 - ~~**FID-012** · MAINTENANCE · Actualizar `@angular/core` y paquetes hermanos para cerrar 3 vulnerabilidades XSS.~~ **COMPLETADA — solo parche, sin salto de major** (ver cierre abajo).
 - ~~**FID-013** · TEST · Tests unitarios del backend — sin cobertura más allá de `contextLoads`.~~ **COMPLETADA** (ver cierre abajo).
+- ~~**FID-015** · TEST · Cobertura unitaria de `PromocionService` y del nuevo endpoint `GET /api/restaurantes/{id}/estadisticas` — código añadido en #29/#30 sin tests unitarios, solo E2E.~~ **COMPLETADA** (ver cierre abajo).
 
 ### FID-013 — completada 2026-09-25
 Único pendiente que quedaba en `.agent/tasks.md`: el backend no tenía cobertura de tests unitarios
@@ -104,6 +105,59 @@ unitarios puros, sin Spring ni BD): clave nueva no bloqueada, 7 fallos no bloque
 contador y desbloquea, dos claves (IP+email) distintas son independientes, y dos casos de ventana
 deslizante (fallos que expiran tras 10 min+1s dejan de contar; fallos repartidos entre antes/después
 de la expiración nunca coexisten 8 a la vez).
+
+### FID-015 — completada 2026-09-26
+
+Rutina en la nube del 2026-09-26. Al llegar a `agent/fidelyfood-autonomous` estaba desactualizada
+(el PR #28 de FID-013/FID-014 seguía abierto, base en `31813db`) mientras `main` ya llevaba cuatro PRs
+más fusionados (#26 mapa, #27 nightly, #29 analítica por periodo, #30 imagen de promociones). Primer
+paso de esta sesión: `git merge origin/main` sobre la rama (sin conflictos), para auditar/testear
+también ese código nuevo en vez de trabajar sobre una base obsoleta.
+
+**Auditoría de autorización de lo nuevo en #29/#30** (mismo criterio que FID-005/FID-013 — cualquier
+endpoint nuevo que opera sobre un recurso de restaurante debe usar `requireOwner`/el mismo patrón):
+`GET /api/restaurantes/{id}/estadisticas` (nuevo en #29) y todos los métodos nuevos de
+`PromocionController`/`PromocionService` (`crearConImagen`, `actualizarConImagen`, y los ya existentes
+`actualizar`/`eliminar`/`aplicarPromocion`) sí comprueban correctamente la propiedad del recurso
+(`requireOwner`/`requirePromotionOwner`) — leído con atención porque es exactamente el tipo de hallazgo
+que ya se encontró una vez (FID-005), pero esta vez el patrón se siguió bien desde el principio. No se
+encontró ninguna vulnerabilidad nueva de Broken Access Control.
+
+**Hueco real encontrado**: ese código nuevo (analítica por periodo y gestión de imágenes de
+promociones) no tenía ningún test unitario — solo cobertura E2E (`restaurant-flows.spec.ts`), que
+necesita backend+frontend+MySQL reales y no se puede ejecutar en este sandbox. Se cerró ese hueco,
+continuando el mismo criterio de FID-013/FID-014 ("tests unitarios de backend sin BD real" es el
+tipo de tarea explícitamente indicado para un entorno sin servidores locales):
+
+- **`PromocionServiceTest.java` (nuevo, 15 tests)**: `crear`/`crearConImagen` asocian la promoción al
+  restaurante autenticado por email (nunca a un `restauranteId` que venga del cliente); un email que no
+  existe en `RestauranteDAO` (p.ej. una cuenta cliente) lanza `ResourceNotFoundException` en vez de
+  crear nada — cubre por qué un `ROLE_USER` nunca puede crear una promoción "a nombre de" un
+  restaurante ajeno. `actualizar`/`eliminar`/`aplicarPromocion` con un restaurante que no es el dueño
+  real de la promoción lanzan `AccessDeniedException` y no llegan a tocar el DAO de escritura
+  (`requirePromotionOwner`, regresión directa del patrón FID-005). `aplicarPromocion` con el dueño real
+  suma los puntos correctos al usuario y registra el `MovimientoPuntos` esperado. Validación de
+  `crearConImagen` (tamaño > 5MB, tipo de archivo no permitido, imagen vacía) y
+  `validarRestauranteAutenticado`.
+- **`RestauranteServiceTest.java` (+2 tests)**: `obtenerEstadisticasPeriodo` con un email autenticado
+  que no es el dueño lanza `AccessDeniedException` sin llegar a consultar `MovimientoPuntosDAO`
+  (mismo patrón que los tests ya existentes de `obtenerStats`/`obtenerStatsAvanzadas`); con el dueño
+  real, agrega correctamente ventas totales, transacciones, clientes activos y puntos otorgados/canjeados
+  de la semana actual a partir de movimientos reales, sin comparación con el periodo anterior
+  (`comparar=false`).
+
+**Verificación real**: `mvn test -Dtest=PromocionServiceTest,RestauranteServiceTest` → 26/26 passed
+(15 + 11, incluye los tests ya existentes de FID-013). `mvn test` completo → 50/50 passed salvo
+`SpringBootTfgApplicationTests.contextLoads`, que falla por el mismo motivo ya documentado en
+FID-013/FID-014 (`Communications link failure`, no hay MySQL en este sandbox) — no relacionado con
+este cambio. No se tocó ningún test existente ni código de producción (solo tests nuevos).
+
+**No se pudo verificar en este entorno** (requeriría backend/frontend/MySQL reales): el flujo E2E
+completo de estas dos features, ya cubierto por `frontend/e2e/restaurant-flows.spec.ts` (ampliado en
+la sesión nocturna del #29/#30), no duplicado aquí.
+
+Archivos creados: `src/test/java/progresa/springboot_tfg/service/PromocionServiceTest.java`.
+Archivos modificados: `src/test/java/progresa/springboot_tfg/service/RestauranteServiceTest.java`.
 
 Tests realizados (reales, no simulados):
 - `mvn compile` → éxito (dependencias resueltas vía proxy configurado del entorno).
