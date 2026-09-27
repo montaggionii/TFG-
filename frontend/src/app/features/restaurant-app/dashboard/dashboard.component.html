@@ -161,8 +161,15 @@
         <div class="map-wrapper glass-card">
           <app-map
             [center]="location"
-            [markers]="markers">
+            [markers]="markers"
+            (onMarkerClick)="onMapMarkerClick($event)">
           </app-map>
+          <div class="map-info-card" *ngIf="mapInfoCard">
+            <button class="close-btn" (click)="mapInfoCard = null">&times;</button>
+            <h4>{{ mapInfoCard.nombre }}</h4>
+            <span class="tipo" *ngIf="mapInfoCard.tipo">{{ mapInfoCard.tipo }}</span>
+            <p class="direccion" *ngIf="mapInfoCard.direccion">{{ mapInfoCard.direccion }}, {{ mapInfoCard.ciudad }}</p>
+          </div>
         </div>
       </div>
 

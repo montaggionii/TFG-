@@ -80,6 +80,11 @@ export class DashboardComponent implements OnInit {
   // Mapa
   location: { lat: number, lng: number } | null = null;
   markers: any[] = [];
+  mapInfoCard: any = null;
+
+  onMapMarkerClick(data: any) {
+    this.mapInfoCard = data;
+  }
 
   ngOnInit() {
     this.business = this.globalState.getState();
