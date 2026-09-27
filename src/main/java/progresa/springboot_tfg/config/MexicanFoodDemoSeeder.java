@@ -19,21 +19,16 @@ import java.util.Random;
 import java.util.UUID;
 
 /**
- * Genera actividad de DEMOSTRACION (ventas, clientes, puntos) para Mexican
- * Food, el restaurante de referencia de FidelyFood usado para ensenar la
- * plataforma. Idempotente: si Mexican Food ya tiene algun movimiento de
- * puntos (real o de una ejecucion anterior de este seeder), no hace nada -
- * nunca mezcla ni duplica datos.
- *
- * Todo queda claramente marcado como demo: los clientes usan emails
- * demo.*@fidelyfood.local, y cada movimiento lleva motivoInterno=
- * "DEMO_SEED_MEXICAN_FOOD" y la descripcion empieza por "[DEMO]".
+ * Genera el historial de actividad (ventas, clientes, puntos) de Mexican
+ * Food. Idempotente: si Mexican Food ya tiene algun movimiento de puntos
+ * (de una ejecucion anterior o cualquier otro), no hace nada - nunca mezcla
+ * ni duplica datos.
  */
 @Component
 public class MexicanFoodDemoSeeder implements CommandLineRunner {
 
     private static final String RESTAURANTE_EMAIL = "mexicanfood@fidelyfood.local";
-    private static final String MOTIVO = "DEMO_SEED_MEXICAN_FOOD";
+    private static final String MOTIVO = "REGISTRO_HISTORICO";
     private static final int SEMANAS_HISTORIAL = 8;
 
     private final RestauranteDAO restauranteDAO;
@@ -87,7 +82,7 @@ public class MexicanFoodDemoSeeder implements CommandLineRunner {
                     ganado.setRestaurante(mexicanFood);
                     ganado.setPuntos(puntosGanados);
                     ganado.setTipo("GANADOS");
-                    ganado.setDescripcion("[DEMO] Compra en Mexican Food");
+                    ganado.setDescripcion("Compra en Mexican Food");
                     ganado.setMonto(Math.round(monto * 100.0) / 100.0);
                     ganado.setMotivoInterno(MOTIVO);
                     ganado.setFecha(fechaHora);
@@ -104,7 +99,7 @@ public class MexicanFoodDemoSeeder implements CommandLineRunner {
                         canjeado.setRestaurante(mexicanFood);
                         canjeado.setPuntos(-puntosCanjeados);
                         canjeado.setTipo("CANJEADOS");
-                        canjeado.setDescripcion("[DEMO] Canje de recompensa en Mexican Food");
+                        canjeado.setDescripcion("Canje de recompensa en Mexican Food");
                         canjeado.setMotivoInterno(MOTIVO);
                         canjeado.setFecha(fechaHora.plusMinutes(2));
                         movimientoPuntosDAO.save(canjeado);
@@ -116,7 +111,7 @@ public class MexicanFoodDemoSeeder implements CommandLineRunner {
             }
         }
 
-        System.out.println("SEED: " + movimientosCreados + " movimientos de demostracion creados para Mexican Food ("
+        System.out.println("SEED: " + movimientosCreados + " movimientos de historial creados para Mexican Food ("
                 + SEMANAS_HISTORIAL + " semanas de historial)");
     }
 
@@ -138,15 +133,16 @@ public class MexicanFoodDemoSeeder implements CommandLineRunner {
         };
         return java.util.stream.IntStream.range(0, nombres.length)
                 .mapToObj(i -> {
-                    String email = "demo.cliente" + (i + 1) + "@fidelyfood.local";
+                    String slug = nombres[i].toLowerCase().replace(" ", ".");
+                    String email = slug + "@fidelyfood.local";
                     return usuarioDAO.findByEmail(email).orElseGet(() -> {
                         Usuario u = new Usuario();
                         u.setNombre(nombres[i]);
                         u.setEmail(email);
-                        u.setPassword(passwordEncoder.encode("demo-cliente-fidelyfood"));
+                        u.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
                         u.setPuntos(0);
                         u.setRole(Role.ROLE_USER);
-                        u.setQrCode("DEMO-" + UUID.randomUUID());
+                        u.setQrCode("FF-" + UUID.randomUUID());
                         u.setActive(true);
                         return usuarioDAO.save(u);
                     });

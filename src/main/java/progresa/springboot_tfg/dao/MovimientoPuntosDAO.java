@@ -13,4 +13,6 @@ public interface MovimientoPuntosDAO extends JpaRepository<MovimientoPuntos, Lon
     List<MovimientoPuntos> findByUsuarioOrderByFechaDesc(Usuario usuario);
 
     List<MovimientoPuntos> findByRestauranteId(Long restauranteId);
+
+    List<MovimientoPuntos> findByMotivoInterno(String motivoInterno);
 }
