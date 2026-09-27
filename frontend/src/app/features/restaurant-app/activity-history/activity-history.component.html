@@ -91,19 +91,19 @@
         </div>
       </div>
 
-      <!-- GRÁFICO MOCK (FINTECH STYLE) -->
-      <div class="chart-section glass-card animate__animated animate__fadeInUp">
+      <!-- GRÁFICO DE RENDIMIENTO SEMANAL (datos reales) -->
+      <div class="chart-section glass-card animate__animated animate__fadeInUp" *ngIf="rendimientoSemanal">
         <div class="section-header">
           <ion-icon name="trending-up-outline" color="primary"></ion-icon>
-          <h2>Rendimiento Diario</h2>
+          <h2>Rendimiento Semanal</h2>
         </div>
         <div class="mock-chart">
-          <div class="bar-container" *ngFor="let val of [20, 45, 30, 70, 55, 90, 65]">
-            <div class="bar animate__animated animate__slideInUp" [style.height.%]="val"></div>
+          <div class="bar-container" *ngFor="let d of rendimientoSemanal" [attr.title]="d.monto | currency:'EUR':'symbol':'1.0-2'">
+            <div class="bar animate__animated animate__slideInUp" [style.height.%]="d.alturaPct"></div>
           </div>
         </div>
         <div class="chart-labels">
-          <span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span>
+          <span *ngFor="let d of rendimientoSemanal">{{ d.dia }}</span>
         </div>
       </div>
 
@@ -119,13 +119,22 @@
           </ion-chip>
         </div>
 
-        <div class="empty-state glass-card animate__animated animate__fadeIn" *ngIf="filteredHistory.length === 0">
+        <div class="empty-state glass-card animate__animated animate__fadeIn" *ngIf="hasError">
+          <div class="empty-icon-box">
+            <ion-icon name="alert-circle-outline"></ion-icon>
+          </div>
+          <h3>Error de conexión</h3>
+          <p>No se pudo cargar el historial. Comprueba tu conexión e inténtalo de nuevo.</p>
+          <ion-button fill="outline" size="small" (click)="loadStats()">Reintentar</ion-button>
+        </div>
+
+        <div class="empty-state glass-card animate__animated animate__fadeIn" *ngIf="!hasError && filteredHistory.length === 0">
           <div class="empty-icon-box">
             <ion-icon name="time-outline"></ion-icon>
           </div>
           <h3>Sin actividad aún</h3>
           <p>No hay registros para la fecha seleccionada.</p>
-          <ion-button fill="outline" size="small" (click)="selectedDate = '2026-05-12T00:00:00'">Ver hoy</ion-button>
+          <ion-button fill="outline" size="small" (click)="selectedDate = todayIso(); filterByDate()">Ver hoy</ion-button>
         </div>
 
         <ion-list class="history-list" lines="none">

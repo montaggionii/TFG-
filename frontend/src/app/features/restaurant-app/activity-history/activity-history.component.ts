@@ -31,6 +31,7 @@ export class ActivityHistoryComponent implements OnInit {
   public selectedDate = new Date().toISOString();
   public restauranteId: number | null = null;
   public hasError = false;
+  public rendimientoSemanal: { dia: string; monto: number; alturaPct: number }[] | null = null;
 
   constructor() {
     addIcons({ 
@@ -43,17 +44,42 @@ export class ActivityHistoryComponent implements OnInit {
   }
 
   ngOnInit() {
-    console.log('📈 [ACTIVITY LOAD] Inicializando Historial Profesional...');
     this.authService.authState$.subscribe(state => {
       if (state.token && state.id) {
         this.restauranteId = state.id;
         this.loadStats();
-      } else {
-        // Fallback for demo if no session (only for development/preview)
-        setTimeout(() => {
-          if (this.isLoading) this.useMockData();
-        }, 2000);
+        this.cargarRendimientoSemanal();
       }
+    });
+  }
+
+  cargarRendimientoSemanal() {
+    if (!this.restauranteId) return;
+    this.restauranteService.getEstadisticasPeriodo(this.restauranteId, 'SEMANA', false).subscribe({
+      next: (resp) => {
+        const actual = resp?.actual;
+        if (!actual) return;
+
+        const desde = new Date(actual.desde);
+        const etiquetas = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+        const porFecha = new Map<string, number>(
+          (actual.ventasPorDia || []).map((d: any) => [d.fecha, d.monto])
+        );
+        const montosPorDia = etiquetas.map((_, i) => {
+          const fecha = new Date(desde);
+          fecha.setDate(desde.getDate() + i);
+          const key = fecha.toISOString().slice(0, 10);
+          return porFecha.get(key) || 0;
+        });
+        const maxMonto = Math.max(...montosPorDia, 1);
+
+        this.rendimientoSemanal = etiquetas.map((dia, i) => ({
+          dia,
+          monto: montosPorDia[i],
+          alturaPct: Math.max(4, Math.round((montosPorDia[i] / maxMonto) * 100))
+        }));
+      },
+      error: (err) => console.error('[ACTIVITY LOAD] Error cargando rendimiento semanal:', err)
     });
   }
 
@@ -68,46 +94,29 @@ export class ActivityHistoryComponent implements OnInit {
     };
   }
 
-  useMockData() {
-    console.log('🧪 [ACTIVITY MOCK] Usando datos de simulación para visualización...');
-    this.stats = {
-      facturacionTotal: 1245.50,
-      puntosEntregados: 12450,
-      puntosCanjeados: 3500,
-      clientesAtendidos: 84,
-      historialCompleto: [
-        { id: 1, puntos: 150, tipo: 'GANADOS', descripcion: 'Consumo menú del día', fecha: new Date().toISOString(), monto: 15.00, usuarioNombre: 'Juan Pérez' },
-        { id: 2, puntos: 500, tipo: 'CANJEADOS', descripcion: 'Canje: Postre Gratis', fecha: new Date().toISOString(), monto: 0, usuarioNombre: 'Maria García' },
-        { id: 3, puntos: 250, tipo: 'GANADOS', descripcion: 'Cena Gourmet especial', fecha: new Date().toISOString(), monto: 25.00, usuarioNombre: 'Carlos Ruiz' },
-        { id: 4, puntos: 100, tipo: 'GANADOS', descripcion: 'Café y desayuno', fecha: new Date().toISOString(), monto: 10.00, usuarioNombre: 'Ana Lopez' }
-      ]
-    };
-    this.filteredHistory = this.stats.historialCompleto;
-    this.isLoading = false;
-  }
-
   loadStats() {
     if (!this.restauranteId) return;
     this.isLoading = true;
     this.hasError = false;
-    
+
     this.restauranteService.getAdvancedStats(this.restauranteId).subscribe({
       next: (data) => {
         this.stats = data;
         this.filteredHistory = data.historialCompleto || [];
         this.isLoading = false;
-        
-        // Si no hay datos reales, mostramos mock para no ver la pantalla vacía en el primer uso
-        if (this.filteredHistory.length === 0 && this.stats.facturacionTotal === 0) {
-           this.useMockData();
-        }
       },
       error: (err) => {
-        console.error('❌ [ACTIVITY LOAD] Error:', err);
+        console.error('[ACTIVITY LOAD] Error:', err);
+        this.stats = this.getEmptyStats();
+        this.filteredHistory = [];
         this.hasError = true;
-        this.useMockData(); // Fallback to mock on error so user sees the UI
+        this.isLoading = false;
       }
     });
+  }
+
+  todayIso(): string {
+    return new Date().toISOString();
   }
 
   onDateChange(event: any) {

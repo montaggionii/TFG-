@@ -32,16 +32,26 @@ public class MovimientoPuntosDTO {
     )
     private LocalDateTime fecha;
 
+    @Schema(description = "Importe en euros del consumo asociado (0 si el movimiento no proviene de un consumo)", example = "15.00")
+    private Double monto;
+
+    @Schema(description = "Nombre del cliente que realizó el movimiento", example = "Juan Pérez")
+    private String usuarioNombre;
+
     public MovimientoPuntosDTO(
             int puntos,
             String tipo,
             String descripcion,
-            LocalDateTime fecha
+            LocalDateTime fecha,
+            Double monto,
+            String usuarioNombre
     ) {
         this.puntos = puntos;
         this.tipo = tipo;
         this.descripcion = descripcion;
         this.fecha = fecha;
+        this.monto = monto;
+        this.usuarioNombre = usuarioNombre;
     }
 
     public int getPuntos() {
@@ -58,5 +68,13 @@ public class MovimientoPuntosDTO {
 
     public LocalDateTime getFecha() {
         return fecha;
+    }
+
+    public Double getMonto() {
+        return monto;
+    }
+
+    public String getUsuarioNombre() {
+        return usuarioNombre;
     }
 }

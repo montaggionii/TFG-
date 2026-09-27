@@ -196,7 +196,7 @@ public class RestauranteService {
         List<MovimientoPuntosDTO> actividadReciente = movimientos.stream()
                 .sorted((a, b) -> b.getFecha().compareTo(a.getFecha()))
                 .limit(10)
-                .map(m -> new MovimientoPuntosDTO(m.getPuntos(), m.getTipo(), m.getDescripcion(), m.getFecha()))
+                .map(m -> new MovimientoPuntosDTO(m.getPuntos(), m.getTipo(), m.getDescripcion(), m.getFecha(), m.getMonto(), m.getUsuario().getNombre()))
                 .toList();
 
         return new DashboardStatsDTO(clientesUnicos, puntosOtorgados, puntosCanjeados, promocionesActivas, actividadReciente);
@@ -230,7 +230,7 @@ public class RestauranteService {
 
         List<MovimientoPuntosDTO> historialCompleto = movimientos.stream()
                 .sorted((a, b) -> b.getFecha().compareTo(a.getFecha()))
-                .map(m -> new MovimientoPuntosDTO(m.getPuntos(), m.getTipo(), m.getDescripcion(), m.getFecha()))
+                .map(m -> new MovimientoPuntosDTO(m.getPuntos(), m.getTipo(), m.getDescripcion(), m.getFecha(), m.getMonto(), m.getUsuario().getNombre()))
                 .toList();
 
         return new RestauranteAdvancedStatsDTO(
