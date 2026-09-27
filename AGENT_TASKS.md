@@ -10,6 +10,7 @@ si el archivo aparece como modificado sin commitear allí, se salta esa tarea.
 ## P0 — Seguridad / bloqueante
 
 - ~~**FID-001** · SECURITY · Auditar rate-limiting ausente en `/api/auth/**` (login).~~ **COMPLETADA — implementado y verificado** (ver cierre abajo). **REQUIERE ACCIÓN DEL USUARIO tras integrar: reiniciar el backend de desarrollo (puerto 8081).**
+- ~~**FID-017** · SECURITY · Auditoría de ownership real (curl con JWT de restaurantes distintos) en `PromocionController`/`RestauranteController`, aislamiento de roles admin/restaurante/cliente, Swagger y actuator.~~ **COMPLETADA — vulnerabilidad real de fuga de contraseñas encontrada y corregida** (ver cierre abajo). **REQUIERE ACCIÓN DEL USUARIO tras integrar: reiniciar el backend de desarrollo (puerto 8081).**
 
 ## P1 — Alta prioridad
 
@@ -425,3 +426,64 @@ para producción (Dockerfile, variables externalizadas, JWT/CORS/Swagger corregi
 `main`), pero **todavía no está desplegado en Internet**. Documenta exactamente qué falta y por qué
 esos pasos concretos (crear cuentas, autenticar CLIs) no se pueden automatizar sin que el usuario
 apruebe el login en su propio navegador.
+
+### FID-017 — completada 2026-09-27 — VULNERABILIDAD REAL ENCONTRADA Y CORREGIDA
+
+**Alcance auditado** (contra el backend real de `localhost:8081`, con JWTs reales de dos cuentas de
+restaurante sembradas — Alabroster y Venezuela Food, misma contraseña compartida vía
+`APP_SEED_RESTAURANT_PASSWORD` — y un cliente registrado de usar y tirar vía `/api/auth/register`):
+
+- Ownership cruzado en `RestauranteController`: `stats`, `stats-avanzadas`, `estadisticas`,
+  `PUT /{id}`, `POST /{id}/imagen` — Alabroster (token real) intentó leer/modificar los datos de
+  Venezuela Food (id real) en los cinco endpoints. Los cinco devolvieron **403** real
+  (`requireOwner` ya presente y correcto, heredado de FID-005). Verificado que el nombre de
+  Venezuela Food no cambió tras el intento de `PUT`.
+- Ownership cruzado en `PromocionController`: se creó una promoción real como Venezuela Food y
+  Alabroster intentó `PUT`/`DELETE` sobre ella por id — ambos **403** reales
+  (`requirePromotionOwner`, correcto).
+- Aislamiento de roles: token de restaurante contra `/api/admin/**` → 403; sin token → 401;
+  Swagger/OpenAPI (`/swagger-ui/**`, `/v3/api-docs`) con y sin token de restaurante → 403/401;
+  `/api/auth/login-admin` con credenciales de restaurante → 401 real (`"Credenciales de
+  administrador no válidas"`); `/actuator/**` (health, info, env, beans, metrics) → 401 (no
+  expuesto sin autenticar).
+
+**Vulnerabilidad real encontrada** (no cubierta por auditorías anteriores, distinta de un problema
+de ownership): **fuga del hash bcrypt de la contraseña de cualquier restaurante con al menos una
+promoción**, vía `GET /api/promociones` y `GET /api/promociones/restaurante/{id}`.
+`PromocionController` devuelve la entidad `Promocion` directamente (sin DTO), y esta arrastra la
+entidad `Restaurante` completa —incluida `password`— en el campo anidado `restaurante`. Como el
+`GET` de `/api/promociones/**` está abierto a `ROLE_USER`/`ROLE_RESTAURANT`/`ROLE_ADMIN` (por
+diseño: es el listado público de ofertas), **cualquier cliente recién autoregistrado gratis** podía
+leer el hash de cualquier restaurante y atacarlo offline. Verificado empíricamente antes de
+corregir: un cliente de prueba (`audit-client-*@fidelyfood.local`, creado y borrado en esta misma
+sesión) obtuvo el hash real de Venezuela Food (`$2a$10$yPPh...`) vía `GET /api/promociones`.
+
+**Corrección**: `@JsonProperty(access = JsonProperty.Access.WRITE_ONLY)` en el campo `password` de
+`Restaurante.java` — evita que Jackson lo serialice en cualquier respuesta JSON, pero lo sigue
+aceptando al deserializar peticiones entrantes (necesario: `PUT /api/restaurantes/{id}` reutiliza
+este mismo campo para cambiar la contraseña, ver `RestauranteService.actualizar`). Se descartó
+`@JsonIgnore` porque habría roto esa función silenciosamente (ignora también la deserialización).
+Se aplicó el mismo endurecimiento a `Usuario.password` por defensa en profundidad, aunque no se
+encontró hoy un endpoint que devuelva un `Usuario` crudo.
+
+**Verificación antes/después** (real, con backend reiniciado desde `../TFG-agent-worktree` para
+recompilar el fix, restaurado después al estado original del checkout principal):
+- Antes: `GET /api/promociones` con token de cliente → `restaurante.password` presente (hash real).
+- Después: mismo request → sin campo `password` en la respuesta.
+- `PUT /api/restaurantes/{id}` con un restaurante de prueba desechable (creado y borrado en esta
+  sesión vía `/api/auth/register-restaurante`): cambio de contraseña sigue funcionando (login con
+  la contraseña vieja → 401, con la nueva → 200) pese al `WRITE_ONLY`.
+- Regresión: `mvn test` (JUnit) y la suite E2E completa (16/16, incluida la nueva) siguen en verde.
+
+**Test de regresión añadido**: `frontend/e2e/security-promotion-password-leak.spec.ts` — crea una
+promoción real, la lee como cliente y como listado público, y comprueba que `restaurante` nunca
+tiene la propiedad `password`; limpia la promoción de prueba al terminar.
+
+Archivos modificados: `src/main/java/progresa/springboot_tfg/entity/Restaurante.java`,
+`src/main/java/progresa/springboot_tfg/entity/Usuario.java`,
+`frontend/e2e/security-promotion-password-leak.spec.ts` (nuevo), `SECURITY.md`, `AGENT_TASKS.md`.
+
+**Estado**: corregido en `agent/fidelyfood-autonomous`, pendiente de PR/revisión humana y de
+reiniciar el backend de desarrollo (puerto 8081) para que el arreglo tenga efecto — el proceso que
+ya tenías corriendo al terminar esta sesión sigue con el código antiguo (sin el fix), tal y como se
+dejó explícitamente para no interferir con tu sesión en curso.

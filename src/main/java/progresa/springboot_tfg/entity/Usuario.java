@@ -1,5 +1,6 @@
 package progresa.springboot_tfg.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -17,6 +18,13 @@ public class Usuario {
     @Column(nullable = false, unique = true)
     private String email;
 
+    // FID-017 — mismo endurecimiento que Restaurante.password: WRITE_ONLY
+    // evita que el hash de la contraseña se serialice en cualquier
+    // respuesta JSON (defensa en profundidad, aunque no se encontró un
+    // endpoint que hoy devuelva un Usuario crudo), sin romper
+    // UsuarioService.actualizar, que sigue leyendo este campo al
+    // deserializar el PUT /api/usuarios/{id}.
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @Column(nullable = false)
     private String password;
 
