@@ -32,6 +32,61 @@ si el archivo aparece como modificado sin commitear allí, se salta esa tarea.
 - ~~**FID-012** · MAINTENANCE · Actualizar `@angular/core` y paquetes hermanos para cerrar 3 vulnerabilidades XSS.~~ **COMPLETADA — solo parche, sin salto de major** (ver cierre abajo).
 - ~~**FID-013** · TEST · Tests unitarios del backend — sin cobertura más allá de `contextLoads`.~~ **COMPLETADA** (ver cierre abajo).
 - ~~**FID-015** · TEST · Cobertura unitaria de `PromocionService` y del nuevo endpoint `GET /api/restaurantes/{id}/estadisticas` — código añadido en #29/#30 sin tests unitarios, solo E2E.~~ **COMPLETADA** (ver cierre abajo).
+- ~~**FID-016** · TEST · Cobertura unitaria de `CompraService` y `RecompensaService` — últimos dos servicios de negocio del backend sin ningún test unitario, solo E2E.~~ **COMPLETADA** (ver cierre abajo).
+
+### FID-016 — completada 2026-09-27
+
+Rutina en la nube del 2026-09-27. `main` no llevaba commits nuevos desde la última ejecución (FID-015,
+2026-09-26) — el PR #28 seguía abierto y ya actualizado (`base` = HEAD actual de `main`), así que no
+hizo falta ningún `git merge`. Sin ninguna tarea "Pendiente" explícita en `AGENT_TASKS.md`/`.agent/tasks.md`,
+se identificó el mismo tipo de hallazgo de bajo riesgo que en FID-013/014/015: de los siete servicios del
+backend (`src/main/java/.../service/`), `CompraService` y `RecompensaService` eran los dos únicos que
+seguían sin ningún test unitario (`QrService` se descartó por trivial: solo compone un string con un
+`UUID.randomUUID()`, nada que probar sin fijar el azar).
+
+**Auditoría de autorización previa** (mismo criterio que FID-005/FID-013/FID-015 — cualquier endpoint que
+opera sobre puntos de un usuario debe identificarlo por el email/token autenticado, nunca por un id que
+mande el cliente): `CompraController.registrarCompra` pasa `SecurityUtils.email(authentication)` como
+email del restaurante (no lo acepta del body — el `RegistrarCompraDTO` solo lleva `usuarioId` e
+`importe`, que es el cliente al que el restaurante autenticado está otorgando puntos, parte esperada del
+flujo: el restaurante escanea el QR del cliente); `RecompensaController.canjear` usa
+`authentication.getName()` directamente como email del usuario que canjea, nunca un id del body. En
+ambos casos el patrón ya es correcto — no se encontró ninguna vulnerabilidad nueva de Broken Access
+Control, así que esta tarea se quedó en cerrar el hueco de cobertura, no en un fix de seguridad.
+
+- **`CompraServiceTest.java` (nuevo, 6 tests)**: importe cero o negativo lanza `BadRequestException` sin
+  consultar ningún DAO; usuario o restaurante inexistente lanzan `ResourceNotFoundException`; un importe
+  menor a 1€ no genera puntos suficientes y lanza `BadRequestException` sin guardar nada; una compra
+  válida (25,50€) suma los puntos enteros correctos (25) al usuario y registra un `MovimientoPuntos` tipo
+  `GANADOS` con el restaurante y monto reales (regla de negocio "1€ = 1 punto", truncado a entero, ya en
+  el código, ahora con test que la fija).
+- **`RecompensaServiceTest.java` (nuevo, 6 tests)**: `obtenerPorId` con id inexistente lanza
+  `ResourceNotFoundException`; `canjearRecompensa` con usuario o recompensa inexistente lanza
+  `ResourceNotFoundException` sin tocar el resto; con puntos insuficientes lanza `BadRequestException` sin
+  restar puntos ni registrar movimiento; con puntos suficientes (incluido el caso límite de saldo exacto)
+  resta los puntos correctos y registra un `MovimientoPuntos` tipo `CANJEADOS` con la descripción
+  esperada.
+
+**Verificación real**: `mvn compile` → éxito. `mvn test -Dtest=CompraServiceTest,RecompensaServiceTest,
+PromocionServiceTest,UsuarioServiceTest,RestauranteServiceTest,LoginRateLimiterTest,
+GlobalExceptionHandlerTest` → **61/61 passed** (6+6+13+15+13+7+1). `mvn test` completo → **62 tests, 61
+passed, 1 error** (`SpringBootTfgApplicationTests.contextLoads`, mismo motivo ya documentado en
+FID-013/014/015: `Communications link failure`, no hay MySQL en este sandbox — confirmado leyendo la
+traza completa, `Connection refused`). No se tocó ningún test ni código de producción existente (solo
+tests nuevos).
+
+**No se pudo verificar en este entorno** (requeriría backend/frontend/MySQL reales): el flujo E2E
+completo de compras y canje de recompensas, ya cubierto por la suite E2E existente
+(`restaurant-flows.spec.ts`/`client-flows.spec.ts`), no duplicado aquí.
+
+Archivos creados: `src/test/java/progresa/springboot_tfg/service/CompraServiceTest.java`,
+`src/test/java/progresa/springboot_tfg/service/RecompensaServiceTest.java`.
+
+Con esto, los siete servicios de negocio del backend tienen ya cobertura unitaria (salvo `QrService`,
+descartado por trivial). Pendiente para una futura sesión sin tareas nuevas en el backlog: seguir el
+mismo criterio de auditar cualquier endpoint que se fusione a `main` entretanto, y evaluar el salto de
+`spring-boot-starter-parent` 3.2.1 → 3.2.12 ya identificado en FID-014 (requiere una sesión con MySQL
+disponible para verificarse en runtime real).
 
 ### FID-013 — completada 2026-09-25
 Único pendiente que quedaba en `.agent/tasks.md`: el backend no tenía cobertura de tests unitarios
