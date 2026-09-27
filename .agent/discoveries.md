@@ -50,3 +50,31 @@ Contraseña de los 3: nueva, generada, guardada solo en `.env` local (variable `
 Validado: los 3 aparecen en la BD, el login de restaurante funciona (probado con Venezuela Food), el logo del restaurante mexicano se sirve correctamente, y el dashboard de admin cuenta 4 negocios (los 3 + el de prueba E2E).
 
 Backup de la BD tomado antes de la siembra: `backups/proyectoTFG_20260922_131229.sql` (gitignored, local).
+
+## "Canjear puntos" es una funcionalidad completa que nunca se terminó de conectar (auditoría 2026-09-27/28)
+
+El frontend (`restaurante-detalle-page.component.ts`, pantalla de detalle de un restaurante para
+el cliente) tiene una UI completa de canje de puntos: muestra `promo.puntosNecesarios`, un saldo
+`ptsRestaurante`/`saldoRestaurante` **por restaurante** (distinto del saldo global del usuario), y
+al confirmar llama a `promocionService.canjearPromocion()` → `POST /api/canjes`.
+
+**Ese endpoint no existe en el backend.** No hay controller, service ni DAO para `/api/canjes`
+(confirmado con `grep` sobre todo `controller/` y `service/`). Tampoco existe el campo
+`puntosNecesarios` en la entidad `Promocion` (solo existe `puntosOtorgados`), ni ningún concepto de
+"saldo de puntos por restaurante" en el backend — el único saldo real es `Usuario.puntos`, global.
+
+**Consecuencia real, verificada por lectura del código:** cualquier cliente que intente canjear una
+promoción de tipo CANJEAR recibe un 404 real. El frontend lo maneja correctamente (revierte el
+punto optimista, muestra un modal de error) — no finge un canje exitoso ni genera datos falsos —
+pero la funcionalidad está simplemente rota de punta a punta. El código
+`res.codigo || \`VOU-\${Math.random()...}\`` en la línea de éxito nunca se ejecuta hoy en producción
+porque esa rama de éxito nunca se alcanza (no hay endpoint que devuelva 2xx).
+
+**Por qué no lo implementé ahora:** requiere diseñar un modelo de datos real (¿el saldo "por
+restaurante" se calcula de `MovimientoPuntos` filtrado por restaurante, como ya hace
+`RestauranteService`, o es un concepto nuevo? ¿de dónde sale `puntosNecesarios` de una promoción
+CANJEAR?) y lógica de descuento de puntos con las mismas garantías de integridad que ya existen en
+`aplicarPromocion` (nunca permitir gastar más de lo que se tiene, registrar el movimiento). Es una
+funcionalidad nueva completa, no un bugfix rápido, y tocar el sistema de puntos sin diseñarlo bien
+es más peligroso que dejarlo documentado. Recomendado para la próxima sesión dedicada, con
+producción disponible para probar el flujo end-to-end.
