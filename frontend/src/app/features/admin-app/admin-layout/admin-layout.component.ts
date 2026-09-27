@@ -12,12 +12,11 @@ import {
   speedometerOutline
 } from 'ionicons/icons';
 import { AuthService } from '../../../core/auth/auth.service';
-import { AgentWidgetComponent } from '../../../shared/components/agent-widget/agent-widget.component';
 
 @Component({
   selector: 'app-admin-layout',
   standalone: true,
-  imports: [CommonModule, IonicModule, RouterModule, AgentWidgetComponent],
+  imports: [CommonModule, IonicModule, RouterModule],
   templateUrl: './admin-layout.component.html',
   styleUrls: ['./admin-layout.component.scss']
 })
