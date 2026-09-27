@@ -89,6 +89,12 @@
           <button type="button" (click)="reintentarUbicacion()">Reintentar</button>
         </div>
 
+        <div class="geo-inline-status geo-inline-status--warning" *ngIf="nearbyError">
+          <ion-icon name="cloud-offline-outline"></ion-icon>
+          <span>No se pudieron cargar los restaurantes cercanos.</span>
+          <button type="button" (click)="cargarLocalesValencia()">Reintentar</button>
+        </div>
+
         <section class="section-container animate__animated animate__fadeIn animate__delay-1s" *ngIf="nearbyRestaurants && nearbyRestaurants.length > 0">
           <app-section-header 
             [title]="'home.sections.nearby.title' | ffTranslate" 

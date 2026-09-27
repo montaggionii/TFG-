@@ -85,7 +85,8 @@ export class HomeComponent implements OnInit, OnDestroy {
       beerOutline: allIcons.beerOutline,
       bulbOutline: allIcons.bulbOutline,
       flameOutline: allIcons.flameOutline,
-      navigateCircleOutline: allIcons.navigateCircleOutline
+      navigateCircleOutline: allIcons.navigateCircleOutline,
+      cloudOfflineOutline: allIcons.cloudOfflineOutline
     });
   }
 
@@ -98,6 +99,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   userLocation: { lat: number, lng: number } | null = null;
   mapMarkers: any[] = [];
   nearbyRestaurants: any[] = [];
+  nearbyError = false;
   
   featuredRewards: any[] = [];
 
@@ -199,21 +201,11 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   cargarLocalesValencia() {
     if (!this.userLocation) return;
+    this.nearbyError = false;
 
-    // Eliminados locales Mock para usar exclusivamente la base de datos real
-    const localesMock: any[] = [];
-
-    // Combinar con locales reales del backend si existen, usando el radio de la UI
     this.restauranteService.getRestaurantesCercanos(this.userLocation!.lat, this.userLocation!.lng, this.radioKm).subscribe({
       next: (backendRestaurantes) => {
-        // Filtrar mocks para no duplicar si ya vienen del backend (por nombre)
-        const filteredMocks = localesMock.filter(m => 
-          !backendRestaurantes.some(br => br.nombre.toLowerCase() === m.nombre.toLowerCase())
-        );
-
-        const allRest = [...filteredMocks, ...backendRestaurantes];
-        
-        this.nearbyRestaurants = allRest.map(r => {
+        this.nearbyRestaurants = backendRestaurantes.map(r => {
           const dist = this.calculateDistance(
             this.userLocation!.lat, this.userLocation!.lng,
             r.latitud, r.longitud
@@ -221,29 +213,17 @@ export class HomeComponent implements OnInit, OnDestroy {
           return {
             ...r,
             distance: dist,
-            distanceText: GeolocationService.formatDistance(dist),
-            ptsPerEuro: 10
+            distanceText: GeolocationService.formatDistance(dist)
           };
         }).sort((a, b) => a.distance - b.distance);
 
         this.updatePromotionalBanners();
         this.generateMarkers();
       },
-      error: () => {
-        // Si el backend falla, usamos los mocks mejorados
-        this.nearbyRestaurants = localesMock.map(r => {
-          const dist = this.calculateDistance(
-            this.userLocation!.lat, this.userLocation!.lng,
-            r.latitud, r.longitud
-          );
-          return {
-            ...r,
-            distance: dist,
-            distanceText: GeolocationService.formatDistance(dist),
-            ptsPerEuro: 10
-          };
-        }).sort((a, b) => a.distance - b.distance);
-        
+      error: (err) => {
+        console.error('[HOME] Error cargando restaurantes cercanos:', err);
+        this.nearbyRestaurants = [];
+        this.nearbyError = true;
         this.updatePromotionalBanners();
         this.generateMarkers();
       }
