@@ -61,20 +61,10 @@ export class AuthService {
 
   loginUsuario(credentials: any): Observable<any> {
     const fullUrl = `${this.apiUrl}/login`;
-    const baseDetected = fullUrl.replace('/api/auth/login', '');
-    
-    console.log(`[BACKEND URL] Detectada: ${baseDetected}`);
-    console.log(`[LOGIN REQUEST] Intentando login usuario: ${credentials.email}`);
-    console.log(`[LOGIN REQUEST] URL completa: ${fullUrl}`);
-
 
     return this.http.post<any>(fullUrl, credentials).pipe(
       tap({
-        next: (res) => {
-          console.log(`[LOGIN RESPONSE] Éxito para ${credentials.email}`);
-          if (res.token) console.log(`[TOKEN JWT] Recibido: ${res.token.substring(0, 15)}...`);
-          this.handleAuthResponse(res, 'ROLE_USER');
-        },
+        next: (res) => this.handleAuthResponse(res, 'ROLE_USER'),
         error: (err) => {
           console.error(`[AUTH ERROR] Fallo en login usuario:`, err.status, err.statusText);
           if (err.status === 0) console.error('[NETWORK ERROR] El backend no responde. Verifica CORS o IP.');
@@ -85,20 +75,10 @@ export class AuthService {
 
   loginRestaurante(credentials: any): Observable<any> {
     const fullUrl = `${this.apiUrl}/login-restaurante`;
-    const baseDetected = fullUrl.replace('/api/auth/login-restaurante', '');
-    
-    console.log(`[BACKEND URL] Detectada: ${baseDetected}`);
-    console.log(`[LOGIN REQUEST] Intentando login restaurante: ${credentials.email}`);
-    console.log(`[LOGIN REQUEST] URL completa: ${fullUrl}`);
-
 
     return this.http.post<any>(fullUrl, credentials).pipe(
       tap({
-        next: (res) => {
-          console.log(`[LOGIN RESPONSE] Éxito para Restaurante ${credentials.email}`);
-          if (res.token) console.log(`[TOKEN JWT] Recibido: ${res.token.substring(0, 15)}...`);
-          this.handleAuthResponse(res, 'ROLE_RESTAURANT');
-        },
+        next: (res) => this.handleAuthResponse(res, 'ROLE_RESTAURANT'),
         error: (err) => {
           console.error(`[AUTH ERROR] Fallo en login restaurante:`, err.status, err.statusText);
           if (err.status === 0) console.error('[NETWORK ERROR] El backend no responde. Verifica CORS o IP.');
@@ -109,15 +89,10 @@ export class AuthService {
 
   loginAdmin(credentials: any): Observable<any> {
     const fullUrl = `${this.apiUrl}/login-admin`;
-    
-    console.log(`[LOGIN REQUEST] Intentando login admin: ${credentials.email}`);
 
     return this.http.post<any>(fullUrl, credentials).pipe(
       tap({
-        next: (res) => {
-          console.log(`[LOGIN RESPONSE] Éxito para admin ${credentials.email}`);
-          this.handleAuthResponse(res, 'ROLE_ADMIN');
-        },
+        next: (res) => this.handleAuthResponse(res, 'ROLE_ADMIN'),
         error: (err) => {
           console.error(`[AUTH ERROR] Fallo en login admin:`, err.status, err.statusText);
         }
@@ -126,21 +101,15 @@ export class AuthService {
   }
 
   registerUsuario(data: any): Observable<any> {
-    const fullUrl = `${this.apiUrl}/register`;
-    console.log('DEBUG URL (Register):', fullUrl);
-    return this.http.post<any>(fullUrl, data);
+    return this.http.post<any>(`${this.apiUrl}/register`, data);
   }
 
   registerRestaurante(data: any): Observable<any> {
-    const fullUrl = `${this.apiUrl}/register-restaurante`;
-    console.log('DEBUG URL (Register Rest):', fullUrl);
-    return this.http.post<any>(fullUrl, data);
+    return this.http.post<any>(`${this.apiUrl}/register-restaurante`, data);
   }
 
   private handleAuthResponse(res: any, fallbackRole: string) {
     if (res && res.token) {
-      console.log('[AuthService] Procesando respuesta de login. Limpiando sesión previa...');
-      
       // Limpieza atómica antes de escribir el nuevo usuario
       this.clearSessionStorage();
       this.globalState.setState(null);
@@ -232,9 +201,6 @@ export class AuthService {
   }
 
   public logout() {
-    // 3. RASTREO DE REDIRECCIÓN FUGITIVA
-    console.trace('Cierre de sesión invocado desde:');
-    
     this.clearSessionStorage();
     this.authStateSubject.next({ token: null, rol: null, nombre: null });
     this.globalState.setState(null);

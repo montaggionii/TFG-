@@ -23,10 +23,8 @@ export class GlobalStateService {
   setState(state: UserState | null) {
     if (state) {
       localStorage.setItem('currentUser', JSON.stringify(state));
-      console.log(`[STATE CHANGE] Nuevo estado completo:`, state);
     } else {
       localStorage.removeItem('currentUser');
-      console.log(`[STATE CHANGE] Estado limpiado (logout)`);
     }
     this.userState.next(state);
   }
@@ -46,11 +44,8 @@ export class GlobalStateService {
       console.warn('[PUNTOS GLOBAL] updatePuntos() llamado sin estado de usuario activo');
       return;
     }
-    const puntosAnteriores = current.puntos ?? 0;
     const updatedState: UserState = { ...current, puntos };
     localStorage.setItem('currentUser', JSON.stringify(updatedState));
-    console.log(`[PUNTOS GLOBAL] Actualización: ${puntosAnteriores} → ${puntos} pts`);
-    console.log(`[ESTADO ACTUALIZADO] UsuarioID=${current.id} | Puntos=${puntos}`);
     this.userState.next(updatedState);
   }
 
