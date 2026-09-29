@@ -1,0 +1,68 @@
+name: CI
+
+# Solo verifica que el backend y el frontend compilan y pasan sus tests -
+# no despliega nada. El despliegue real a Render/Vercel lo gestionan ellos
+# mismos por su propio webhook al hacer push a main, fuera de este workflow.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend (Java 17 + MySQL)
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: proyectoTFG
+          MYSQL_USER: fidelyfood_app
+          MYSQL_PASSWORD: ci_test_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: mvn test
+        env:
+          DB_URL: jdbc:mysql://localhost:3306/proyectoTFG?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+          DB_USERNAME: fidelyfood_app
+          DB_PASSWORD: ci_test_password
+        run: ./mvnw -B test
+
+  frontend:
+    name: Frontend (Angular build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: npm ci
+        run: npm ci
+
+      - name: ng build --configuration production
+        run: npx ng build --configuration production

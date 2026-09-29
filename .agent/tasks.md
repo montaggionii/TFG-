@@ -29,8 +29,31 @@
 - [x] **Cobertura unitaria de `PromocionService` y `obtenerEstadisticasPeriodo` (FID-015)** — 2026-09-26: la rama estaba desactualizada (PR #28 de FID-013/014 aún abierto sobre un `main` viejo) mientras `main` ya llevaba 4 PRs más fusionados, incluyendo `#29` (analítica por periodo) y `#30` (imagen de promociones); se actualizó primero con `git merge origin/main`. Auditoría de autorización de ese código nuevo: correcto, ya usa `requireOwner`/`requirePromotionOwner` en todos los endpoints sensibles, sin vulnerabilidad nueva. Hueco real encontrado: sin ningún test unitario (solo E2E). `PromocionServiceTest.java` nuevo (15 tests) + 2 tests nuevos en `RestauranteServiceTest.java`. Detalle en `AGENT_TASKS.md`.
 - [x] **Cobertura unitaria de `CompraService` y `RecompensaService` (FID-016)** — 2026-09-27: `main` sin commits nuevos desde FID-015, PR #28 seguía abierto y actualizado. Últimos dos servicios de negocio del backend sin ningún test unitario. Auditoría de autorización previa (mismo criterio que FID-005/FID-013/FID-015): `CompraController`/`RecompensaController` ya identifican al restaurante/usuario por el email autenticado, nunca por un id del cliente — sin vulnerabilidad nueva. 12 tests nuevos (6+6): validaciones de importe/puntos insuficientes, resta/suma correcta de puntos, registro de `MovimientoPuntos` con tipo y datos esperados. Con esto los 7 servicios de negocio del backend tienen cobertura unitaria (salvo `QrService`, trivial). Detalle en `AGENT_TASKS.md`.
 
-## Pendiente (por prioridad)
-1. Sin tareas pendientes razonables detectadas en esta sesión (2026-09-27) más allá de lo ya recogido en "Hecho". El backlog de `AGENT_TASKS.md` no tiene ninguna entrada abierta y los 7 servicios de negocio del backend ya tienen cobertura unitaria; próxima sesión debería seguir auditando código nuevo que se fusione a `main` entretanto (mismo criterio que FID-005/FID-015/FID-016) y, si aparece una sesión con MySQL disponible, evaluar el salto de `spring-boot-starter-parent` 3.2.1 → 3.2.12 (identificado en FID-014, pendiente de poder verificarse en runtime real). Ver `AGENT_TASKS.md` para el detalle de cada cierre.
+## Pendiente (por prioridad) — actualizado 2026-09-29, tras la sesión autónoma 27-29 sep
+
+Todos los PRs de la sesión autónoma (#28, #31, #32, #33, #34, #35, #36, #38, #12) ya están
+fusionados en `main`. Pendiente real ahora:
+
+1. **Producción se cayó ~45h (27→29 sep) por el plan free de Aiven**, que apaga la base de datos
+   sola por inactividad (no era un fallo de Render, aunque coincidió con un incidente real de su
+   plataforma el mismo día) — ver `discoveries.md`. Recuperada encendiéndola a mano en
+   console.aiven.io, sin pérdida de datos. Pendiente decidir si merece la pena pagar el plan mínimo
+   de pago de Aiven para que no vuelva a pasar antes de una demo o entrega del TFG.
+2. **"Canjear puntos" no funciona de verdad para un cliente** (`POST /api/canjes` no existe, ni los
+   campos que el frontend espera de una promoción CANJEAR: `puntosNecesarios`, saldo por
+   restaurante) — detalle completo en `discoveries.md`. Las promociones CANJEAR ya creadas
+   (Mexican Food, Alabroster, Venezuela Food) se gestionan bien desde el lado del restaurante, pero
+   el cliente no puede canjearlas todavía.
+3. **Inestabilidad del alias de dominio de Vercel** (ya documentada varias veces esta sesión):
+   fusionar a `main` no siempre promueve el nuevo despliegue a "Production" automáticamente en
+   `fidelyfoodapp.vercel.app` — comprobar la pestaña "Deployments" del proyecto tras cada fusión que
+   toque frontend.
+4. Añadir CI (`.github/workflows/ci.yml`, backend con MySQL efímero + frontend build) — no
+   desplegado nunca antes de esta sesión, ver commit de esta misma fecha.
+5. P3, no urgente: a 320px exacto el modal "Crear Promoción" corta texto contra el borde derecho.
+6. Los otros ~3 restaurantes reales (Restaurante E2E excluido a propósito, es un fixture de QA) ya
+   tienen identidad e imágenes de portada previas de sesiones anteriores; Alabroster y Venezuela
+   Food recibieron 8 promociones nuevas cada uno (4 ganar + 4 canjear) con foto propia el 29/09.
 
 ## Agente autónomo (Fase 7) — ACTIVADO
 2026-09-24: rutina en la nube "FidelyFood - Backlog técnico diario" creada vía `/schedule` (routine `trig_014dcQmXWEEMPUshiQqN5XVU`), diaria a las 09:00 hora de Zurich (07:00 UTC). Corre en un sandbox aislado en la nube (no en el worktree local), trabaja siempre en su propia rama `agent/fidelyfood-autonomous` sobre `montaggionii/TFG-`, sigue las reglas de `.claude/agents/fidelyfood-qa-security.md`, y tiene prohibido explícitamente fusionar a `main` por sí sola — solo deja Pull Requests listos para revisión humana. Panel: https://claude.ai/code/routines/trig_014dcQmXWEEMPUshiQqN5XVU

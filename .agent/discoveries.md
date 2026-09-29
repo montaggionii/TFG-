@@ -50,3 +50,67 @@ Contraseña de los 3: nueva, generada, guardada solo en `.env` local (variable `
 Validado: los 3 aparecen en la BD, el login de restaurante funciona (probado con Venezuela Food), el logo del restaurante mexicano se sirve correctamente, y el dashboard de admin cuenta 4 negocios (los 3 + el de prueba E2E).
 
 Backup de la BD tomado antes de la siembra: `backups/proyectoTFG_20260922_131229.sql` (gitignored, local).
+
+## "Canjear puntos" es una funcionalidad completa que nunca se terminó de conectar (auditoría 2026-09-27/29)
+
+El frontend (`restaurante-detalle-page.component.ts`, pantalla de detalle de un restaurante para
+el cliente) tiene una UI completa de canje de puntos: muestra `promo.puntosNecesarios`, un saldo
+`ptsRestaurante`/`saldoRestaurante` **por restaurante** (distinto del saldo global del usuario), y
+al confirmar llama a `promocionService.canjearPromocion()` → `POST /api/canjes`.
+
+**Ese endpoint no existe en el backend.** No hay controller, service ni DAO para `/api/canjes`
+(confirmado con `grep` sobre todo `controller/` y `service/`). Tampoco existe el campo
+`puntosNecesarios` en la entidad `Promocion` (solo existe `puntosOtorgados`), ni ningún concepto de
+"saldo de puntos por restaurante" en el backend — el único saldo real es `Usuario.puntos`, global.
+
+**Consecuencia real, verificada por lectura del código:** cualquier cliente que intente canjear una
+promoción de tipo CANJEAR recibe un 404 real. El frontend lo maneja correctamente (revierte el
+punto optimista, muestra un modal de error) — no finge un canje exitoso ni genera datos falsos —
+pero la funcionalidad está simplemente rota de punta a punta.
+
+**Por qué no lo implementé:** requiere diseñar un modelo de datos real (¿el saldo "por restaurante"
+se calcula de `MovimientoPuntos` filtrado por restaurante, como ya hace `RestauranteService`, o es
+un concepto nuevo? ¿de dónde sale `puntosNecesarios` de una promoción CANJEAR?) y lógica de
+descuento de puntos con las mismas garantías de integridad que ya existen en `aplicarPromocion`
+(nunca permitir gastar más de lo que se tiene, registrar el movimiento). Es una funcionalidad nueva
+completa, no un bugfix rápido. Recomendado para una sesión dedicada, con producción disponible para
+probar el flujo end-to-end. Actualización 29/09: ya hay promociones CANJEAR reales creadas para
+Mexican Food, Alabroster y Venezuela Food (con foto propia cada una) que se gestionan bien desde el
+lado del restaurante — el hueco sigue siendo únicamente el lado del canje real por el cliente.
+
+## Causa real de la caída de producción de 45h (2026-09-27 a 2026-09-29): Aiven apaga la BD gratuita por inactividad
+
+Durante horas se asumió (incluido por mí) que era un incidente de Render, porque coincidió con un
+incidente real de plataforma en Render (status.render.com, región Oregon) el mismo día. Pero ese
+incidente se resolvió en un par de horas y el backend siguió sin responder muchísimo más tiempo.
+
+**Causa real, encontrada por el usuario en console.aiven.io**: el plan gratuito de MySQL en Aiven
+(`Free-1-1gb`) **se apaga solo tras un periodo de inactividad** — la propia consola de Aiven lo
+avisa explícitamente: *"Scale up your MySQL for only $5/month... prevent automatic power-offs
+during inactivity"*. Cuando el servicio está en estado "Powered off", Aiven retira también el
+registro DNS del host (`fidelyfood-db-fidelyfood.b.aivencloud.com`), lo que explica el
+`UnknownHostException`/`NXDOMAIN` que veíamos — confirmado independientemente desde esta misma
+máquina con `nslookup` (NXDOMAIN) antes de que el usuario mirara el dashboard.
+
+**Los datos nunca estuvieron en riesgo**: la consola mostraba backups reales (548 MB, el más
+reciente de hace 4 días) durante todo el apagado. Encender el servicio de nuevo (botón de acción
+en la vista "Overview" del servicio en Aiven) restauró el DNS y la conexión sin pérdida de datos.
+Verificado con un login real contra producción con contraseña incorrecta → "Credenciales
+incorrectas" (no un error de conexión), confirmando que los datos siguen ahí.
+
+**Lección para el futuro**: si vuelve a pasar, comprobar primero `console.aiven.io` (estado
+"Powered off" del servicio MySQL) antes que el dashboard de Render — el síntoma desde Render
+(`Communications link failure` / `UnknownHostException` en los logs de deploy) es idéntico sea
+cual sea la causa, pero el origen real está en Aiven, no en Render. Considerar si merece la pena
+pagar el plan mínimo de pago de Aiven para evitar que esto se repita en una demo o entrega del TFG.
+
+## Inestabilidad del alias de dominio de Vercel tras un merge (2026-09-29)
+
+El PR #41 (fotos reales en el dashboard) se fusionó correctamente a `main`, y la API de GitHub
+(`commits/{sha}/status`) confirmó que Vercel completó un despliegue de producción real para ese
+commit en los 3 proyectos conectados. Pese a eso, `fidelyfoodapp.vercel.app` siguió sirviendo la
+build antigua durante varios minutos (confirmado que no era caché: `x-vercel-cache: MISS` con
+`last-modified` actual). Se resolvió cuando el usuario entró a "Deployments" del proyecto en Vercel
+y promovió manualmente el despliegue nuevo a "Production". Mismo patrón de inestabilidad del alias
+ya visto en sesiones anteriores con este mismo proyecto. Comprobar siempre esa pestaña tras fusionar
+algo que toque el frontend, antes de asumir que el merge no funcionó.
