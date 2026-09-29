@@ -50,3 +50,29 @@ Contraseña de los 3: nueva, generada, guardada solo en `.env` local (variable `
 Validado: los 3 aparecen en la BD, el login de restaurante funciona (probado con Venezuela Food), el logo del restaurante mexicano se sirve correctamente, y el dashboard de admin cuenta 4 negocios (los 3 + el de prueba E2E).
 
 Backup de la BD tomado antes de la siembra: `backups/proyectoTFG_20260922_131229.sql` (gitignored, local).
+
+## Causa real de la caída de producción de 45h (2026-09-27 a 2026-09-29): Aiven apaga la BD gratuita por inactividad
+
+Durante horas se asumió (incluido por mí) que era un incidente de Render, porque coincidió con un
+incidente real de plataforma en Render (status.render.com, región Oregon) el mismo día. Pero ese
+incidente se resolvió en un par de horas y el backend siguió sin responder muchísimo más tiempo.
+
+**Causa real, encontrada por el usuario en console.aiven.io**: el plan gratuito de MySQL en Aiven
+(`Free-1-1gb`) **se apaga solo tras un periodo de inactividad** — la propia consola de Aiven lo
+avisa explícitamente: *"Scale up your MySQL for only $5/month... prevent automatic power-offs
+during inactivity"*. Cuando el servicio está en estado "Powered off", Aiven retira también el
+registro DNS del host (`fidelyfood-db-fidelyfood.b.aivencloud.com`), lo que explica el
+`UnknownHostException`/`NXDOMAIN` que veíamos — confirmado independientemente desde esta misma
+máquina con `nslookup` (NXDOMAIN) antes de que el usuario mirara el dashboard.
+
+**Los datos nunca estuvieron en riesgo**: la consola mostraba backups reales (548 MB, el más
+reciente de hace 4 días) durante todo el apagado. Encender el servicio de nuevo (botón de acción
+en la vista "Overview" del servicio en Aiven) restauró el DNS y la conexión sin pérdida de datos.
+Verificado con un login real contra producción con contraseña incorrecta → "Credenciales
+incorrectas" (no un error de conexión), confirmando que los datos siguen ahí.
+
+**Lección para el futuro**: si vuelve a pasar, comprobar primero `console.aiven.io` (estado
+"Powered off" del servicio MySQL) antes que el dashboard de Render — el síntoma desde Render
+(`Communications link failure` / `UnknownHostException` en los logs de deploy) es idéntico sea
+cual sea la causa, pero el origen real está en Aiven, no en Render. Considerar si merece la pena
+pagar el plan mínimo de pago de Aiven para evitar que esto se repita en una demo o entrega del TFG.

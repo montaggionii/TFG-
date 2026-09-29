@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-25T09:45:00Z",
+  "updatedAt": "2026-09-29T11:21:00Z",
   "project": {
     "name": "FidelyFood (TFG)",
     "path": "/Users/montaggioni/projects/TFG-repaired-20260917",
@@ -9,72 +9,59 @@
   "agent": {
     "status": "ACTIVO",
     "mode": "LIVE",
-    "currentTask": "Sesion nocturna del 2026-09-25 completada y fusionada (PR #26 mapa + PR #27 responsive/promociones/codigo postal/E2E). PR #28 (tests unitarios de la rutina diaria) revisado y recomendado, pendiente de que el usuario confirme la fusion.",
-    "lastActivity": "2026-09-25T09:45:00Z",
-    "progress": "Despliegue en produccion estable (backend Render/Aiven, frontend Vercel fidelyfoodapp.vercel.app). Sesion nocturna autonoma (rutina de una sola vez) corrigio de verdad: zona blanca en Google Maps (ResizeObserver, PR #26), 3 bugs reales en promociones (endpoint equivocado devolvia 403 siempre, campos del template mal mapeados, modal de crear promo inutilizable en desktop por conflicto de media query vs ancho fijo de modal), codigo postal del restaurante que nunca se persistia pese a ser obligatorio en el formulario, responsive de los 4 botones de accion del dashboard, y ampliacion de la suite E2E con un flujo completo de restaurante de punta a punta (PR #27). Todo verificado con build + tests reales, no solo descrito. Backend y frontend recompilados localmente esta manana tras la fusion: build OK, tests backend 2/2 pasando, migracion de codigo_postal aplicada sola via Hibernate ddl-auto=update sin intervencion manual."
+    "currentTask": "Produccion recuperada tras ~45h de caida real. Causa real encontrada por el usuario en el dashboard de Aiven (no en Render): el plan gratuito de MySQL se apaga solo por inactividad ('Powered off'). El usuario lo encendio manualmente. Datos intactos (backups de 4-5 dias visibles, 548MB). 9 PRs de la sesion autonoma (#28, #31-#40) siguen esperando revision del usuario.",
+    "lastActivity": "2026-09-29T11:21:00Z",
+    "progress": "Verificado con /ping (200) y con un login real con password incorrecta contra produccion -> 'Credenciales incorrectas' (confirma que la BD responde de verdad, con los datos reales, no solo que el proceso esta vivo). Pendiente: fusionar los PRs abiertos, y decidir si conviene subir el plan de Aiven de pago minimo para evitar que esto se repita (el apagado automatico es una caracteristica del plan free, no un fallo)."
   },
   "production": {
     "backend": {
       "url": "https://fidelyfood-backend.onrender.com",
       "host": "Render (plan free, Docker)",
-      "database": "MySQL en Aiven (free tier)",
-      "status": "Live, verificado con /ping, login real y ruta 404 corregida"
+      "database": "MySQL en Aiven (free tier) - RECUPERADA 2026-09-29 ~13:15 hora local. Se habia apagado sola por inactividad (caracteristica del plan free de Aiven, no un fallo de Render como se penso al principio); el usuario la reactivo a mano en console.aiven.io. Riesgo conocido: puede volver a apagarse sola tras un periodo de inactividad.",
+      "status": "OK - verificado con /ping y con un intento de login real (password incorrecta -> 'Credenciales incorrectas', confirma BD viva con datos reales)"
     },
     "frontend": {
       "url": "https://fidelyfoodapp.vercel.app",
       "adminLoginUrl": "https://fidelyfoodapp.vercel.app/admin/login",
       "host": "Vercel (plan Hobby)",
-      "status": "Live, sirviendo el build de produccion de Angular con el fix de mapas y promociones ya fusionado",
-      "note": "Proyecto nuevo (fidelyfoodapp) creado el 2026-09-24 porque el proyecto original (renombrado varias veces: tfg-glf5 -> fidelyapp -> fidelyfood) quedo en un estado corrupto en Vercel. El proyecto viejo se dejo sin tocar (no se borro).",
-      "legacyUrl": "https://tfg-glf5.vercel.app (proyecto original, funcionaba pero se abandono a favor de fidelyfoodapp)"
+      "status": "Live"
     },
-    "adminAccount": {
-      "email": "admin@fidelyfood.local",
-      "activePasswordNote": "admin123 (valor por defecto del codigo) sigue activo hasta que el backend se reinicie",
-      "pendingPasswordNote": "Nueva contrasena elegida por el usuario ya guardada en Render (FIDELYFOOD_ADMIN_PASSWORD); se activara sola en el proximo reinicio del servicio, o antes si se fuerza un Manual Deploy"
-    },
-    "domainDecision": "El usuario decidio quedarse con los subdominios gratuitos (Render/Vercel) — un dominio propio real siempre tiene coste de registro.",
     "pendingUserAction": [
-      "Restringir la API key de Google Maps por HTTP referrer en Google Cloud Console (SECURITY.md punto 9) — el usuario decidio no hacerlo por ahora",
-      "Forzar 'Manual Deploy' en Render cuando se quiera aplicar ya la nueva contrasena de admin",
-      "Decidir que hacer con el proyecto viejo de Vercel (fidelyfood, antes tfg-glf5/fidelyapp) que quedo roto — se puede borrar cuando se quiera",
-      "Confirmar si se fusiona el PR #28 (tests unitarios FID-013/FID-014, ya revisado y recomendado por Claude esta manana)",
-      "Verificar visualmente en fidelyfoodapp.vercel.app que el mapa y las promociones quedaron bien tras la fusion de esta madrugada"
+      "Fusionar PR #28 (fix de seguridad real: fuga de hash de password via /api/promociones) - URGENTE, prioridad sobre el resto",
+      "Revisar y fusionar (o pedir cambios en) los PRs #31 a #40 de esta sesion autonoma",
+      "Considerar si merece la pena pagar el plan minimo de Aiven ($5-ish) para evitar que la BD se vuelva a apagar sola por inactividad - el apagado automatico es la causa raiz de esta caida de 43h",
+      "Restringir la API key de Google Maps por HTTP referrer - el usuario decidio no hacerlo por ahora"
     ]
   },
-  "autonomousAgent": {
-    "status": "ACTIVADO",
-    "routineId": "trig_014dcQmXWEEMPUshiQqN5XVU",
-    "routineUrl": "https://claude.ai/code/routines/trig_014dcQmXWEEMPUshiQqN5XVU",
-    "schedule": "Diario, 09:00 hora de Zurich (07:00 UTC)",
-    "rules": "Corre en un sandbox aislado en la nube, trabaja siempre en su propia rama agent/fidelyfood-autonomous, nunca fusiona a main por si sola — solo deja Pull Requests. Abrio el PR #28 esta manana (dos ejecuciones paralelas cubrieron FID-013 y FID-014 sin colisionar)."
-  },
-  "nightlySession": {
-    "date": "2026-09-24/25",
-    "routineId": "trig_016pjiNZ5JhAj6V15PeqVSAu",
-    "prsMerged": [
-      "https://github.com/montaggionii/TFG-/pull/26 (Google Maps ResizeObserver)",
-      "https://github.com/montaggionii/TFG-/pull/27 (responsive dashboard, 3 bugs de promociones, codigo postal, E2E ampliado)"
-    ],
-    "mergedBy": "El usuario, desde el panel propio de la rutina en claude.ai, confirmando explicitamente saltarse la regla de 'nunca fusionar sola' que el la propia rutina llevaba configurada",
-    "note": "La rutina se paso varias horas vigilando el PR #27 (checks de Vercel, sin reviews) antes de que el usuario aprobara la fusion por la manana."
-  },
   "pr": {
-    "lastMerged": "https://github.com/montaggionii/TFG-/pull/27",
-    "openForReview": ["https://github.com/montaggionii/TFG-/pull/28 (tests unitarios, revisado y recomendado por Claude, pendiente confirmacion del usuario)"]
+    "lastMerged": "https://github.com/montaggionii/TFG-/pull/30",
+    "openForReview": [
+      "#28 - fix(security) FID-017: fuga de hash de password via /api/promociones + tests unitarios FID-013 a FID-016 (URGENTE)",
+      "#31 - feat(dashboard): info-card real al tocar el marcador del mapa",
+      "#32 - fix(seed): quitar toda mencion a demo del contenido visible",
+      "#33 - fix(historial): eliminar datos inventados y mostrar cliente/monto reales",
+      "#34 - chore(auth): no volcar tokens/JWT ni logs de depuracion a la consola",
+      "#35 - fix(admin): quitar el widget de agente IA que era pura simulacion",
+      "#36 - fix(home): quitar tasa de puntos inventada y distinguir vacio de error",
+      "#37 - docs: detallar por que canjear puntos no funciona hoy",
+      "#38 - fix(a11y): asociar las etiquetas de email/password en los logins",
+      "#39 - docs: actualizar estado del proyecto",
+      "#40 - ci: anadir GitHub Actions (build + tests, sin desplegar nada) - ya paso su primer run real (backend 1m4s, frontend 51s)"
+    ]
   },
   "build": {
     "status": "OK",
-    "backend": "mvn clean test -> BUILD SUCCESS (verificado 2026-09-25 tras la fusion nocturna, con .env local cargado)",
-    "frontend": "ng build --configuration production -> OK (solo warnings preexistentes de Sass/CSS)",
-    "validatedAt": "2026-09-25T09:44:00Z"
+    "backend": "mvn test -> 2/2 OK. Tambien verificado por el propio CI nuevo (PR #40) contra una BD MySQL 8.0 completamente vacia en un runner real de GitHub Actions.",
+    "frontend": "ng build --configuration production -> OK",
+    "validatedAt": "2026-09-29T11:00:00Z"
   },
   "tests": {
-    "backend": { "total": 2, "passing": 2, "failing": 0, "note": "SpringBootTfgApplicationTests (contextLoads) + GlobalExceptionHandlerTest. PR #28 (sin fusionar aun) anadiria 34 tests unitarios mas (UsuarioServiceTest, RestauranteServiceTest, LoginRateLimiterTest)." },
-    "e2e": { "total": 15, "passing": null, "note": "PR #27 amplio restaurant-flows.spec.ts con un flujo completo de restaurante de punta a punta y corrigio security-restaurant-stats.spec.ts (ID hardcodeado). No re-ejecutada localmente esta manana por falta de tiempo, verificada por la propia rutina nocturna antes de abrir el PR." }
+    "backend": { "total": 2, "passing": 2, "failing": 0 },
+    "e2e": { "total": 15, "passing": 15, "failing": 0 }
   },
   "security": {
-    "vulnerabilitiesFixed": ["login sin rate-limiting", "enumeracion de emails en login", "swagger publico", "JWT secret de desarrollo en produccion", "stats de restaurante sin control de propiedad", "3 XSS de Angular (npm audit)", "500 en vez de 404 en rutas sin recurso", "contrasena de admin por defecto (admin123) visible en el codigo fuente, en proceso de cambio", "contrasena por defecto (change-me-restaurant-password) de los 3 restaurantes historicos, corregida"],
+    "vulnerabilitiesFixed": ["login sin rate-limiting", "enumeracion de emails en login", "swagger publico", "JWT secret de desarrollo en produccion", "stats de restaurante sin control de propiedad", "3 XSS de Angular (npm audit)", "500 en vez de 404 en rutas sin recurso"],
+    "vulnerabilidadEncontradaSinFusionar": "FID-017 (PR #28, sin fusionar): GET /api/promociones devolvia el hash bcrypt de la password de cualquier restaurante. Corregido, verificado con E2E real 16/16. Ahora que produccion esta viva de nuevo, esta vulnerabilidad vuelve a ser explotable en vivo hasta que se fusione.",
     "pendingUserDecision": ["rotar credenciales expuestas historicamente (usuario decidio NO hacerlo por ahora)"]
   }
 }

@@ -23,8 +23,22 @@
 - **Dominio propio**: el usuario decidió quedarse con los subdominios gratuitos de Render/Vercel — un dominio propio real siempre tiene coste de registro, no hay forma 100% gratis de conseguir uno.
 - **Restringir la API key de Google Maps por dominio**: el usuario decidió no hacerlo por ahora.
 
-## Pendiente (por prioridad)
-1. **Tests unitarios del backend**: sigue sin cobertura más allá del arranque de contexto (`contextLoads`) — toda la cobertura real de lógica de negocio vive en la suite E2E.
+## Pendiente (por prioridad) — actualizado 2026-09-29
+
+0. **🔴 URGENTE — fusionar PR #28**: fix de seguridad real (fuga del hash de contraseña de
+   cualquier restaurante vía `GET /api/promociones`), verificado con E2E 16/16. Ahora que
+   producción está viva de nuevo, la vulnerabilidad vuelve a ser explotable hasta que se fusione.
+1. Revisar y fusionar (o pedir cambios en) el resto de PRs de la sesión autónoma: #31-#40
+   (eliminación de contenido "demo", widget de admin con agente IA falso quitado, datos inventados
+   eliminados del historial y del inicio del cliente, higiene de logs, accesibilidad, CI nuevo).
+2. **Producción se cayó 45h (27→29 sep) por el plan free de Aiven, que apaga la BD sola por
+   inactividad** (no era un fallo de Render, aunque coincidió con un incidente real de su
+   plataforma) — ver `discoveries.md`. Recuperada encendiéndola a mano en console.aiven.io, sin
+   pérdida de datos. Pendiente decidir si merece la pena pagar el plan mínimo de Aiven para que no
+   vuelva a pasar antes de una demo o entrega.
+3. **"Canjear puntos" no funciona** (`POST /api/canjes` no existe, ni los campos que el frontend
+   espera de una promoción CANJEAR) — detalle completo en `discoveries.md`.
+4. P3, no urgente: a 320px exacto el modal "Crear Promoción" corta texto contra el borde derecho.
 
 ## Agente autónomo (Fase 7) — ACTIVADO
 2026-09-24: rutina en la nube "FidelyFood - Backlog técnico diario" creada vía `/schedule` (routine `trig_014dcQmXWEEMPUshiQqN5XVU`), diaria a las 09:00 hora de Zurich (07:00 UTC). Corre en un sandbox aislado en la nube (no en el worktree local), trabaja siempre en su propia rama `agent/fidelyfood-autonomous` sobre `montaggionii/TFG-`, sigue las reglas de `.claude/agents/fidelyfood-qa-security.md`, y tiene prohibido explícitamente fusionar a `main` por sí sola — solo deja Pull Requests listos para revisión humana. Panel: https://claude.ai/code/routines/trig_014dcQmXWEEMPUshiQqN5XVU
