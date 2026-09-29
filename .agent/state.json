@@ -60,8 +60,26 @@
     "note": "La rutina se paso varias horas vigilando el PR #27 (checks de Vercel, sin reviews) antes de que el usuario aprobara la fusion por la manana."
   },
   "pr": {
-    "lastMerged": "https://github.com/montaggionii/TFG-/pull/27",
-    "openForReview": ["https://github.com/montaggionii/TFG-/pull/28 (tests unitarios, revisado y recomendado por Claude, pendiente confirmacion del usuario)"]
+    "lastMerged": "https://github.com/montaggionii/TFG-/pull/30",
+    "openForReview": [
+      "https://github.com/montaggionii/TFG-/pull/28 (tests unitarios, revisado y recomendado por Claude, pendiente confirmacion del usuario)",
+      "https://github.com/montaggionii/TFG-/pull/31 (info-card real al tocar el marcador del mapa; se descarto un indicador Abierto/Cerrado porque RestauranteDTO no tiene ese campo y siempre mentia 'Cerrado')"
+    ]
+  },
+  "incident_2026-09-27": {
+    "summary": "Backend de produccion (Render, plan free) sin responder (ping y /api/restaurantes con timeout/502) durante la sesion del 27 de septiembre.",
+    "cause": "Incidente confirmado en status.render.com: 'Observing service instability from our upstream provider AWS in Oregon region' - resuelto para la mayoria de servicios pero el free web services tier seguia afectado en el momento de la comprobacion. No es un bug introducido por PR #29/#30.",
+    "action": "No se toco nada en Render/Aiven. Se dejo un sondeo en segundo plano esperando la recuperacion antes de continuar con la poblacion de restaurantes (tarea 'FIDELYFOOD - RESTAURANT DATA & QA REPORT')."
+  },
+  "restaurantesReales": {
+    "verificadoEn": "BD local (proyectoTFG), sembrada originalmente por HistoricalRestaurantSeeder como espejo de los restaurantes historicos reales",
+    "lista": [
+      { "id": 1, "nombre": "Restaurante E2E", "email": "e2e-rest@fidelyfood.local", "nota": "Fixture de QA/Playwright, NO es un restaurante demo de cara al usuario - no se le debe dar identidad de marketing" },
+      { "id": 2, "nombre": "Alabroster - Comida Colombiana", "email": "alabroster@test.com", "nota": "Cocina colombiana - es probable que el usuario recordara esto al mencionar 'Colombia Food', que no existe como restaurante aparte" },
+      { "id": 3, "nombre": "Venezuela Food", "email": "venezuelafood@gmail.com" },
+      { "id": 4, "nombre": "Mexican Food", "email": "mexicanfood@fidelyfood.local", "nota": "Ya tiene descripcion, logo y 4 promociones GANAR creadas en produccion en la sesion anterior; faltan las CANJEAR" }
+    ],
+    "confirmadoNoExiste": "Colombia Food (no aparece como restaurante independiente en ningun sitio)"
   },
   "build": {
     "status": "OK",
