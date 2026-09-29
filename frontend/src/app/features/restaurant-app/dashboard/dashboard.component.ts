@@ -27,13 +27,14 @@ import { MapComponent } from '../../../shared/components/map/map.component';
 import { RouterModule } from '@angular/router';
 import { ModalController } from '@ionic/angular';
 import { FormPromocionComponent } from '../mis-promociones/form-promocion/form-promocion.component';
+import { SafeRestaurantImageDirective } from '../../../shared/directives/safe-restaurant-image.directive';
 
 @Component({
   selector: 'app-dashboard',
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule, MapComponent, RouterModule]
+  imports: [IonicModule, CommonModule, MapComponent, RouterModule, SafeRestaurantImageDirective]
 })
 export class DashboardComponent implements OnInit {
   private restauranteService = inject(RestauranteService);
@@ -151,7 +152,10 @@ export class DashboardComponent implements OnInit {
     try {
       this.promocionService.getPromocionesByRestaurante(this.business.id).subscribe({
         next: (data) => {
-          this.promociones = data || [];
+          this.promociones = (data || []).map((p: any) => ({
+            ...p,
+            imagenUrl: this.restauranteService.resolvePromotionImage(p, this.extendedData)
+          }));
           this.isLoading = false;
           if (event) event.target.complete();
         },

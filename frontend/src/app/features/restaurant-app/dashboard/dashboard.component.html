@@ -199,10 +199,16 @@
       <div class="promos-section animate__animated animate__fadeInUp" *ngIf="promociones.length > 0">
         <h3 class="section-title ion-padding-horizontal">Tus Ofertas Activas</h3>
         <div class="promo-scroll">
-          <div *ngFor="let promo of promociones" class="glass-card promo-mini-card">
-            <div class="promo-glow-icon"><ion-icon name="gift-outline"></ion-icon></div>
+          <div *ngFor="let promo of promociones"
+               class="promo-mini-card tap-effect"
+               [routerLink]="['/r/promociones']">
+            <div class="mini-photo">
+              <img [appSafeRestaurantImage]="promo.imagenUrl" [alt]="promo.titulo" />
+              <span class="mini-badge" [class.canje]="promo.tipo === 'CANJEAR'">
+                {{ promo.tipo === 'CANJEAR' ? '-' : '+' }}{{ promo.puntosOtorgados }} PTS
+              </span>
+            </div>
             <h4>{{ promo.titulo }}</h4>
-            <p>{{ promo.puntosOtorgados }} PTS</p>
           </div>
         </div>
       </div>
