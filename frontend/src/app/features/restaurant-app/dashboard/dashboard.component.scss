@@ -369,25 +369,37 @@
       border: 1px solid rgba(0, 0, 0, 0.02);
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
 
-      .status-icon {
-        width: 40px; height: 40px; border-radius: 12px;
-        display: flex; justify-content: center; align-items: center; font-size: 18px;
+      .status-avatar {
+        position: relative;
+        width: 44px; height: 44px; flex-shrink: 0;
+
+        img {
+          width: 100%; height: 100%;
+          border-radius: 50%;
+          object-fit: cover;
+          border: 2px solid transparent;
+        }
+
+        .type-badge {
+          position: absolute;
+          bottom: -3px; right: -3px;
+          width: 18px; height: 18px;
+          border-radius: 50%;
+          font-size: 11px;
+          display: flex; align-items: center; justify-content: center;
+          border: 2px solid var(--card-bg);
+          background: var(--app-error);
+          color: white;
+        }
+
         &.success-glow {
-          background: var(--app-success-bg);
-          color: var(--app-success);
-          border: 1px solid var(--app-success-border);
+          img { border-color: var(--app-success-border); }
+          .type-badge { background: var(--app-success); }
         }
 
         &.error-glow {
-          background: var(--app-error-bg);
-          color: var(--app-error);
-          border: 1px solid var(--app-error-border);
-        }
-
-        &.pending-glow {
-          background: var(--app-warning-bg);
-          color: var(--app-warning);
-          border: 1px solid var(--app-warning-border);
+          img { border-color: var(--app-error-border); }
+          .type-badge { background: var(--app-error); }
         }
       }
 
