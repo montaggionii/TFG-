@@ -402,6 +402,77 @@
   }
 }
 
+// PROMOS SECTOR — tarjetas compactas con la foto real de cada promocion
+// como protagonista (antes: icono generico de regalo + texto plano).
+.promos-section {
+  .section-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--text-title);
+    margin-bottom: 12px;
+  }
+
+  .promo-scroll {
+    display: flex;
+    gap: 14px;
+    overflow-x: auto;
+    padding: 2px 16px 10px;
+    scroll-snap-type: x proximity;
+
+    &::-webkit-scrollbar { display: none; }
+  }
+
+  .promo-mini-card {
+    flex: 0 0 140px;
+    scroll-snap-align: start;
+    background: var(--card-bg);
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+    cursor: pointer;
+
+    .mini-photo {
+      position: relative;
+      width: 100%;
+      height: 100px;
+
+      img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+      .mini-badge {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        background: var(--app-success-bg);
+        color: var(--app-success);
+        border: 1px solid var(--app-success-border);
+        font-size: 0.66rem;
+        font-weight: 800;
+        padding: 3px 8px;
+        border-radius: 20px;
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+
+        &.canje {
+          background: var(--app-error-bg);
+          color: var(--app-error);
+          border-color: var(--app-error-border);
+        }
+      }
+    }
+
+    h4 {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text-title);
+      margin: 0;
+      padding: 10px 10px 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+}
+
 @media (max-width: 430px) {
   .restaurant-hero {
     border-radius: 24px;
