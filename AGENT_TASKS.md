@@ -10,6 +10,7 @@ si el archivo aparece como modificado sin commitear allí, se salta esa tarea.
 ## P0 — Seguridad / bloqueante
 
 - ~~**FID-001** · SECURITY · Auditar rate-limiting ausente en `/api/auth/**` (login).~~ **COMPLETADA — implementado y verificado** (ver cierre abajo). **REQUIERE ACCIÓN DEL USUARIO tras integrar: reiniciar el backend de desarrollo (puerto 8081).**
+- ~~**FID-017** · SECURITY · Auditoría de ownership real (curl con JWT de restaurantes distintos) en `PromocionController`/`RestauranteController`, aislamiento de roles admin/restaurante/cliente, Swagger y actuator.~~ **COMPLETADA — vulnerabilidad real de fuga de contraseñas encontrada y corregida** (ver cierre abajo). **REQUIERE ACCIÓN DEL USUARIO tras integrar: reiniciar el backend de desarrollo (puerto 8081).**
 
 ## P1 — Alta prioridad
 
@@ -30,6 +31,207 @@ si el archivo aparece como modificado sin commitear allí, se salta esa tarea.
 - ~~**FID-010** · MAINTENANCE · Revisar dependencias desactualizadas.~~ **COMPLETADA — 14 vulnerabilidades corregidas, 1 encontrada y pendiente de decisión** (ver cierre abajo).
 - ~~**FID-011** · DOCS · Crear `DEPLOYMENT.md` con el estado real del despliegue.~~ **COMPLETADA** (ver cierre abajo).
 - ~~**FID-012** · MAINTENANCE · Actualizar `@angular/core` y paquetes hermanos para cerrar 3 vulnerabilidades XSS.~~ **COMPLETADA — solo parche, sin salto de major** (ver cierre abajo).
+- ~~**FID-013** · TEST · Tests unitarios del backend — sin cobertura más allá de `contextLoads`.~~ **COMPLETADA** (ver cierre abajo).
+- ~~**FID-015** · TEST · Cobertura unitaria de `PromocionService` y del nuevo endpoint `GET /api/restaurantes/{id}/estadisticas` — código añadido en #29/#30 sin tests unitarios, solo E2E.~~ **COMPLETADA** (ver cierre abajo).
+- ~~**FID-016** · TEST · Cobertura unitaria de `CompraService` y `RecompensaService` — últimos dos servicios de negocio del backend sin ningún test unitario, solo E2E.~~ **COMPLETADA** (ver cierre abajo).
+
+### FID-016 — completada 2026-09-27
+
+Rutina en la nube del 2026-09-27. `main` no llevaba commits nuevos desde la última ejecución (FID-015,
+2026-09-26) — el PR #28 seguía abierto y ya actualizado (`base` = HEAD actual de `main`), así que no
+hizo falta ningún `git merge`. Sin ninguna tarea "Pendiente" explícita en `AGENT_TASKS.md`/`.agent/tasks.md`,
+se identificó el mismo tipo de hallazgo de bajo riesgo que en FID-013/014/015: de los siete servicios del
+backend (`src/main/java/.../service/`), `CompraService` y `RecompensaService` eran los dos únicos que
+seguían sin ningún test unitario (`QrService` se descartó por trivial: solo compone un string con un
+`UUID.randomUUID()`, nada que probar sin fijar el azar).
+
+**Auditoría de autorización previa** (mismo criterio que FID-005/FID-013/FID-015 — cualquier endpoint que
+opera sobre puntos de un usuario debe identificarlo por el email/token autenticado, nunca por un id que
+mande el cliente): `CompraController.registrarCompra` pasa `SecurityUtils.email(authentication)` como
+email del restaurante (no lo acepta del body — el `RegistrarCompraDTO` solo lleva `usuarioId` e
+`importe`, que es el cliente al que el restaurante autenticado está otorgando puntos, parte esperada del
+flujo: el restaurante escanea el QR del cliente); `RecompensaController.canjear` usa
+`authentication.getName()` directamente como email del usuario que canjea, nunca un id del body. En
+ambos casos el patrón ya es correcto — no se encontró ninguna vulnerabilidad nueva de Broken Access
+Control, así que esta tarea se quedó en cerrar el hueco de cobertura, no en un fix de seguridad.
+
+- **`CompraServiceTest.java` (nuevo, 6 tests)**: importe cero o negativo lanza `BadRequestException` sin
+  consultar ningún DAO; usuario o restaurante inexistente lanzan `ResourceNotFoundException`; un importe
+  menor a 1€ no genera puntos suficientes y lanza `BadRequestException` sin guardar nada; una compra
+  válida (25,50€) suma los puntos enteros correctos (25) al usuario y registra un `MovimientoPuntos` tipo
+  `GANADOS` con el restaurante y monto reales (regla de negocio "1€ = 1 punto", truncado a entero, ya en
+  el código, ahora con test que la fija).
+- **`RecompensaServiceTest.java` (nuevo, 6 tests)**: `obtenerPorId` con id inexistente lanza
+  `ResourceNotFoundException`; `canjearRecompensa` con usuario o recompensa inexistente lanza
+  `ResourceNotFoundException` sin tocar el resto; con puntos insuficientes lanza `BadRequestException` sin
+  restar puntos ni registrar movimiento; con puntos suficientes (incluido el caso límite de saldo exacto)
+  resta los puntos correctos y registra un `MovimientoPuntos` tipo `CANJEADOS` con la descripción
+  esperada.
+
+**Verificación real**: `mvn compile` → éxito. `mvn test -Dtest=CompraServiceTest,RecompensaServiceTest,
+PromocionServiceTest,UsuarioServiceTest,RestauranteServiceTest,LoginRateLimiterTest,
+GlobalExceptionHandlerTest` → **61/61 passed** (6+6+13+15+13+7+1). `mvn test` completo → **62 tests, 61
+passed, 1 error** (`SpringBootTfgApplicationTests.contextLoads`, mismo motivo ya documentado en
+FID-013/014/015: `Communications link failure`, no hay MySQL en este sandbox — confirmado leyendo la
+traza completa, `Connection refused`). No se tocó ningún test ni código de producción existente (solo
+tests nuevos).
+
+**No se pudo verificar en este entorno** (requeriría backend/frontend/MySQL reales): el flujo E2E
+completo de compras y canje de recompensas, ya cubierto por la suite E2E existente
+(`restaurant-flows.spec.ts`/`client-flows.spec.ts`), no duplicado aquí.
+
+Archivos creados: `src/test/java/progresa/springboot_tfg/service/CompraServiceTest.java`,
+`src/test/java/progresa/springboot_tfg/service/RecompensaServiceTest.java`.
+
+Con esto, los siete servicios de negocio del backend tienen ya cobertura unitaria (salvo `QrService`,
+descartado por trivial). Pendiente para una futura sesión sin tareas nuevas en el backlog: seguir el
+mismo criterio de auditar cualquier endpoint que se fusione a `main` entretanto, y evaluar el salto de
+`spring-boot-starter-parent` 3.2.1 → 3.2.12 ya identificado en FID-014 (requiere una sesión con MySQL
+disponible para verificarse en runtime real).
+
+### FID-013 — completada 2026-09-25
+Único pendiente que quedaba en `.agent/tasks.md`: el backend no tenía cobertura de tests unitarios
+más allá del arranque de contexto (`contextLoads`, que además requiere MySQL real) y de
+`GlobalExceptionHandlerTest`. Toda la cobertura de lógica de negocio vivía solo en la suite E2E
+(Playwright, requiere backend+frontend+MySQL ya en marcha).
+
+Alcance elegido: `UsuarioServiceTest` y `RestauranteServiceTest`, con Mockito puro (DAOs, `JwtUtil`
+y `QrService` mockeados) — sin depender de una base de datos real, así corren en cualquier entorno
+(incluido CI) sin necesitar MySQL levantada. Prioricé la lógica ya identificada como sensible en
+auditorías previas de este mismo backlog, en vez de cobertura genérica:
+
+- **Login (`UsuarioService`/`RestauranteService`)**: credenciales correctas devuelven token; email
+  inexistente y contraseña incorrecta lanzan el *mismo* `SecurityException("Credenciales
+  incorrectas")` — regresión directa de FID-001 (antes de esa corrección, el código HTTP permitía
+  enumerar qué emails estaban registrados).
+- **`requireOwner` (patrón de autorización de recurso)**: cada método que lo usa
+  (`obtenerPropio`/`eliminarPropio`/`changePassword` en `UsuarioService`;
+  `obtenerStats`/`obtenerStatsAvanzadas`/`eliminarPropio`/`actualizar` en `RestauranteService`)
+  tiene un test que verifica que un email autenticado distinto del dueño real lanza
+  `AccessDeniedException` y no llega a tocar el DAO de escritura/lectura de datos sensibles —
+  regresión directa de FID-005, la vulnerabilidad real de Broken Access Control ya encontrada y
+  corregida en `RestauranteController.obtenerStats`/`obtenerStatsAvanzadas`.
+- Casos adicionales de validación ya existentes en el código (`changePassword` con contraseña
+  actual incorrecta o nueva contraseña demasiado corta, `register` con email duplicado,
+  `identificarPorQr` con código vacío o inexistente) para no dejar esos `if` sin cubrir.
+
+**Verificación real**: `mvn test -Dtest=UsuarioServiceTest,RestauranteServiceTest` → 26/26 passed
+(15 + 11). `mvn test` completo → los 26 tests nuevos y `GlobalExceptionHandlerTest` pasan;
+`SpringBootTfgApplicationTests.contextLoads` falla, pero por un motivo ajeno a este cambio y ya
+documentado (`Communications link failure` — no hay MySQL disponible en este sandbox de sesión, ese
+test siempre ha necesitado el backend/BD ya en marcha, como el resto de la suite E2E). No se tocó
+ningún test existente.
+
+Archivos creados: `src/test/java/progresa/springboot_tfg/service/UsuarioServiceTest.java`,
+`src/test/java/progresa/springboot_tfg/service/RestauranteServiceTest.java`.
+
+- ~~**FID-014** · TEST · Cobertura unitaria de `LoginRateLimiter` (ventana deslizante de rate-limiting de login).~~ **COMPLETADA** (ver cierre abajo).
+
+### FID-014 — completada 2026-09-25
+
+**Nota de concurrencia**: esta tarea se identificó de forma independiente y en paralelo a FID-013
+(ambas ejecuciones autónomas partieron del mismo `main` sin tareas "Pendiente" explícitas y, siguiendo
+el mismo orden de preferencia del backlog, llegaron a la misma conclusión: "sin cobertura de tests
+unitarios de backend" era el hallazgo de bajo riesgo más claro). Al converger sobre el mismo hueco del
+backlog, se renumeró esta entrada de FID-013 a FID-014 al integrar ambas ramas — no hay solapamiento
+de archivos entre las dos: FID-013 cubre `UsuarioService`/`RestauranteService`, esta cubre
+`LoginRateLimiter`.
+
+**Motivo de la elección**: se descartó tocar `pom.xml` (Spring Boot 3.2.1 → 3.2.12 disponible en Maven
+Central, verificado con `curl` contra `repo.maven.apache.org`): aunque es un salto dentro de la misma
+serie menor, son 11 releases de parche que tocan transitivamente seguridad/web/JPA y no se puede
+verificar en runtime real en este entorno (sin MySQL ni servidor) — demasiado alcance para "bajo
+riesgo y verificable de verdad" en esta sesión, se deja para una sesión con BD disponible. En su lugar
+se eligió cerrar el hueco de cobertura en `LoginRateLimiter` (lógica de ventana deslizante del
+rate-limiting de FID-001), que no tenía ningún test unitario — solo el E2E
+`frontend/e2e/security-login-rate-limit.spec.ts`, que necesita backend+red reales y no se puede
+ejecutar en este entorno.
+
+**Cambio de código de producción**: mínimo y aditivo. `LoginRateLimiter` usaba `Instant.now()`
+directamente, lo que hace imposible probar la ventana de 10 minutos sin esperarla de verdad. Se
+extrajo el reloj a un `Supplier<Instant>` con un constructor de paquete adicional solo para tests
+(`LoginRateLimiter(Supplier<Instant> clock)`); el constructor público sin argumentos (el que usa
+Spring vía `@Component`) sigue usando `Instant::now` real, comportamiento en producción sin cambios.
+
+Archivos modificados: `src/main/java/progresa/springboot_tfg/security/LoginRateLimiter.java` (reloj
+inyectable para tests, sin cambio de comportamiento en producción).
+Archivos creados: `src/test/java/progresa/springboot_tfg/security/LoginRateLimiterTest.java` (7 tests
+unitarios puros, sin Spring ni BD): clave nueva no bloqueada, 7 fallos no bloquean, el 8º sí bloquea
+(coincide con el límite `MAX_FAILURES=8` de FID-001), un login correcto (`recordSuccess`) resetea el
+contador y desbloquea, dos claves (IP+email) distintas son independientes, y dos casos de ventana
+deslizante (fallos que expiran tras 10 min+1s dejan de contar; fallos repartidos entre antes/después
+de la expiración nunca coexisten 8 a la vez).
+
+### FID-015 — completada 2026-09-26
+
+Rutina en la nube del 2026-09-26. Al llegar a `agent/fidelyfood-autonomous` estaba desactualizada
+(el PR #28 de FID-013/FID-014 seguía abierto, base en `31813db`) mientras `main` ya llevaba cuatro PRs
+más fusionados (#26 mapa, #27 nightly, #29 analítica por periodo, #30 imagen de promociones). Primer
+paso de esta sesión: `git merge origin/main` sobre la rama (sin conflictos), para auditar/testear
+también ese código nuevo en vez de trabajar sobre una base obsoleta.
+
+**Auditoría de autorización de lo nuevo en #29/#30** (mismo criterio que FID-005/FID-013 — cualquier
+endpoint nuevo que opera sobre un recurso de restaurante debe usar `requireOwner`/el mismo patrón):
+`GET /api/restaurantes/{id}/estadisticas` (nuevo en #29) y todos los métodos nuevos de
+`PromocionController`/`PromocionService` (`crearConImagen`, `actualizarConImagen`, y los ya existentes
+`actualizar`/`eliminar`/`aplicarPromocion`) sí comprueban correctamente la propiedad del recurso
+(`requireOwner`/`requirePromotionOwner`) — leído con atención porque es exactamente el tipo de hallazgo
+que ya se encontró una vez (FID-005), pero esta vez el patrón se siguió bien desde el principio. No se
+encontró ninguna vulnerabilidad nueva de Broken Access Control.
+
+**Hueco real encontrado**: ese código nuevo (analítica por periodo y gestión de imágenes de
+promociones) no tenía ningún test unitario — solo cobertura E2E (`restaurant-flows.spec.ts`), que
+necesita backend+frontend+MySQL reales y no se puede ejecutar en este sandbox. Se cerró ese hueco,
+continuando el mismo criterio de FID-013/FID-014 ("tests unitarios de backend sin BD real" es el
+tipo de tarea explícitamente indicado para un entorno sin servidores locales):
+
+- **`PromocionServiceTest.java` (nuevo, 15 tests)**: `crear`/`crearConImagen` asocian la promoción al
+  restaurante autenticado por email (nunca a un `restauranteId` que venga del cliente); un email que no
+  existe en `RestauranteDAO` (p.ej. una cuenta cliente) lanza `ResourceNotFoundException` en vez de
+  crear nada — cubre por qué un `ROLE_USER` nunca puede crear una promoción "a nombre de" un
+  restaurante ajeno. `actualizar`/`eliminar`/`aplicarPromocion` con un restaurante que no es el dueño
+  real de la promoción lanzan `AccessDeniedException` y no llegan a tocar el DAO de escritura
+  (`requirePromotionOwner`, regresión directa del patrón FID-005). `aplicarPromocion` con el dueño real
+  suma los puntos correctos al usuario y registra el `MovimientoPuntos` esperado. Validación de
+  `crearConImagen` (tamaño > 5MB, tipo de archivo no permitido, imagen vacía) y
+  `validarRestauranteAutenticado`.
+- **`RestauranteServiceTest.java` (+2 tests)**: `obtenerEstadisticasPeriodo` con un email autenticado
+  que no es el dueño lanza `AccessDeniedException` sin llegar a consultar `MovimientoPuntosDAO`
+  (mismo patrón que los tests ya existentes de `obtenerStats`/`obtenerStatsAvanzadas`); con el dueño
+  real, agrega correctamente ventas totales, transacciones, clientes activos y puntos otorgados/canjeados
+  de la semana actual a partir de movimientos reales, sin comparación con el periodo anterior
+  (`comparar=false`).
+
+**Verificación real**: `mvn test -Dtest=PromocionServiceTest,RestauranteServiceTest` → 26/26 passed
+(15 + 11, incluye los tests ya existentes de FID-013). `mvn test` completo → 50/50 passed salvo
+`SpringBootTfgApplicationTests.contextLoads`, que falla por el mismo motivo ya documentado en
+FID-013/FID-014 (`Communications link failure`, no hay MySQL en este sandbox) — no relacionado con
+este cambio. No se tocó ningún test existente ni código de producción (solo tests nuevos).
+
+**No se pudo verificar en este entorno** (requeriría backend/frontend/MySQL reales): el flujo E2E
+completo de estas dos features, ya cubierto por `frontend/e2e/restaurant-flows.spec.ts` (ampliado en
+la sesión nocturna del #29/#30), no duplicado aquí.
+
+Archivos creados: `src/test/java/progresa/springboot_tfg/service/PromocionServiceTest.java`.
+Archivos modificados: `src/test/java/progresa/springboot_tfg/service/RestauranteServiceTest.java`.
+
+Tests realizados (reales, no simulados):
+- `mvn compile` → éxito (dependencias resueltas vía proxy configurado del entorno).
+- `mvn test -Dtest=LoginRateLimiterTest` → **7/7 passed** (`target/surefire-reports/...LoginRateLimiterTest.txt`).
+- `mvn test` (suite completa) → `GlobalExceptionHandlerTest` (1/1, no requiere BD) y
+  `LoginRateLimiterTest` (7/7, nuevo) pasan; `SpringBootTfgApplicationTests.contextLoads` falla con
+  `Communications link failure` (MySQL no disponible en este entorno) — **fallo preexistente y
+  esperado, no causado por este cambio**: ese test necesita una base de datos real que no existe en
+  este entorno de sesión (confirmado leyendo la traza: `Connection refused` al intentar conectar).
+
+**No se pudo verificar en este entorno**: el comportamiento en runtime real contra tráfico HTTP
+(el filtro `LoginRateLimitFilter` completo, que sí depende de Spring/Servlet) — eso ya lo cubre el
+E2E existente `security-login-rate-limit.spec.ts` contra un backend real, no se duplicó aquí.
+
+Resultado: cobertura unitaria nueva para la lógica de negocio de rate-limiting (antes 0%), sin tocar
+comportamiento de producción ni arquitectura. Pendiente para una futura sesión con MySQL disponible:
+evaluar el salto de `spring-boot-starter-parent` 3.2.1 → 3.2.12 (mismo minor, últimos parches de
+seguridad) descartado aquí por no poder verificarse en runtime real en este entorno.
 
 ### FID-012 — completada 2026-09-24
 Alcance elegido: parche dentro de Angular 20 (20.3.23 → 20.3.32), no el salto a Angular 21 que
@@ -224,3 +426,64 @@ para producción (Dockerfile, variables externalizadas, JWT/CORS/Swagger corregi
 `main`), pero **todavía no está desplegado en Internet**. Documenta exactamente qué falta y por qué
 esos pasos concretos (crear cuentas, autenticar CLIs) no se pueden automatizar sin que el usuario
 apruebe el login en su propio navegador.
+
+### FID-017 — completada 2026-09-27 — VULNERABILIDAD REAL ENCONTRADA Y CORREGIDA
+
+**Alcance auditado** (contra el backend real de `localhost:8081`, con JWTs reales de dos cuentas de
+restaurante sembradas — Alabroster y Venezuela Food, misma contraseña compartida vía
+`APP_SEED_RESTAURANT_PASSWORD` — y un cliente registrado de usar y tirar vía `/api/auth/register`):
+
+- Ownership cruzado en `RestauranteController`: `stats`, `stats-avanzadas`, `estadisticas`,
+  `PUT /{id}`, `POST /{id}/imagen` — Alabroster (token real) intentó leer/modificar los datos de
+  Venezuela Food (id real) en los cinco endpoints. Los cinco devolvieron **403** real
+  (`requireOwner` ya presente y correcto, heredado de FID-005). Verificado que el nombre de
+  Venezuela Food no cambió tras el intento de `PUT`.
+- Ownership cruzado en `PromocionController`: se creó una promoción real como Venezuela Food y
+  Alabroster intentó `PUT`/`DELETE` sobre ella por id — ambos **403** reales
+  (`requirePromotionOwner`, correcto).
+- Aislamiento de roles: token de restaurante contra `/api/admin/**` → 403; sin token → 401;
+  Swagger/OpenAPI (`/swagger-ui/**`, `/v3/api-docs`) con y sin token de restaurante → 403/401;
+  `/api/auth/login-admin` con credenciales de restaurante → 401 real (`"Credenciales de
+  administrador no válidas"`); `/actuator/**` (health, info, env, beans, metrics) → 401 (no
+  expuesto sin autenticar).
+
+**Vulnerabilidad real encontrada** (no cubierta por auditorías anteriores, distinta de un problema
+de ownership): **fuga del hash bcrypt de la contraseña de cualquier restaurante con al menos una
+promoción**, vía `GET /api/promociones` y `GET /api/promociones/restaurante/{id}`.
+`PromocionController` devuelve la entidad `Promocion` directamente (sin DTO), y esta arrastra la
+entidad `Restaurante` completa —incluida `password`— en el campo anidado `restaurante`. Como el
+`GET` de `/api/promociones/**` está abierto a `ROLE_USER`/`ROLE_RESTAURANT`/`ROLE_ADMIN` (por
+diseño: es el listado público de ofertas), **cualquier cliente recién autoregistrado gratis** podía
+leer el hash de cualquier restaurante y atacarlo offline. Verificado empíricamente antes de
+corregir: un cliente de prueba (`audit-client-*@fidelyfood.local`, creado y borrado en esta misma
+sesión) obtuvo el hash real de Venezuela Food (`$2a$10$yPPh...`) vía `GET /api/promociones`.
+
+**Corrección**: `@JsonProperty(access = JsonProperty.Access.WRITE_ONLY)` en el campo `password` de
+`Restaurante.java` — evita que Jackson lo serialice en cualquier respuesta JSON, pero lo sigue
+aceptando al deserializar peticiones entrantes (necesario: `PUT /api/restaurantes/{id}` reutiliza
+este mismo campo para cambiar la contraseña, ver `RestauranteService.actualizar`). Se descartó
+`@JsonIgnore` porque habría roto esa función silenciosamente (ignora también la deserialización).
+Se aplicó el mismo endurecimiento a `Usuario.password` por defensa en profundidad, aunque no se
+encontró hoy un endpoint que devuelva un `Usuario` crudo.
+
+**Verificación antes/después** (real, con backend reiniciado desde `../TFG-agent-worktree` para
+recompilar el fix, restaurado después al estado original del checkout principal):
+- Antes: `GET /api/promociones` con token de cliente → `restaurante.password` presente (hash real).
+- Después: mismo request → sin campo `password` en la respuesta.
+- `PUT /api/restaurantes/{id}` con un restaurante de prueba desechable (creado y borrado en esta
+  sesión vía `/api/auth/register-restaurante`): cambio de contraseña sigue funcionando (login con
+  la contraseña vieja → 401, con la nueva → 200) pese al `WRITE_ONLY`.
+- Regresión: `mvn test` (JUnit) y la suite E2E completa (16/16, incluida la nueva) siguen en verde.
+
+**Test de regresión añadido**: `frontend/e2e/security-promotion-password-leak.spec.ts` — crea una
+promoción real, la lee como cliente y como listado público, y comprueba que `restaurante` nunca
+tiene la propiedad `password`; limpia la promoción de prueba al terminar.
+
+Archivos modificados: `src/main/java/progresa/springboot_tfg/entity/Restaurante.java`,
+`src/main/java/progresa/springboot_tfg/entity/Usuario.java`,
+`frontend/e2e/security-promotion-password-leak.spec.ts` (nuevo), `SECURITY.md`, `AGENT_TASKS.md`.
+
+**Estado**: corregido en `agent/fidelyfood-autonomous`, pendiente de PR/revisión humana y de
+reiniciar el backend de desarrollo (puerto 8081) para que el arreglo tenga efecto — el proceso que
+ya tenías corriendo al terminar esta sesión sigue con el código antiguo (sin el fix), tal y como se
+dejó explícitamente para no interferir con tu sesión en curso.

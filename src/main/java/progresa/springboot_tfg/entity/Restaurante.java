@@ -1,5 +1,6 @@
 package progresa.springboot_tfg.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -34,6 +35,15 @@ public class Restaurante {
     @Column(nullable = false, unique = true)
     private String email;
 
+    // FID-017 — este campo se filtraba en texto plano (hash bcrypt) de
+    // vuelta al cliente: PromocionController devuelve la entidad Promocion
+    // sin pasar por un DTO, y esta arrastra la entidad Restaurante completa
+    // (incluido el password) en el campo anidado "restaurante". WRITE_ONLY
+    // evita que Jackson lo serialice en NINGUNA respuesta JSON, pero sigue
+    // aceptándolo al deserializar peticiones entrantes (necesario: PUT
+    // /api/restaurantes/{id} reutiliza este mismo campo para permitir
+    // cambiar la contraseña, ver RestauranteService.actualizar).
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @Column(nullable = false)
     private String password;
 

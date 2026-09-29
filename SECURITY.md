@@ -40,6 +40,14 @@ Auditoría real del código (no una checklist genérica). Cada hallazgo indica s
 - **Solución**: externalizados vía `APP_CORS_ORIGINS` y `DB_URL`.
 - **Estado**: ✅ corregido y fusionado en `main`.
 
+### 11. Fuga del hash de contraseña de restaurantes vía el listado de promociones
+- **Riesgo**: Alto (OWASP API3:2023 — Broken Object Property Level Authorization / excessive data exposure).
+- **Ubicación**: `GET /api/promociones` y `GET /api/promociones/restaurante/{id}`.
+- **Problema**: `PromocionController` devuelve la entidad `Promocion` directamente (sin DTO), y esta arrastra la entidad `Restaurante` completa —incluido el hash bcrypt de `password`— en el campo anidado `restaurante`. El `GET` de `/api/promociones/**` está abierto a cualquier rol autenticado (`ROLE_USER`, `ROLE_RESTAURANT`, `ROLE_ADMIN`), por diseño: es el listado público de ofertas que ve cualquier cliente.
+- **Impacto**: cualquier cliente recién autoregistrado (gratis, sin fricción) podía leer el hash bcrypt real de cualquier restaurante con al menos una promoción y atacarlo offline. Verificado empíricamente antes de corregir: un cliente de prueba desechable obtuvo el hash real de una cuenta de restaurante sembrada vía `GET /api/promociones`.
+- **Solución**: `@JsonProperty(access = JsonProperty.Access.WRITE_ONLY)` en `Restaurante.password` (y en `Usuario.password`, mismo patrón, defensa en profundidad) — Jackson deja de serializarlo en cualquier respuesta JSON, pero lo sigue aceptando al deserializar peticiones entrantes, necesario porque `PUT /api/restaurantes/{id}` reutiliza ese mismo campo para permitir cambiar la contraseña. Se descartó `@JsonIgnore` porque también bloquea la deserialización y habría roto esa función en silencio.
+- **Estado**: corregido en `agent/fidelyfood-autonomous`, con test de regresión E2E (`security-promotion-password-leak.spec.ts`), pendiente de PR/revisión humana y de reiniciar el backend de desarrollo. Ver `AGENT_TASKS.md` (FID-017).
+
 ## Pendientes (no corregidos todavía)
 
 ### 6. Sin revocación de JWT
@@ -76,5 +84,7 @@ Auditoría real del código (no una checklist genérica). Cada hallazgo indica s
 - Path traversal en `/uploads/**`: protegido correctamente (normalización + comprobación de prefijo).
 - CORS: lista blanca explícita, sin comodines, `allowCredentials(false)`.
 - Ownership checks en `UsuarioController`, el resto de `RestauranteController` y `PuntosController`: correctos, usan `requireOwner`/verificación de email autenticado de forma consistente.
+- Ownership en `PromocionController` (`requirePromotionOwner`): verificado con JWTs reales de dos restaurantes distintos (Alabroster vs Venezuela Food) — `PUT`/`DELETE` sobre una promoción ajena devuelven 403 real, no solo por código leído.
+- Aislamiento de roles: `/api/admin/**` con token de restaurante → 403 real; Swagger/OpenAPI con y sin token de restaurante → 403/401; `/api/auth/login-admin` con credenciales de restaurante → 401 real; `/actuator/**` no accesible sin autenticar (401).
 - Contraseñas: hasheadas con BCrypt, nunca en texto plano en BD.
 - Secretos: `.env` correctamente en `.gitignore`, nunca commiteado.
