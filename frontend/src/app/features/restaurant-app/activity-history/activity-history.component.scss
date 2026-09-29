@@ -248,25 +248,43 @@
   padding: 12px;
 
   .item-icon {
+    position: relative;
     width: 44px;
     height: 44px;
-    border-radius: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     margin-right: 14px;
-    font-size: 20px;
+    flex-shrink: 0;
+
+    img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid transparent;
+    }
+
+    .type-badge {
+      position: absolute;
+      bottom: -3px;
+      right: -3px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid var(--card-bg);
+      color: white;
+    }
 
     &.ganados {
-      background: var(--app-success-bg);
-      color: var(--app-success);
-      border: 1px solid var(--app-success-border);
+      img { border-color: var(--app-success-border); }
+      .type-badge { background: var(--app-success); }
     }
 
     &.canjeados {
-      background: var(--app-error-bg);
-      color: var(--app-error);
-      border: 1px solid var(--app-error-border);
+      img { border-color: var(--app-error-border); }
+      .type-badge { background: var(--app-error); }
     }
   }
 

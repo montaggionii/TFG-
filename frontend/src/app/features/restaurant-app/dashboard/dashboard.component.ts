@@ -22,6 +22,7 @@ import {
 } from 'ionicons/icons';
 import { RestauranteService } from '../../../core/services/restaurante.service';
 import { PromocionService } from '../../../core/services/promocion.service';
+import { UsuarioService } from '../../../core/services/usuario.service';
 import { GlobalStateService, UserState } from '../../../core/state/global-state.service';
 import { MapComponent } from '../../../shared/components/map/map.component';
 import { RouterModule } from '@angular/router';
@@ -38,6 +39,7 @@ import { FormPromocionComponent } from '../mis-promociones/form-promocion/form-p
 export class DashboardComponent implements OnInit {
   private restauranteService = inject(RestauranteService);
   private promocionService = inject(PromocionService);
+  private usuarioService = inject(UsuarioService);
   private globalState = inject(GlobalStateService);
   private toastCtrl = inject(ToastController);
   private modalCtrl = inject(ModalController);
@@ -234,5 +236,13 @@ export class DashboardComponent implements OnInit {
     if (data) {
       this.cargarDatos(); // Recargar para ver la nueva promo si aplica
     }
+  }
+
+  resolveClientPhoto(move: any): string {
+    return this.usuarioService.resolveProfileImage({ fotoPerfil: move?.usuarioFotoPerfil });
+  }
+
+  onClientPhotoError(event: Event) {
+    this.usuarioService.onProfileImageError(event);
   }
 }

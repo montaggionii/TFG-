@@ -142,7 +142,8 @@
                     class="history-item glass-card animate__animated animate__fadeInRight"
                     [style.animation-delay]="(i * 0.05) + 's'">
             <div class="item-icon" [class]="item.tipo.toLowerCase()">
-              <ion-icon [name]="item.tipo === 'GANADOS' ? 'add-outline' : 'gift-outline'"></ion-icon>
+              <img [src]="resolveClientPhoto(item)" (error)="onClientPhotoError($event)" alt="" />
+              <ion-icon class="type-badge" [name]="item.tipo === 'GANADOS' ? 'add-outline' : 'gift-outline'"></ion-icon>
             </div>
             <ion-label>
               <div class="item-top">

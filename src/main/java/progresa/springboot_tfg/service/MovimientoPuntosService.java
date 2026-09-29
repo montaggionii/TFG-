@@ -44,7 +44,8 @@ public class MovimientoPuntosService {
                         m.getDescripcion(),
                         m.getFecha(),
                         m.getMonto(),
-                        usuario.getNombre()
+                        usuario.getNombre(),
+                        usuario.getFotoPerfil()
                 ))
                 .toList();
     }

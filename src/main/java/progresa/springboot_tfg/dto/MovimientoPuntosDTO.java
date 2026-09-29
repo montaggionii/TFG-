@@ -38,13 +38,17 @@ public class MovimientoPuntosDTO {
     @Schema(description = "Nombre del cliente que realizó el movimiento", example = "Juan Pérez")
     private String usuarioNombre;
 
+    @Schema(description = "Foto de perfil del cliente que realizó el movimiento, si tiene una subida", example = "/uploads/perfiles/usuario_12.jpg")
+    private String usuarioFotoPerfil;
+
     public MovimientoPuntosDTO(
             int puntos,
             String tipo,
             String descripcion,
             LocalDateTime fecha,
             Double monto,
-            String usuarioNombre
+            String usuarioNombre,
+            String usuarioFotoPerfil
     ) {
         this.puntos = puntos;
         this.tipo = tipo;
@@ -52,6 +56,7 @@ public class MovimientoPuntosDTO {
         this.fecha = fecha;
         this.monto = monto;
         this.usuarioNombre = usuarioNombre;
+        this.usuarioFotoPerfil = usuarioFotoPerfil;
     }
 
     public int getPuntos() {
@@ -76,5 +81,9 @@ public class MovimientoPuntosDTO {
 
     public String getUsuarioNombre() {
         return usuarioNombre;
+    }
+
+    public String getUsuarioFotoPerfil() {
+        return usuarioFotoPerfil;
     }
 }

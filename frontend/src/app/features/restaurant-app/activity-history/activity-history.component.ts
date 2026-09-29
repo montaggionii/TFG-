@@ -4,6 +4,7 @@ import { IonicModule } from '@ionic/angular';
 import { RouterModule } from '@angular/router';
 import { RestauranteService } from '../../../core/services/restaurante.service';
 import { AuthService } from '../../../core/auth/auth.service';
+import { UsuarioService } from '../../../core/services/usuario.service';
 import { FormsModule } from '@angular/forms';
 import { addIcons } from 'ionicons';
 import { 
@@ -24,6 +25,7 @@ import {
 export class ActivityHistoryComponent implements OnInit {
   private restauranteService = inject(RestauranteService);
   private authService = inject(AuthService);
+  private usuarioService = inject(UsuarioService);
   
   public stats: any = this.getEmptyStats();
   public filteredHistory: any[] = [];
@@ -138,5 +140,13 @@ export class ActivityHistoryComponent implements OnInit {
 
   getTypeLabel(tipo: string) {
     return tipo === 'GANADOS' ? 'ABONO' : 'CANJE';
+  }
+
+  resolveClientPhoto(item: any): string {
+    return this.usuarioService.resolveProfileImage({ fotoPerfil: item?.usuarioFotoPerfil });
+  }
+
+  onClientPhotoError(event: Event) {
+    this.usuarioService.onProfileImageError(event);
   }
 }

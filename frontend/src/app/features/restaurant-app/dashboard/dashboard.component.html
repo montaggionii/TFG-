@@ -175,12 +175,13 @@
         
         <div class="activity-list" *ngIf="activityStats?.actividadReciente?.length > 0; else noActivity">
           <div class="activity-item glass-item" *ngFor="let move of activityStats.actividadReciente">
-            <div class="status-icon" [class.success-glow]="move.tipo === 'GANADOS'" [class.error-glow]="move.tipo === 'CANJEADOS'">
-              <ion-icon [name]="move.tipo === 'GANADOS' ? 'trending-up-outline' : 'trending-down-outline'"></ion-icon>
+            <div class="status-avatar" [class.success-glow]="move.tipo === 'GANADOS'" [class.error-glow]="move.tipo === 'CANJEADOS'">
+              <img [src]="resolveClientPhoto(move)" (error)="onClientPhotoError($event)" alt="" />
+              <ion-icon class="type-badge" [name]="move.tipo === 'GANADOS' ? 'trending-up-outline' : 'trending-down-outline'"></ion-icon>
             </div>
             <div class="item-info">
-              <h4>{{ move.descripcion }}</h4>
-              <p>{{ move.fecha | date:'shortTime' }} • {{ move.tipo }}</p>
+              <h4>{{ move.usuarioNombre || move.descripcion }}</h4>
+              <p>{{ move.descripcion }} · {{ move.fecha | date:'shortTime' }}</p>
             </div>
             <div class="item-points" [class.earned]="move.tipo === 'GANADOS'" [class.redeemed]="move.tipo === 'CANJEADOS'">
               <span class="item-kind">{{ move.tipo === 'GANADOS' ? 'ABONO' : 'CANJE' }}</span>
