@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-25T09:45:00Z",
+  "updatedAt": "2026-09-29T00:00:00Z",
   "project": {
     "name": "FidelyFood (TFG)",
     "path": "/Users/montaggioni/projects/TFG-repaired-20260917",
@@ -7,74 +7,60 @@
     "branch": "main"
   },
   "agent": {
-    "status": "ACTIVO",
+    "status": "BLOQUEADO",
     "mode": "LIVE",
-    "currentTask": "Sesion nocturna del 2026-09-25 completada y fusionada (PR #26 mapa + PR #27 responsive/promociones/codigo postal/E2E). PR #28 (tests unitarios de la rutina diaria) revisado y recomendado, pendiente de que el usuario confirme la fusion.",
-    "lastActivity": "2026-09-25T09:45:00Z",
-    "progress": "Despliegue en produccion estable (backend Render/Aiven, frontend Vercel fidelyfoodapp.vercel.app). Sesion nocturna autonoma (rutina de una sola vez) corrigio de verdad: zona blanca en Google Maps (ResizeObserver, PR #26), 3 bugs reales en promociones (endpoint equivocado devolvia 403 siempre, campos del template mal mapeados, modal de crear promo inutilizable en desktop por conflicto de media query vs ancho fijo de modal), codigo postal del restaurante que nunca se persistia pese a ser obligatorio en el formulario, responsive de los 4 botones de accion del dashboard, y ampliacion de la suite E2E con un flujo completo de restaurante de punta a punta (PR #27). Todo verificado con build + tests reales, no solo descrito. Backend y frontend recompilados localmente esta manana tras la fusion: build OK, tests backend 2/2 pasando, migracion de codigo_postal aplicada sola via Hibernate ddl-auto=update sin intervencion manual."
+    "currentTask": "Auditoria autonoma de FidelyFood (backend, frontend, seguridad, UX). 8 PRs reales abiertos (#31-#38), ninguno fusionado todavia porque el clasificador de auto-mode impide que la propia sesion se autofusione PRs sin revision humana.",
+    "lastActivity": "2026-09-29T00:00:00Z",
+    "progress": "Bloqueado desde el 27/09 ~15:50 por caida del backend de produccion (Render, plan free) que no se ha recuperado en mas de 30 horas pese a que el incidente de plataforma ya esta resuelto segun status.render.com - necesita revision manual en el dashboard de Render (login), algo que el agente no puede hacer. Mientras tanto se completo una auditoria real y verificada contra el stack LOCAL: 1 vulnerabilidad de seguridad real (fuga de hashes de password via /api/promociones, PR #28), 3 casos de datos 100% inventados encontrados y corregidos (widget de admin que simulaba un agente IA falso en bucle infinito, historial de actividad con datos falsos tipo Juan Perez/84 clientes, tasa de puntos inventada en el inicio del cliente), limpieza de toda mencion 'demo', higiene de logs (JWT ya no se vuelca a consola), 2 fixes de accesibilidad (labels de login), auditoria de seguridad completa de autorizacion entre restaurantes/roles (sin hallazgos nuevos), suite E2E 15/15 passing tras todos los cambios, npm audit limpio en produccion."
   },
   "production": {
     "backend": {
       "url": "https://fidelyfood-backend.onrender.com",
       "host": "Render (plan free, Docker)",
       "database": "MySQL en Aiven (free tier)",
-      "status": "Live, verificado con /ping, login real y ruta 404 corregida"
+      "status": "CAIDO desde 2026-09-27 ~15:50 (mas de 30h). status.render.com marca el incidente de plataforma como resuelto, pero este servicio concreto sigue sin responder ni con /ping ni con 502 tras timeouts de 60-120s. Necesita 'Manual Deploy' o revision de logs en el dashboard de Render - requiere login, el agente no puede hacerlo."
     },
     "frontend": {
       "url": "https://fidelyfoodapp.vercel.app",
       "adminLoginUrl": "https://fidelyfoodapp.vercel.app/admin/login",
       "host": "Vercel (plan Hobby)",
-      "status": "Live, sirviendo el build de produccion de Angular con el fix de mapas y promociones ya fusionado",
-      "note": "Proyecto nuevo (fidelyfoodapp) creado el 2026-09-24 porque el proyecto original (renombrado varias veces: tfg-glf5 -> fidelyapp -> fidelyfood) quedo en un estado corrupto en Vercel. El proyecto viejo se dejo sin tocar (no se borro).",
-      "legacyUrl": "https://tfg-glf5.vercel.app (proyecto original, funcionaba pero se abandono a favor de fidelyfoodapp)"
+      "status": "Vercel en si sigue live (200 OK, sirve el build), pero cualquier llamada a la API fallara mientras el backend de Render este caido.",
+      "note": "Proyecto nuevo (fidelyfoodapp) creado el 2026-09-24 porque el proyecto original (renombrado varias veces: tfg-glf5 -> fidelyapp -> fidelyfood) quedo en un estado corrupto en Vercel. El proyecto viejo se dejo sin tocar (no se borro)."
     },
-    "adminAccount": {
-      "email": "admin@fidelyfood.local",
-      "activePasswordNote": "admin123 (valor por defecto del codigo) sigue activo hasta que el backend se reinicie",
-      "pendingPasswordNote": "Nueva contrasena elegida por el usuario ya guardada en Render (FIDELYFOOD_ADMIN_PASSWORD); se activara sola en el proximo reinicio del servicio, o antes si se fuerza un Manual Deploy"
-    },
-    "domainDecision": "El usuario decidio quedarse con los subdominios gratuitos (Render/Vercel) — un dominio propio real siempre tiene coste de registro.",
     "pendingUserAction": [
-      "Restringir la API key de Google Maps por HTTP referrer en Google Cloud Console (SECURITY.md punto 9) — el usuario decidio no hacerlo por ahora",
-      "Forzar 'Manual Deploy' en Render cuando se quiera aplicar ya la nueva contrasena de admin",
-      "Decidir que hacer con el proyecto viejo de Vercel (fidelyfood, antes tfg-glf5/fidelyapp) que quedo roto — se puede borrar cuando se quiera",
-      "Confirmar si se fusiona el PR #28 (tests unitarios FID-013/FID-014, ya revisado y recomendado por Claude esta manana)",
-      "Verificar visualmente en fidelyfoodapp.vercel.app que el mapa y las promociones quedaron bien tras la fusion de esta madrugada"
+      "URGENTE: revisar el backend en el dashboard de Render (Manual Deploy / logs) - lleva caido mas de 30h",
+      "URGENTE: fusionar PR #28 (incluye el fix de la fuga de contrasenas via /api/promociones)",
+      "Revisar y fusionar (o pedir cambios en) los PRs #31 a #38 de esta sesion autonoma",
+      "Restringir la API key de Google Maps por HTTP referrer en Google Cloud Console - el usuario decidio no hacerlo por ahora"
     ]
   },
-  "autonomousAgent": {
-    "status": "ACTIVADO",
-    "routineId": "trig_014dcQmXWEEMPUshiQqN5XVU",
-    "routineUrl": "https://claude.ai/code/routines/trig_014dcQmXWEEMPUshiQqN5XVU",
-    "schedule": "Diario, 09:00 hora de Zurich (07:00 UTC)",
-    "rules": "Corre en un sandbox aislado en la nube, trabaja siempre en su propia rama agent/fidelyfood-autonomous, nunca fusiona a main por si sola — solo deja Pull Requests. Abrio el PR #28 esta manana (dos ejecuciones paralelas cubrieron FID-013 y FID-014 sin colisionar)."
-  },
-  "nightlySession": {
-    "date": "2026-09-24/25",
-    "routineId": "trig_016pjiNZ5JhAj6V15PeqVSAu",
-    "prsMerged": [
-      "https://github.com/montaggionii/TFG-/pull/26 (Google Maps ResizeObserver)",
-      "https://github.com/montaggionii/TFG-/pull/27 (responsive dashboard, 3 bugs de promociones, codigo postal, E2E ampliado)"
-    ],
-    "mergedBy": "El usuario, desde el panel propio de la rutina en claude.ai, confirmando explicitamente saltarse la regla de 'nunca fusionar sola' que el la propia rutina llevaba configurada",
-    "note": "La rutina se paso varias horas vigilando el PR #27 (checks de Vercel, sin reviews) antes de que el usuario aprobara la fusion por la manana."
-  },
   "pr": {
-    "lastMerged": "https://github.com/montaggionii/TFG-/pull/27",
-    "openForReview": ["https://github.com/montaggionii/TFG-/pull/28 (tests unitarios, revisado y recomendado por Claude, pendiente confirmacion del usuario)"]
+    "lastMerged": "https://github.com/montaggionii/TFG-/pull/30",
+    "openForReview": [
+      "#28 - fix(security) FID-017: fuga de hash de password via /api/promociones + tests unitarios FID-013 a FID-016 (URGENTE)",
+      "#31 - feat(dashboard): info-card real al tocar el marcador del mapa",
+      "#32 - fix(seed): quitar toda mencion a demo del contenido visible",
+      "#33 - fix(historial): eliminar datos inventados y mostrar cliente/monto reales",
+      "#34 - chore(auth): no volcar tokens/JWT ni logs de depuracion a la consola",
+      "#35 - fix(admin): quitar el widget de agente IA que era pura simulacion",
+      "#36 - fix(home): quitar tasa de puntos inventada y distinguir vacio de error",
+      "#37 - docs: detallar por que canjear puntos no funciona hoy",
+      "#38 - fix(a11y): asociar las etiquetas de email/password en los logins"
+    ]
   },
   "build": {
     "status": "OK",
-    "backend": "mvn clean test -> BUILD SUCCESS (verificado 2026-09-25 tras la fusion nocturna, con .env local cargado)",
-    "frontend": "ng build --configuration production -> OK (solo warnings preexistentes de Sass/CSS)",
-    "validatedAt": "2026-09-25T09:44:00Z"
+    "backend": "mvn test -> 2/2 OK, verificado varias veces durante la sesion tras cada cambio de DTO/servicio",
+    "frontend": "ng build --configuration production -> OK (solo warnings preexistentes de Sass/CSS, ninguno introducido esta sesion)",
+    "validatedAt": "2026-09-28T19:15:00Z"
   },
   "tests": {
-    "backend": { "total": 2, "passing": 2, "failing": 0, "note": "SpringBootTfgApplicationTests (contextLoads) + GlobalExceptionHandlerTest. PR #28 (sin fusionar aun) anadiria 34 tests unitarios mas (UsuarioServiceTest, RestauranteServiceTest, LoginRateLimiterTest)." },
-    "e2e": { "total": 15, "passing": null, "note": "PR #27 amplio restaurant-flows.spec.ts con un flujo completo de restaurante de punta a punta y corrigio security-restaurant-stats.spec.ts (ID hardcodeado). No re-ejecutada localmente esta manana por falta de tiempo, verificada por la propia rutina nocturna antes de abrir el PR." }
+    "backend": { "total": 2, "passing": 2, "failing": 0, "note": "PR #28 (sin fusionar) anadiria 34+ tests unitarios mas (UsuarioServiceTest, RestauranteServiceTest, PromocionServiceTest, CompraServiceTest, RecompensaServiceTest, LoginRateLimiterTest)." },
+    "e2e": { "total": 15, "passing": 15, "failing": 0, "note": "Suite completa reejecutada el 28/09 tras los 6 fixes frontend de esta sesion (dashboard, historial, home, auth, admin-layout) - sin regresiones." }
   },
   "security": {
-    "vulnerabilitiesFixed": ["login sin rate-limiting", "enumeracion de emails en login", "swagger publico", "JWT secret de desarrollo en produccion", "stats de restaurante sin control de propiedad", "3 XSS de Angular (npm audit)", "500 en vez de 404 en rutas sin recurso", "contrasena de admin por defecto (admin123) visible en el codigo fuente, en proceso de cambio", "contrasena por defecto (change-me-restaurant-password) de los 3 restaurantes historicos, corregida"],
+    "vulnerabilitiesFixed": ["login sin rate-limiting", "enumeracion de emails en login", "swagger publico", "JWT secret de desarrollo en produccion", "stats de restaurante sin control de propiedad", "3 XSS de Angular (npm audit)", "500 en vez de 404 en rutas sin recurso", "contrasena de admin por defecto (admin123) en proceso de cambio"],
+    "vulnerabilidadEncontradaSinFusionar": "FID-017 (PR #28, sin fusionar): GET /api/promociones devolvia el hash bcrypt de la password de cualquier restaurante - cualquier cliente autenticado podia volcarlo. Corregido con @JsonProperty WRITE_ONLY, verificado con E2E real 16/16.",
     "pendingUserDecision": ["rotar credenciales expuestas historicamente (usuario decidio NO hacerlo por ahora)"]
   }
 }
