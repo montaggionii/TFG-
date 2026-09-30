@@ -34,6 +34,55 @@ si el archivo aparece como modificado sin commitear allí, se salta esa tarea.
 - ~~**FID-013** · TEST · Tests unitarios del backend — sin cobertura más allá de `contextLoads`.~~ **COMPLETADA** (ver cierre abajo).
 - ~~**FID-015** · TEST · Cobertura unitaria de `PromocionService` y del nuevo endpoint `GET /api/restaurantes/{id}/estadisticas` — código añadido en #29/#30 sin tests unitarios, solo E2E.~~ **COMPLETADA** (ver cierre abajo).
 - ~~**FID-016** · TEST · Cobertura unitaria de `CompraService` y `RecompensaService` — últimos dos servicios de negocio del backend sin ningún test unitario, solo E2E.~~ **COMPLETADA** (ver cierre abajo).
+- ~~**FID-018** · TEST · Cobertura unitaria de `MovimientoPuntosService` — único servicio de negocio no trivial que quedaba sin tests tras FID-016.~~ **COMPLETADA** (ver cierre abajo).
+
+### FID-018 — completada 2026-09-30
+
+Rutina en la nube del 2026-09-30. El PR #28 (FID-013 a FID-016) ya estaba fusionado a `main` — la rama
+`agent/fidelyfood-autonomous` se recreó desde el `main` actual (`eaf26d4`) siguiendo la regla de "PR ya
+fusionado ⇒ rama nueva desde `main`", en vez de seguir apilando commits sobre historia ya integrada.
+
+Sin ninguna tarea "Pendiente" explícita en `AGENT_TASKS.md`/`.agent/tasks.md`, primero se auditó (mismo
+criterio que FID-005/013/015/016) el único cambio de backend fusionado desde el cierre de FID-016: el PR
+#33 (`fix(historial)`), que añadió los campos `monto`, `usuarioNombre` y `usuarioFotoPerfil` a
+`MovimientoPuntosDTO` y los usos correspondientes en `MovimientoPuntosService`/`RestauranteService`.
+Verificado leyendo el código: los tres puntos donde se construye ese DTO cuelgan de endpoints que ya
+identifican al restaurante/usuario por el email autenticado (`RestauranteController` vía `requireOwner`,
+ya corregido en FID-005; `MovimientoPuntosController.obtenerHistorial` vía
+`authentication.getName()`, nunca un id del cliente) — sin vulnerabilidad nueva de Broken Access Control,
+los datos de cliente expuestos (nombre/foto) son del propio flujo autorizado del restaurante sobre sus
+movimientos.
+
+De ese mismo cambio salió el hallazgo de bajo riesgo de esta sesión: `MovimientoPuntosService` (que
+gestiona `GET /api/movimientos`, el historial de puntos del cliente autenticado) era, junto a
+`QrService` (trivial, descartado ya en FID-016), el único de los siete servicios de negocio del backend
+sin ningún test unitario — un descuido de FID-013/015/016, que cubrieron el resto uno a uno pero nunca
+llegaron a este.
+
+- **`MovimientoPuntosServiceTest.java` (nuevo, 3 tests)**: usuario inexistente lanza
+  `ResourceNotFoundException` sin consultar `MovimientoPuntosDAO`; usuario sin movimientos devuelve
+  lista vacía; y el mapeo a DTO de varios movimientos reales conserva puntos/tipo/monto (incluido `null`
+  cuando el movimiento no viene de un consumo, caso `CANJEADOS`) y el nombre/foto reales del usuario
+  autenticado — fija el comportamiento de los tres campos añadidos en el PR #33.
+
+**Verificación real**: `mvn compile` → éxito. `mvn test -Dtest=MovimientoPuntosServiceTest,
+CompraServiceTest,RecompensaServiceTest,PromocionServiceTest,UsuarioServiceTest,RestauranteServiceTest,
+LoginRateLimiterTest,GlobalExceptionHandlerTest` → **64/64 passed** (3+6+6+13+15+13+7+1). `mvn test`
+completo → **65 tests, 64 passed, 1 error** (`SpringBootTfgApplicationTests.contextLoads`, mismo motivo
+ya documentado en FID-013/014/015/016: `Communications link failure`, no hay MySQL en este sandbox —
+confirmado leyendo la traza completa, `Connection refused`). No se tocó ningún test ni código de
+producción existente (solo un test nuevo).
+
+**No se pudo verificar en este entorno** (requeriría backend/frontend/MySQL reales): el flujo E2E
+completo del historial de puntos del cliente y de "Actividad Reciente"/"Historial de Actividad" del
+restaurante (PR #33), ya cubierto por la suite E2E existente (`client-flows.spec.ts`,
+`restaurant-flows.spec.ts`), no duplicado aquí; tampoco `npm audit`/dependencias de frontend (sin
+cambios de `package.json` desde FID-012, no había nada nuevo que auditar en esta sesión).
+
+Con esto, los 7 servicios de negocio del backend tienen cobertura unitaria (salvo `QrService`, trivial),
+cerrando el hueco que quedó abierto tras FID-016.
+
+Archivo creado: `src/test/java/progresa/springboot_tfg/service/MovimientoPuntosServiceTest.java`.
 
 ### FID-016 — completada 2026-09-27
 
