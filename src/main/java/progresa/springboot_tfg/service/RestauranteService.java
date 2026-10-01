@@ -14,18 +14,14 @@ import progresa.springboot_tfg.entity.Role;
 import progresa.springboot_tfg.exception.BadRequestException;
 import progresa.springboot_tfg.exception.ResourceNotFoundException;
 import progresa.springboot_tfg.security.JwtUtil;
+import progresa.springboot_tfg.util.ImagenUtil;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.TemporalAdjusters;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -148,28 +144,8 @@ public class RestauranteService {
             throw new BadRequestException("Formato no permitido. Usa JPG, JPEG, PNG o WEBP");
         }
 
-        try {
-            Path uploadDir = Paths.get("uploads", "restaurantes").toAbsolutePath().normalize();
-            Files.createDirectories(uploadDir);
-
-            String extension = switch (contentType) {
-                case "image/png" -> ".png";
-                case "image/webp" -> ".webp";
-                default -> ".jpg";
-            };
-            String filename = "restaurant_" + id + "_" + UUID.randomUUID().toString().substring(0, 8) + extension;
-            Path target = uploadDir.resolve(filename).normalize();
-            if (!target.startsWith(uploadDir)) {
-                throw new BadRequestException("Nombre de archivo no permitido");
-            }
-
-            file.transferTo(target);
-
-            restaurante.setFoto("/uploads/restaurantes/" + filename);
-            return toDTO(restauranteDAO.save(restaurante));
-        } catch (IOException e) {
-            throw new RuntimeException("No se pudo guardar la imagen", e);
-        }
+        restaurante.setFoto(ImagenUtil.aDataUri(file));
+        return toDTO(restauranteDAO.save(restaurante));
     }
 
     public DashboardStatsDTO obtenerStats(Long id, String emailAutenticado) {
