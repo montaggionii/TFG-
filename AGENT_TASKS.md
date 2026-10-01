@@ -34,7 +34,8 @@ si el archivo aparece como modificado sin commitear allí, se salta esa tarea.
 - ~~**FID-013** · TEST · Tests unitarios del backend — sin cobertura más allá de `contextLoads`.~~ **COMPLETADA** (ver cierre abajo).
 - ~~**FID-015** · TEST · Cobertura unitaria de `PromocionService` y del nuevo endpoint `GET /api/restaurantes/{id}/estadisticas` — código añadido en #29/#30 sin tests unitarios, solo E2E.~~ **COMPLETADA** (ver cierre abajo).
 - ~~**FID-016** · TEST · Cobertura unitaria de `CompraService` y `RecompensaService` — últimos dos servicios de negocio del backend sin ningún test unitario, solo E2E.~~ **COMPLETADA** (ver cierre abajo).
-- ~~**FID-018** · TEST · Cobertura unitaria de `MovimientoPuntosService` — único servicio de negocio no trivial que quedaba sin tests tras FID-016.~~ **COMPLETADA** (ver cierre abajo).
+- ~~**FID-018** · TEST · Cobertura unitaria de `MovimientoPuntosService` — único servicio de negocio no trivial que quedaba sin tests tras FID-016.~~ **COMPLETADA** (ver cierre abajo) — **pendiente de revisión humana (PR #43)**.
+- ~~**FID-019** · MAINTENANCE · `npm audit` del frontend volvió a detectar vulnerabilidades (postcss, vite, piscina, http-proxy-middleware, @babel/core, esbuild — 12 en total) tras nuevos avisos publicados desde FID-012.~~ **COMPLETADA — 6 de 12 corregidas dentro de Angular 20, 6 pendientes de decisión (requieren Angular 21)** (ver cierre abajo).
 
 ### FID-018 — completada 2026-09-30
 
@@ -83,6 +84,68 @@ Con esto, los 7 servicios de negocio del backend tienen cobertura unitaria (salv
 cerrando el hueco que quedó abierto tras FID-016.
 
 Archivo creado: `src/test/java/progresa/springboot_tfg/service/MovimientoPuntosServiceTest.java`.
+
+### FID-019 — completada 2026-10-01
+
+Rutina en la nube del 2026-10-01. El PR #43 (FID-018) seguía abierto y la rama `agent/fidelyfood-autonomous`
+ya estaba al día con `main` (sin ningún commit nuevo en `main` desde el cierre de FID-018: verificado con
+`git log origin/main..origin/agent/fidelyfood-autonomous` / en sentido inverso, cero commits en ambos
+casos salvo el propio commit de FID-018), así que esta sesión añade un commit nuevo a la misma rama/PR en
+vez de abrir uno aparte — mismo criterio ya seguido en FID-015/FID-016 cuando el PR previo seguía sin
+fusionar.
+
+Sin ninguna tarea "Pendiente" explícita, y sin ningún commit de backend nuevo que auditar (confirmado con
+`git show --stat` de los diez commits mergeados a `main` el 2026-09-29 — `#41,#32,#31,#33,#34,#35,#36,
+#38,#12` —, ninguno toca `src/main/java/**` ni `pom.xml` salvo el ya auditado `#33` en FID-018), se repitió
+el tipo de hallazgo de FID-010/FID-012: dependencias con vulnerabilidades conocidas. `npm audit` en
+`frontend/` volvió a reportar 12 vulnerabilidades (2 bajas, 3 moderadas, 7 altas) aparecidas desde el
+cierre de FID-012 — nuevos avisos (`postcss`, `vite`, `piscina`, `http-proxy-middleware`, `@babel/core`,
+`esbuild`, y transitivamente `uuid`/`sockjs`/`webpack-dev-server`/`webpack-dev-middleware`), todas en la
+cadena de dependencias de build de Angular (`@angular-devkit/build-angular`), ninguna en código servido a
+los usuarios (`npm audit --omit=dev` ya daba 0 antes y después del cambio).
+
+**Causa real**: `@angular-devkit/build-angular` estaba fijado en `^20.0.0` en `package.json`, y la copia
+instalada (`20.3.26`) no se había actualizado junto con `@angular/core` en FID-012 (ese cambio solo tocó
+los paquetes `@angular/*` de primer nivel, no el propio `@angular/cli`/`build-angular`) — quedó rezagada
+varios parches (20.3.26 → 20.3.37 disponible) mientras el ecosistema de bundling (`postcss`/`vite`/
+`webpack-dev-server`, dependencias de `@angular/build`) recibía parches de seguridad en esas versiones
+más recientes.
+
+**Corrección aplicada** (mismo criterio que FID-012 — parche dentro de Angular 20, sin saltar a un major):
+`npx ng update @angular/core@20 @angular/cli@20` (sube `@angular/core` y paquetes hermanos de 20.3.32 a
+20.3.33) + `npm install @angular-devkit/build-angular@20.3.37 --save-dev` (el `ng update` no subió
+`@angular-devkit/build-angular` por sí solo, pese al rango `^20.0.0` que lo permitía — se instaló el
+parche más reciente de la serie 20.3.x explícitamente). Sin cambios de versión mayor en ningún paquete.
+
+**Resultado**: de 12 vulnerabilidades, 6 corregidas (`postcss`, `vite`, `piscina`, `http-proxy-middleware`,
+`@babel/core`, `esbuild`). Las 6 restantes (`uuid`/`sockjs`/`webpack-dev-server`/`webpack-dev-middleware`,
+2 moderadas + 2 altas con sus dependientes) solo tienen arreglo saltando a
+`@angular-devkit/build-angular@21.2.24` (Angular 21, cambio de versión mayor) — **no aplicado aquí**, mismo
+motivo que FID-010 → FID-012: un salto de major necesita una ronda completa de regresión que esta sesión
+no puede ejecutar (sin frontend/backend reales en este entorno). Documentado como decisión pendiente del
+usuario, igual que el resto de "major version" ya abiertos en el backlog (Angular 21 completo, descartado
+en FID-010/FID-012; `spring-boot-starter-parent` 3.2.1 → 3.2.12, descartado en FID-014).
+
+**Verificación real**:
+- `npm audit --omit=dev` → 0 vulnerabilidades (antes y después; estas vulnerabilidades siempre fueron solo
+  de dependencias de build, nunca de código enviado a producción).
+- `npm audit` completo → 12 → 6 vulnerabilidades (bajada real, no solo supresión de avisos).
+- `npx ng build --configuration production` → build limpio, mismos warnings de siempre (deprecación de
+  `@import` de Sass, presupuestos de tamaño de 2 componentes ya señalados antes, módulo `qrcode` no-ESM) —
+  sin errores nuevos.
+- `npx ng lint` → 8 errores/1 warning preexistentes (reglas de estilo `@angular-eslint/prefer-inject` y
+  `no-output-on-prefix`), no relacionados con este cambio de dependencias (confirmado: son reglas de
+  `@angular-eslint/*`, paquete no tocado en este commit) — no corregidos aquí, fuera de alcance de esta
+  tarea de mantenimiento de dependencias.
+
+**No se pudo verificar en este entorno** (requeriría backend/frontend/MySQL reales): la suite E2E
+completa de Playwright contra el build actualizado — ya se verificó así en FID-012 cuando había un
+servidor de desarrollo local disponible, pero este sandbox en la nube no tiene ningún servidor local
+corriendo. El build de producción (`ng build`) y `npm audit` son lo máximo verificable aquí, tal y como
+pide la rutina para este tipo de entorno.
+
+Archivos modificados: `frontend/package.json`, `frontend/package-lock.json` (parches dentro de Angular 20,
+sin cambios de versión mayor).
 
 ### FID-016 — completada 2026-09-27
 
