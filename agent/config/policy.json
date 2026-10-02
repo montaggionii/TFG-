@@ -1,0 +1,65 @@
+{
+  "_comment": "Politica de minimo privilegio del Agent Layer. Es una capa de control, NO un sandbox de SO: ver ../../AGENT_LAYER.md (limitaciones).",
+  "protectedReadPaths": [
+    "^\\.env($|\\.(?!example$))",
+    "(^|/)\\.ssh(/|$)",
+    "(^|/)\\.aws(/|$)",
+    "(^|/)\\.fidelyfood-agent(/|$)",
+    "(^|/)id_(rsa|ed25519)",
+    "\\.(pem|key|p12|jks)$"
+  ],
+  "protectedWritePaths": [
+    "^\\.git(/|$)",
+    "^agent/config(/|$)",
+    "^agent/src/lib/policy\\.mjs$",
+    "^agent/data(/|$)",
+    "^\\.claude(/|$)",
+    "^\\.mcp\\.json$",
+    "^\\.env($|\\.(?!example$))",
+    "(^|/)node_modules(/|$)",
+    "^backups(/|$)"
+  ],
+  "commands": {
+    "deniedBinaries": ["sudo", "su", "ssh", "scp", "nc", "ncat", "telnet", "mkfs", "dd", "chmod", "chown", "eval", "source"],
+    "autoBinaries": ["ls", "cat", "head", "tail", "wc", "grep", "rg", "find", "pwd", "echo", "date", "which", "lsof", "ps", "java", "git", "mvn", "./mvnw", "mvnw", "npm", "npx", "node", "gh"],
+    "git": {
+      "auto": ["status", "diff", "log", "show", "rev-parse", "ls-files", "blame", "fetch", "add", "commit", "switch", "worktree", "remote", "merge-base", "shortlog", "describe", "stash"],
+      "approval": ["push", "pull", "merge", "rebase", "reset", "clean", "restore", "tag", "gc", "filter-branch", "cherry-pick", "revert", "config", "clone", "submodule"],
+      "autoBranchFlagsOnly": ["--list", "--show-current", "-a", "-r", "-v", "-vv", "--contains", "--merged", "--no-merged"],
+      "approvalFlags": ["--force", "-f", "--hard", "--force-with-lease", "-D", "--delete", "--no-verify"]
+    },
+    "npm": {
+      "auto": ["run", "ci", "install", "i", "ls", "outdated", "audit", "test", "t", "start", "view", "info"],
+      "approvalFlags": ["-g", "--global", "--force"],
+      "approval": ["publish", "unpublish", "login", "adduser", "config", "deprecate", "owner", "token"]
+    },
+    "npx": { "autoPackages": ["playwright", "ng", "ionic"] },
+    "node": { "approvalFlags": ["-e", "--eval", "-p", "--print", "--input-type"] },
+    "mvn": { "auto": ["compile", "test", "package", "verify", "clean", "dependency:tree", "test-compile", "spring-boot:run"], "approval": ["deploy", "release:prepare", "release:perform"] },
+    "gh": {
+      "autoPrefixes": ["pr list", "pr view", "pr status", "pr diff", "pr checks", "issue list", "issue view", "repo view", "run list", "run view", "api"],
+      "approval": ["pr create", "pr merge", "pr close", "pr comment", "pr review", "issue create", "issue comment", "issue close", "release", "auth", "secret", "workflow run"],
+      "apiApprovalMethods": ["POST", "PUT", "PATCH", "DELETE"]
+    },
+    "approvalPatterns": [
+      "\\brm\\s",
+      "\\bkill\\b",
+      "\\bpkill\\b",
+      "\\bdeploy\\b",
+      "\\brender\\b.*\\b(deploy|restart)\\b",
+      "\\bvercel\\b"
+    ]
+  },
+  "sql": {
+    "readOnlyStart": "^(select|show|describe|desc|explain|with)\\b",
+    "forbiddenInReadOnly": ["into\\s+outfile", "into\\s+dumpfile", "load_file\\s*\\(", "sleep\\s*\\(", "benchmark\\s*\\(", "for\\s+update", "lock\\s+in\\s+share\\s+mode"],
+    "alwaysApproval": ["\\bdrop\\b", "\\btruncate\\b", "\\balter\\b", "\\bdelete\\b", "\\bupdate\\b", "\\binsert\\b", "\\bcreate\\b", "\\bgrant\\b", "\\brevoke\\b", "\\brename\\b", "\\breplace\\b"],
+    "maxRows": 200
+  },
+  "limits": {
+    "maxOutputChars": 20000,
+    "commandTimeoutMs": 300000,
+    "maxFileBytes": 1048576,
+    "approvalTtlMinutes": 30
+  }
+}

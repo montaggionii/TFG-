@@ -86,3 +86,6 @@ frontend/ios/App/App/config 2.xml
 frontend/android/app/build/
 frontend/ios/App/build/
 backups/
+
+# Agent Layer: estado de ejecucion, logs, aprobaciones y auditoria (nunca se versiona)
+agent/data/
