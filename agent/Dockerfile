@@ -1,5 +1,5 @@
-# Agent Layer de FidelyFood para una VPS / contenedor. NO VERIFICADO: este Dockerfile no se ha construido
-# todavia (requiere descargar imagenes base); ver AGENT_LAYER.md ("Despliegue en VPS").
+# Agent Layer de FidelyFood para una VPS / contenedor. Construido y comprobado en arm64 (ver AGENT_LAYER.md,
+# "Despliegue en VPS"); sin probar en una VPS real ni con un proveedor LLM real.
 #
 #   docker build -t fidelyfood-agent agent
 #   docker run --rm -it \
@@ -22,13 +22,15 @@ RUN npm ci --omit=dev
 COPY config ./config
 COPY src ./src
 
+# El repositorio se monta desde fuera con otro uid: sin esto git se niega a operar ("dubious ownership").
+RUN git config --system --add safe.directory /workspace
+
 # Usuario sin privilegios: el agente no debe ser root.
 RUN useradd --create-home --uid 10001 agent && mkdir -p /var/lib/fidelyfood-agent /workspace && chown agent /var/lib/fidelyfood-agent
 USER agent
 
 ENV AGENT_REPO_ROOT=/workspace \
     AGENT_DATA_DIR=/var/lib/fidelyfood-agent \
-    AGENT_JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 \
     AGENT_ENV=staging
 
 ENTRYPOINT ["node", "src/runner/run.mjs"]

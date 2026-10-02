@@ -87,12 +87,12 @@ Eventos que crean tareas: `npm --prefix agent run event -- issue <n>` (issue de 
 - **Descripción:** Playwright se actualizo y falta el binario chromium_headless_shell-1243: 11 de 16 tests E2E fallan con 'Executable doesn't exist' (los 5 que solo usan la API pasan). Hay que ejecutar `npx playwright install chromium` (descarga ~150 MB). El agente no puede descargar binarios sin aprobacion.
 - **Prioridad:** P1
 - **Área:** testing
-- **Estado:** BLOCKED
+- **Estado:** REVIEW
 - **Dependencias:** —
 - **Archivos afectados:** —
 - **Criterios de aceptación:** run_e2e_tests suite all se ejecuta con navegador y no falla por 'Executable doesn't exist'.
 - **Tests necesarios:** run_e2e_tests suite all
-- **Resultado:** Necesita aprobacion humana para descargar el navegador (npx playwright install chromium).
+- **Resultado:** Navegador instalado el 2026-10-02 con aprobacion del usuario (npx playwright install chromium). run_e2e_tests suite all: 16/16 en verde. Pendiente de cierre humano.
 
 <!-- TASKS:END -->
 

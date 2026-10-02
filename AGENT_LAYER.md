@@ -118,13 +118,14 @@ Variables que reconoce el Agent Layer (solo nombres): `AGENT_ENV`, `AGENT_PROVID
 **Verificado**
 - 42 tests automáticos del Agent Layer en verde (política, aprobaciones firmadas, tareas, memoria, redacción, adaptadores LLM con `fetch` simulado, runner con proveedor guionizado y herramientas reales, eventos) y un cliente MCP real hablando por stdio con el servidor.
 - Contra la infraestructura real: inventario de 70 endpoints parseado del código; consultas a la MySQL local (esquema, 221 movimientos, enmascarado de contraseñas); `run_unit_tests` del backend (61/61 con JDK 17 autodetectado) y `run_integration_tests` (contexto completo contra la MySQL local, 1/1); GitHub (`gh`) de lectura; `service_start`/`service_stop` de backend y frontend (el frontend sirve la app Angular); la API local responde `/ping`; el dashboard `/jarvis.html` muestra el estado real.
+- **Suite E2E completa: 16/16** (login de los 3 roles, cliente, restaurante, seguridad) lanzada por el agente con `run_e2e_tests` tras arrancar backend y frontend con `service_start` y apagarlos con `service_stop`.
+- **Imagen Docker** construida en arm64: Node 22, JDK 17, git, `gh` y cliente MySQL (el de Debian es MariaDB), usuario sin privilegios; dentro del contenedor las 49 herramientas cargan, la política se aplica (entorno `staging`) y `git_status`/`git_log` funcionan sobre el repo montado (hizo falta `safe.directory`, ya en la imagen).
 - Un runner de extremo a extremo (rama → edición → commit → tarea a `REVIEW` → changelog) con **herramientas reales y un modelo guionizado**.
 
 **No verificado todavía**
 - **Ningún proveedor LLM real** (Anthropic/OpenAI/Gemini): no hay claves en esta sesión; los adaptadores solo están probados contra respuestas simuladas con el formato documentado de cada API.
 - Que Claude Code cargue `.mcp.json` (hay que reiniciar la sesión y aprobar el servidor); el protocolo sí está probado con el cliente del SDK.
-- **E2E de Playwright**: 11 de 16 fallan en esta máquina por falta del navegador (`Executable doesn't exist`; los 5 que solo usan la API pasan). Es una tarea bloqueada (AGT-006): requiere `npx playwright install chromium` (descarga) con tu aprobación.
-- La parte `frontend` de `run_unit_tests` (Karma), el `Dockerfile` (no construido) y la conexión de OpenClaw.
+- La parte `frontend` de `run_unit_tests` (Karma), la imagen en una VPS real y la conexión de OpenClaw.
 
 ## Limitaciones y riesgos conocidos
 
@@ -135,9 +136,9 @@ Variables que reconoce el Agent Layer (solo nombres): `AGENT_ENV`, `AGENT_PROVID
 - Las suites E2E mutan la BD local de desarrollo (cuentas de cliente desechables, etc.).
 - La memoria (`.agent/memory.jsonl`) es texto plano versionado: revisa los PR antes de fusionar.
 
-## Despliegue en VPS (preparado, sin verificar)
+## Despliegue en VPS (imagen verificada en local; sin probar en una VPS real)
 
-1. Construir la imagen (`agent/Dockerfile`: Node 22, JDK 17, git, cliente MySQL, `gh`; usuario sin privilegios) — **no construida aún**.
+1. Construir la imagen (`docker build -t fidelyfood-agent agent`: Node 22, JDK 17, git, cliente MySQL, `gh`; usuario sin privilegios).
 2. Montar el repositorio en `/workspace` (copia en rama `agent/*`), un volumen para `AGENT_DATA_DIR` y, aparte, el volumen con la clave de aprobación que solo monta quien aprueba.
 3. `AGENT_ENV=staging` con credenciales de staging; **nunca** poner credenciales de producción en el agente. `production` queda de solo lectura.
 4. Monitor y aprobaciones accesibles solo por túnel/VPN (el access-center escucha únicamente en `127.0.0.1`).

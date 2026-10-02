@@ -61,7 +61,7 @@ E2E_API_URL=http://localhost:8082 npx playwright test security-restaurant-stats.
 
 ## Requisito del navegador de Playwright
 
-Tras actualizar `@playwright/test` hay que reinstalar el navegador (`npx playwright install chromium`, descarga ~150 MB). Sin él, los tests que abren página fallan con `Executable doesn't exist` (11 de 16 en la última comprobación) mientras que los que solo usan la API (seguridad) pasan. Está registrado como tarea AGT-006.
+Tras actualizar `@playwright/test` hay que reinstalar el navegador (`npx playwright install chromium`, descarga ~150 MB); sin él los tests que abren página fallan con `Executable doesn't exist` y solo pasan los de API. Instalado el 2026-10-02: la suite completa pasa **16/16**.
 
 ## Cobertura actual y huecos conocidos
 
