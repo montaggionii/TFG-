@@ -31,3 +31,20 @@ Estado real a fecha de hoy. **El proyecto todavía NO está desplegado en Intern
 ## Cómo retomar esto
 
 Cuando el usuario quiera continuar, los pasos 1-4 son los que desbloquean todo lo demás (sin backend público no tiene sentido desplegar el frontend). El agente puede ejecutar los comandos de cada paso, pero el login inicial en cada plataforma lo tiene que aprobar el usuario en su propio navegador.
+
+## Subir las fotos de promociones y portadas a producción
+
+Las imágenes se guardan en la base de datos (data URI), así que sobreviven a los redeploys de Render. Tras un cambio que las pierda (o para cargarlas por primera vez) usa el script, que empareja cada promoción por su título con una foto del plato que anuncia (`scripts/fotos-promociones.json`, fotos de Unsplash) y la sube sin tocar tipo, puntos, fechas ni estado:
+
+```bash
+# 1) Simulación (no sube nada): muestra qué foto iría a cada promoción
+node scripts/subir-fotos-promociones.mjs --restaurante mexican --api https://fidelyfood-backend.onrender.com --dry-run
+# 2) Subida real. La contraseña se pide por teclado (no se muestra ni se guarda) o se lee de FIDELYFOOD_PASSWORD
+node scripts/subir-fotos-promociones.mjs --restaurante mexican    --api https://fidelyfood-backend.onrender.com
+node scripts/subir-fotos-promociones.mjs --restaurante alabroster --api https://fidelyfood-backend.onrender.com
+node scripts/subir-fotos-promociones.mjs --restaurante venezuela  --api https://fidelyfood-backend.onrender.com
+```
+
+- Es idempotente: las promociones que ya tienen su foto guardada se dejan como están (`--forzar` las sustituye).
+- `--email` cambia el correo del restaurante si no es el de `fotos-promociones.json`; `--sin-portada` no toca la portada (solo Mexican Food tiene portada definida).
+- La primera petición a Render puede tardar ~1 minuto si el servicio está dormido.
