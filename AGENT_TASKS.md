@@ -36,6 +36,79 @@ si el archivo aparece como modificado sin commitear allí, se salta esa tarea.
 - ~~**FID-016** · TEST · Cobertura unitaria de `CompraService` y `RecompensaService` — últimos dos servicios de negocio del backend sin ningún test unitario, solo E2E.~~ **COMPLETADA** (ver cierre abajo).
 - ~~**FID-018** · TEST · Cobertura unitaria de `MovimientoPuntosService` — único servicio de negocio no trivial que quedaba sin tests tras FID-016.~~ **COMPLETADA** (ver cierre abajo) — **pendiente de revisión humana (PR #43)**.
 - ~~**FID-019** · MAINTENANCE · `npm audit` del frontend volvió a detectar vulnerabilidades (postcss, vite, piscina, http-proxy-middleware, @babel/core, esbuild — 12 en total) tras nuevos avisos publicados desde FID-012.~~ **COMPLETADA — 6 de 12 corregidas dentro de Angular 20, 6 pendientes de decisión (requieren Angular 21)** (ver cierre abajo).
+- ~~**FID-020** · A11Y · El commit `#38` (fuera de este backlog) dejó documentado que, tras arreglar los dos formularios de login, quedaban otros 10 formularios con `ion-input`/`ion-select`/`ion-textarea` sin ninguna asociación accesible real a su etiqueta visible.~~ **COMPLETADA** (ver cierre abajo).
+
+### FID-020 — completada 2026-10-02
+
+Rutina en la nube del 2026-10-02. La rama `agent/fidelyfood-autonomous` ya estaba al día con `main`
+(el PR #43 de FID-018/FID-019 seguía abierto y sin commits nuevos en `main` que auditar — verificado
+con `git log origin/main..origin/agent/fidelyfood-autonomous` / al revés), así que este commit se
+añade a la misma rama/PR (mismo criterio que FID-015/FID-016/FID-019).
+
+**Elección de la tarea**: `AGENT_TASKS.md`/`.agent/tasks.md` no tenían ninguna entrada "Pendiente"
+explícita. Antes de buscar un hallazgo nuevo desde cero, se revisó el único commit de accesibilidad
+fusionado directamente a `main` (`08cdbff fix(a11y): asociar las etiquetas de email/password en los
+logins (#38)`, fuera de este backlog): su propio mensaje dejaba escrito textualmente que, tras
+arreglar los dos formularios de login, "hay otros 10 formularios con el mismo patrón (registro de
+usuario/restaurante, ajustes, promociones, perfil, paneles de admin) que quedan pendientes". Un
+pendiente ya identificado y acotado por nombre es más fiable que inventar un hallazgo nuevo, así que
+se eligió cerrar exactamente ese hueco.
+
+**El problema real** (el mismo que `#38` ya había corregido en los logins): Ionic renderiza
+`ion-input`/`ion-select`/`ion-textarea` como Web Components con Shadow DOM. Ni un `<ion-label
+position="stacked">` hermano ni un `<label>` nativo que envuelve al componente asocian su texto como
+nombre accesible del control interno (el `<input>`/`<textarea>` real vive dentro del Shadow DOM, fuera
+del árbol donde el algoritmo de cómputo de nombre accesible busca un `<label>` asociado). Un lector de
+pantalla solo anuncia el `placeholder` — y éste desaparece en cuanto el usuario empieza a escribir,
+dejando el campo sin nombre alguna vez tiene contenido.
+
+**Alcance**: se localizaron y corrigieron los 10 formularios señalados, uno por área:
+- Registro: `register-user.component.html` (3 campos), `register-restaurant.component.html` (7 campos).
+- Restaurante: `settings.component.html`/"ajustes" (7 campos: nombre, descripción, email, teléfono,
+  categoría, dirección, c. postal, ciudad — 8 en total), `mis-promociones/form-promocion.component.html`
+  (5 campos) y el formulario legado `gestion-promos.component.html` (4 campos, todavía enrutado y en
+  uso — verificado en `restaurant.routes.ts`).
+- Cliente: `perfil.component.html` (2 campos, usando `[attr.aria-label]` con el mismo pipe
+  `ffTranslate` que ya usa cada `<label>` visible, para no desincronizar el idioma) y
+  `security-center.component.html` (3 campos de contraseña, mismo criterio de `ffTranslate` donde
+  aplica).
+- Admin: `admin-reservations.component.html`, `admin-clients.component.html` y
+  `admin-businesses.component.html` — los tres paneles usan `<label>Texto<ion-input .../></label>`
+  (envoltura nativa), que tiene el mismo problema de Shadow DOM que el `ion-label` de los demás
+  formularios; se añadió `aria-label` a cada campo de sus formularios de edición/alta. Se dejaron
+  fuera deliberadamente los `ion-select` de los filtros de cabecera de cada listado (fuera del alcance
+  que describía el commit original, centrado en "formularios"), y los que ya usaban el atributo
+  `label` nativo de Ionic (`admin-clients`/`admin-businesses`, filtros de estado/ciudad/orden), que sí
+  expone nombre accesible.
+
+Cambio puramente aditivo: un atributo `aria-label`/`[attr.aria-label]` nuevo por campo, sin tocar
+diseño, maquetación, ni lógica de ningún componente.
+
+**Verificación real**: `npm install` (primera vez en este sandbox, `node_modules` no existía) + `ng
+build --configuration production` → **éxito**, sin ningún error nuevo. Los únicos avisos son los ya
+preexistentes (Sass `@import` deprecado en varios `_shared-admin.scss`, presupuesto de tamaño ya
+excedido en `admin-clients`/`restaurante-detalle-page` antes de este cambio, `qrcode` no-ESM) — nada
+causado por este commit. No se tocó ningún archivo de backend, así que no hizo falta `mvn test`.
+
+**No se pudo verificar en este entorno** (requeriría un lector de pantalla real, o un navegador con
+backend/frontend en marcha): confirmar de oído que cada campo se anuncia correctamente. El cambio es
+mecánico y repite exactamente el mismo patrón que `#38` ya verificó así para los logins.
+
+**Nota aparte, no accionada esta sesión**: `npm install` reportó 8 vulnerabilidades (3 críticas) en
+vez de las 6 que documentó el cierre de FID-019 (2026-10-01). Puede ser que se hayan publicado nuevos
+avisos en 24h, o un recuento distinto del mismo problema — queda anotado en `.agent/tasks.md` para que
+la próxima sesión lo revise con `npm audit` antes de decidir si hace falta una FID-021.
+
+Archivos modificados: `frontend/src/app/features/public/register-user/register-user.component.html`,
+`frontend/src/app/features/public/register-restaurant/register-restaurant.component.html`,
+`frontend/src/app/features/restaurant-app/settings/settings.component.html`,
+`frontend/src/app/features/restaurant-app/mis-promociones/form-promocion/form-promocion.component.html`,
+`frontend/src/app/features/restaurant-app/gestion-promos/gestion-promos.component.html`,
+`frontend/src/app/features/user-app/perfil/perfil.component.html`,
+`frontend/src/app/features/user-app/security-center/security-center.component.html`,
+`frontend/src/app/features/admin-app/reservations/admin-reservations.component.html`,
+`frontend/src/app/features/admin-app/clients/admin-clients.component.html`,
+`frontend/src/app/features/admin-app/businesses/admin-businesses.component.html`.
 
 ### FID-018 — completada 2026-09-30
 
