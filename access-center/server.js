@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
 import { execFile } from "child_process";
+import fs from "fs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_PATH = path.join(__dirname, "..");
@@ -321,6 +322,80 @@ app.get("/api/my-work", (req, res) => {
     currentModifiedFiles((files) => {
       res.json({ branch, modifiedFiles: files, checkedAt: new Date().toISOString() });
     });
+  });
+});
+
+// --- Jarvis (Agent Layer): estado REAL leido de agent/data, solo lectura ---
+// Lo escriben el servidor MCP y el runner (agent/src). Aqui no se simula
+// nada: si el agente no ha corrido, se devuelve vacio.
+const AGENT_DATA = path.join(REPO_PATH, "agent", "data");
+
+function readJsonSafe(file, fallback) {
+  try {
+    return JSON.parse(fs.readFileSync(file, "utf8"));
+  } catch {
+    return fallback;
+  }
+}
+
+function readJsonl(file) {
+  try {
+    return fs.readFileSync(file, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+  } catch {
+    return [];
+  }
+}
+
+app.get("/api/jarvis", (req, res) => {
+  const status = readJsonSafe(path.join(AGENT_DATA, "status.json"), null);
+
+  const approvalLines = readJsonl(path.join(AGENT_DATA, "approvals.jsonl"));
+  const decided = new Map(approvalLines.filter((l) => l.type === "decision").map((l) => [l.id, l.decision]));
+  const pendingApprovals = approvalLines
+    .filter((l) => l.type === "request" && !decided.has(l.id))
+    .map((l) => ({ id: l.id, tool: l.tool, reason: l.reason, summary: l.summary, requestedAt: l.requestedAt }));
+
+  let audit = [];
+  try {
+    const dir = path.join(AGENT_DATA, "audit");
+    const files = fs.readdirSync(dir).filter((f) => f.endsWith(".jsonl")).sort().reverse().slice(0, 2);
+    for (const f of files) audit = audit.concat(readJsonl(path.join(dir, f)).reverse());
+  } catch {
+    audit = [];
+  }
+  const today = new Date().toISOString().slice(0, 10);
+  const todays = audit.filter((a) => String(a.ts).startsWith(today));
+  const byDecision = {};
+  const byTool = {};
+  for (const a of todays) {
+    byDecision[a.decision] = (byDecision[a.decision] || 0) + 1;
+    byTool[a.tool] = (byTool[a.tool] || 0) + 1;
+  }
+  const topTools = Object.entries(byTool).sort((a, b) => b[1] - a[1]).slice(0, 8);
+
+  let runs = [];
+  try {
+    const dir = path.join(AGENT_DATA, "runs");
+    runs = fs
+      .readdirSync(dir)
+      .filter((f) => f.endsWith(".json"))
+      .map((f) => readJsonSafe(path.join(dir, f), null))
+      .filter(Boolean)
+      .sort((a, b) => String(b.finishedAt).localeCompare(String(a.finishedAt)))
+      .slice(0, 8)
+      .map((r) => ({ runId: r.runId, finishedAt: r.finishedAt, task: r.task, stopReason: r.stopReason, model: `${r.provider}/${r.model}`, steps: r.steps, tokens: r.tokens, estimatedCostUsd: r.estimatedCostUsd, testsPassed: r.testsPassed, testsFailed: r.testsFailed }));
+  } catch {
+    runs = [];
+  }
+
+  res.json({
+    hasData: Boolean(status),
+    status,
+    pendingApprovals,
+    recentToolCalls: audit.slice(0, 25).map((a) => ({ ts: a.ts, tool: a.tool, decision: a.decision, ok: a.ok, durationMs: a.durationMs, error: a.error || null })),
+    today: { calls: todays.length, byDecision, topTools },
+    recentRuns: runs,
+    readAt: new Date().toISOString(),
   });
 });
 

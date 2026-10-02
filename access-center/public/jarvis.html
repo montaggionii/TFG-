@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jarvis · estado del agente</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --ink:#15181d; --muted:#667085; --line:#e3e6eb; --ok:#127a43; --warn:#a15c00; --bad:#b42318; --info:#175cd3; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#0f1216; --card:#171b21; --ink:#e8ebf0; --muted:#98a2b3; --line:#2a3039; --ok:#4ade80; --warn:#fbbf24; --bad:#f87171; --info:#7cb2ff; } }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  header { display:flex; align-items:center; gap:12px; padding:14px 20px; border-bottom:1px solid var(--line); background:var(--card); position:sticky; top:0; }
+  h1 { font-size:16px; margin:0; font-weight:650; }
+  .pill { padding:2px 10px; border-radius:999px; font-weight:600; font-size:12px; border:1px solid currentColor; }
+  .s-RUNNING { color:var(--info); } .s-IDLE, .s-CONNECTED { color:var(--ok); } .s-BLOCKED_ON_APPROVAL { color:var(--warn); } .s-STOPPED { color:var(--bad); } .s-NONE { color:var(--muted); }
+  #age { margin-left:auto; color:var(--muted); font-size:12px; }
+  main { max-width:1180px; margin:0 auto; padding:18px 20px 40px; display:grid; gap:16px; }
+  .grid { display:grid; gap:10px; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); }
+  .cell { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:10px 12px; min-width:0; }
+  .cell b { display:block; font-size:11px; color:var(--muted); font-weight:600; margin-bottom:2px; }
+  .cell span { overflow-wrap:anywhere; }
+  section { background:var(--card); border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  section h2 { margin:0; padding:10px 14px; font-size:13px; border-bottom:1px solid var(--line); }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { text-align:left; padding:6px 14px; border-bottom:1px solid var(--line); vertical-align:top; overflow-wrap:anywhere; }
+  th { color:var(--muted); font-weight:600; font-size:11px; }
+  tr:last-child td { border-bottom:0; }
+  .empty { padding:14px; color:var(--muted); }
+  .d-allow, .d-approved_by_human { color:var(--ok); } .d-deny { color:var(--bad); } .d-approval_required { color:var(--warn); }
+  code { font:12px ui-monospace, Menlo, monospace; background:var(--bg); padding:1px 5px; border-radius:4px; }
+  .scroll { overflow-x:auto; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Jarvis · FidelyFood</h1>
+  <span id="pill" class="pill s-NONE">SIN DATOS</span>
+  <span id="age"></span>
+</header>
+<main>
+  <div id="notice" class="empty" hidden></div>
+  <div class="grid" id="cells"></div>
+  <section><h2>Aprobaciones humanas pendientes</h2><div class="scroll" id="approvals"></div></section>
+  <section><h2>Actividad de herramientas (reciente)</h2><div class="scroll" id="calls"></div></section>
+  <section><h2>Hoy</h2><div class="scroll" id="today"></div></section>
+  <section><h2>Ejecuciones recientes del runner</h2><div class="scroll" id="runs"></div></section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const fmt = (v) => (v === null || v === undefined || v === "" ? "—" : String(v));
+const mk = (tag, text, cls) => { const e = document.createElement(tag); if (text !== undefined) e.textContent = text; if (cls) e.className = cls; return e; };
+
+function table(el, cols, rows, emptyText) {
+  el.replaceChildren();
+  if (!rows.length) { el.append(mk("div", emptyText, "empty")); return; }
+  const t = mk("table"); const head = mk("tr");
+  cols.forEach((c) => head.append(mk("th", c.label)));
+  t.append(head);
+  rows.forEach((r) => { const tr = mk("tr"); cols.forEach((c) => { const td = mk("td"); const v = c.get(r); if (v instanceof Node) td.append(v); else td.textContent = fmt(v); if (c.cls) td.className = c.cls(r); tr.append(td); }); t.append(tr); });
+  el.append(t);
+}
+
+function render(d) {
+  const s = d.status;
+  const pill = $("pill");
+  const state = s ? s.agentStatus : "NONE";
+  pill.className = "pill s-" + state; pill.textContent = s ? state : "SIN DATOS";
+  $("age").textContent = s && s.updatedAt ? "actualizado " + new Date(s.updatedAt).toLocaleTimeString() : "";
+  const n = $("notice");
+  n.hidden = d.hasData;
+  n.textContent = d.hasData ? "" : "El agente todavia no ha escrito ningun estado. Arranca el servidor MCP (Claude Code) o el runner: npm --prefix agent run run -- --help";
+
+  const cost = s && s.estimatedCostUsd != null ? "$" + s.estimatedCostUsd.toFixed(4) : "no disponible (sin precios en models.json)";
+  const tokens = s && s.tokens && (s.tokens.input || s.tokens.output) ? s.tokens.input + " entrada / " + s.tokens.output + " salida" : "no disponible";
+  const cells = s ? [
+    ["Tarea actual", s.currentTask], ["Agente", s.agent], ["Modelo", s.model ? (s.provider ? s.provider + "/" : "") + s.model : null],
+    ["Entorno", s.environment], ["Rama", s.branch], ["Operacion actual", s.currentOperation],
+    ["Archivos modificados", s.filesChanged && s.filesChanged.length ? s.filesChanged.length + ": " + s.filesChanged.slice(-6).join(", ") : "0"],
+    ["Tests OK", s.testsPassed], ["Tests fallidos", s.testsFailed], ["Ultima accion", s.lastAction], ["Siguiente accion", s.nextAction],
+    ["Errores", s.errors && s.errors.length ? s.errors.length + " · ultimo: " + s.errors[s.errors.length - 1].message : "0"],
+    ["Pasos del modelo", s.steps], ["Tokens", tokens], ["Coste estimado", cost],
+    ["Tiempo de ejecucion", s.startedAt ? Math.floor(s.runtimeSeconds / 60) + "m " + (s.runtimeSeconds % 60) + "s" : null],
+  ] : [];
+  $("cells").replaceChildren(...cells.map(([k, v]) => { const c = mk("div", undefined, "cell"); c.append(mk("b", k), mk("span", fmt(v))); return c; }));
+
+  table($("approvals"), [
+    { label: "Id", get: (r) => r.id }, { label: "Herramienta", get: (r) => r.tool }, { label: "Motivo", get: (r) => r.reason },
+    { label: "Accion", get: (r) => r.summary }, { label: "Para aprobar (en tu terminal)", get: (r) => mk("code", "npm --prefix agent run approve -- approve " + r.id) },
+  ], d.pendingApprovals, "Nada pendiente.");
+
+  table($("calls"), [
+    { label: "Hora", get: (r) => new Date(r.ts).toLocaleTimeString() }, { label: "Herramienta", get: (r) => r.tool },
+    { label: "Decision", get: (r) => r.decision, cls: (r) => "d-" + r.decision }, { label: "ms", get: (r) => r.durationMs }, { label: "Error", get: (r) => r.error },
+  ], d.recentToolCalls, "Sin llamadas registradas.");
+
+  const dec = Object.entries(d.today.byDecision).map(([k, v]) => k + ": " + v).join(" · ") || "—";
+  const top = d.today.topTools.map(([k, v]) => k + " ×" + v).join(" · ") || "—";
+  table($("today"), [{ label: "Llamadas", get: (r) => r.calls }, { label: "Por decision", get: (r) => r.dec }, { label: "Mas usadas", get: (r) => r.top }], [{ calls: d.today.calls, dec, top }], "");
+
+  table($("runs"), [
+    { label: "Fin", get: (r) => new Date(r.finishedAt).toLocaleString() }, { label: "Tarea", get: (r) => r.task }, { label: "Resultado", get: (r) => r.stopReason },
+    { label: "Modelo", get: (r) => r.model }, { label: "Pasos", get: (r) => r.steps },
+    { label: "Tests", get: (r) => r.testsPassed + " ok / " + r.testsFailed + " fallos" },
+    { label: "Coste", get: (r) => (r.estimatedCostUsd == null ? "—" : "$" + r.estimatedCostUsd.toFixed(4)) },
+  ], d.recentRuns, "Aun no hay ejecuciones del runner.");
+}
+
+async function tick() {
+  try { render(await (await fetch("/api/jarvis", { cache: "no-store" })).json()); }
+  catch { $("age").textContent = "Access Center no responde"; }
+}
+tick(); setInterval(tick, 2000);
+</script>
+</body>
+</html>
