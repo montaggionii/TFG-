@@ -69,5 +69,8 @@
     "playwright": "^1.63.0",
     "typescript": "~5.9.0"
   },
-  "description": "An Ionic project"
+  "description": "An Ionic project",
+  "overrides": {
+    "piscina": "5.3.2"
+  }
 }

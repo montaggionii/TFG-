@@ -48,6 +48,14 @@ Auditoría real del código (no una checklist genérica). Cada hallazgo indica s
 - **Solución**: `@JsonProperty(access = JsonProperty.Access.WRITE_ONLY)` en `Restaurante.password` (y en `Usuario.password`, mismo patrón, defensa en profundidad) — Jackson deja de serializarlo en cualquier respuesta JSON, pero lo sigue aceptando al deserializar peticiones entrantes, necesario porque `PUT /api/restaurantes/{id}` reutiliza ese mismo campo para permitir cambiar la contraseña. Se descartó `@JsonIgnore` porque también bloquea la deserialización y habría roto esa función en silencio.
 - **Estado**: corregido en `agent/fidelyfood-autonomous`, con test de regresión E2E (`security-promotion-password-leak.spec.ts`), pendiente de PR/revisión humana y de reiniciar el backend de desarrollo. Ver `AGENT_TASKS.md` (FID-017).
 
+### 12. RCE crítica en `piscina` (dependencia de build de Angular) — ✅ CORREGIDO
+- **Riesgo**: Crítico (`npm audit`, CVSS alto, [GHSA-67c8-pqhq-4rmx](https://github.com/advisories/GHSA-67c8-pqhq-4rmx)), pero alcance limitado a build-time.
+- **Ubicación**: `piscina` 5.2.0 (dependencia transitiva de `@angular/build`/`@angular-devkit/build-angular`, usada internamente por `ng build`/`ng serve`), rango afectado 5.0.0–5.3.1.
+- **Problema**: gadget de *prototype pollution* en las opciones del `ThreadPool` que, combinado con contaminación de `Object.prototype` en cualquier otra dependencia, permite ejecución remota de código en los worker threads de Node.
+- **Impacto**: solo afecta a la cadena de build (`devDependencies`), nunca al código servido al navegador — `npm audit --omit=dev` daba 0 antes y sigue dando 0. Aun así, severidad crítica + RCE en una herramienta que corre en cada build/CI justifica arreglo inmediato.
+- **Solución**: override en `frontend/package.json` (`"overrides": {"piscina": "5.3.2"}`) a la primera versión parcheada dentro de la misma rama 5.x, sin saltar la versión de `@angular-devkit/build-angular` ni de Angular. Ver `AGENT_TASKS.md` (FID-020).
+- **Estado**: ✅ corregido en `agent/fidelyfood-autonomous`, pendiente de PR/revisión humana.
+
 ## Pendientes (no corregidos todavía)
 
 ### 6. Sin revocación de JWT
