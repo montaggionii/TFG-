@@ -34,8 +34,78 @@ si el archivo aparece como modificado sin commitear allí, se salta esa tarea.
 - ~~**FID-013** · TEST · Tests unitarios del backend — sin cobertura más allá de `contextLoads`.~~ **COMPLETADA** (ver cierre abajo).
 - ~~**FID-015** · TEST · Cobertura unitaria de `PromocionService` y del nuevo endpoint `GET /api/restaurantes/{id}/estadisticas` — código añadido en #29/#30 sin tests unitarios, solo E2E.~~ **COMPLETADA** (ver cierre abajo).
 - ~~**FID-016** · TEST · Cobertura unitaria de `CompraService` y `RecompensaService` — últimos dos servicios de negocio del backend sin ningún test unitario, solo E2E.~~ **COMPLETADA** (ver cierre abajo).
+- ~~**FID-020** · MAINTENANCE · Nuevo aviso CRÍTICO de `npm audit` (RCE por prototype pollution en `piscina`) publicado tras el cierre de FID-019.~~ **COMPLETADA — vulnerabilidad crítica corregida sin breaking change** (ver cierre abajo).
 - ~~**FID-018** · TEST · Cobertura unitaria de `MovimientoPuntosService` — único servicio de negocio no trivial que quedaba sin tests tras FID-016.~~ **COMPLETADA** (ver cierre abajo) — **pendiente de revisión humana (PR #43)**.
 - ~~**FID-019** · MAINTENANCE · `npm audit` del frontend volvió a detectar vulnerabilidades (postcss, vite, piscina, http-proxy-middleware, @babel/core, esbuild — 12 en total) tras nuevos avisos publicados desde FID-012.~~ **COMPLETADA — 6 de 12 corregidas dentro de Angular 20, 6 pendientes de decisión (requieren Angular 21)** (ver cierre abajo).
+
+### FID-020 — completada 2026-10-02 — VULNERABILIDAD CRÍTICA CORREGIDA
+
+Rutina en la nube del 2026-10-02. `main` no llevaba commits nuevos desde el cierre de FID-018/019
+(PR #43 seguía abierto con `base` = HEAD actual de `main`, `mergeable_state: clean`), así que no hizo
+falta ningún `git merge` ni recrear la rama. Sin ninguna tarea "Pendiente" explícita en
+`AGENT_TASKS.md`/`.agent/tasks.md`, se repitió el primer paso de siempre en estas sesiones sin tarea
+asignada: `npm audit` en `frontend/` (tras `npm ci` limpio, no reusando `node_modules` de una sesión
+anterior) para ver si hay avisos nuevos desde el último cierre.
+
+**Hallazgo**: desde el cierre de FID-019 (2026-10-01) se publicó un aviso nuevo de severidad
+**crítica**: [GHSA-67c8-pqhq-4rmx](https://github.com/advisories/GHSA-67c8-pqhq-4rmx) — gadget de
+*prototype pollution* en `piscina` (el pool de worker threads que usa `@angular/build`/
+`@angular-devkit/build-angular` internamente para `ng build`/`ng serve`) que permite RCE si algo
+contamina `Object.prototype` antes de construir el `ThreadPool`. Rango afectado: `piscina` 5.0.0 –
+5.3.1 (resuelto en este proyecto a 5.2.0, vía `@angular/build@20.3.37` → `piscina@5.2.0`, dependencia
+transitiva fijada por versión exacta, sin rango `^`). `npm audit` pasó de 6 vulnerabilidades (estado
+de cierre de FID-019) a **8** (4 moderate, 1 high, 3 critical) tras `npm ci` en este sandbox limpio —
+confirma que es un aviso publicado después de FID-019, no algo que FID-019 ya hubiera visto y dejado
+pendiente.
+
+**Alcance real**: dependencia 100% de build (`devDependencies` vía `@angular-devkit/build-angular`),
+nunca se envía al navegador del usuario final — `npm audit --omit=dev` ya daba 0 antes y sigue dando
+0 después. Aun así, severidad crítica + RCE merece arreglo inmediato: el pool de workers se usa en
+cada `ng build`/`ng serve`, incluido en CI/CD si lo hubiera.
+
+**Corrección** (sin breaking change, sin tocar la versión de `@angular-devkit/build-angular` ni saltar
+a Angular 21): se descartó `npm audit fix --force` porque proponía **instalar
+`@angular-devkit/build-angular@19.2.27`, una regresión de versión** (downgrade, no upgrade) con
+cambios de API no evaluados. En su lugar, override selectivo en `frontend/package.json`:
+
+```json
+"overrides": {
+  "piscina": "5.3.2"
+}
+```
+
+`piscina@5.3.2` (publicado 2026-08-28, confirmado en su `CHANGELOG.md`: "avoid re-linking
+Object.prototype in Piscina constructor", "sanitize run/close options with withNullPrototype") es la
+primera versión parcheada dentro de la misma rama 5.x — mismo major, mismo rango de API pública que
+`@angular/build` espera (su único cambio incompatible documentado es para quien llame
+`pool.options.hasOwnProperty(...)` directamente, algo que `@angular/build` no hace). Se prefirió el
+override puntual sobre esperar un parche de `@angular-devkit/build-angular` (no existe ninguno más
+nuevo que `20.3.37`, ya instalado, verificado con `npm view @angular-devkit/build-angular versions`).
+
+**Verificación real**:
+- `npm audit` antes → 8 vulnerabilidades (4 moderate, 1 high, **3 critical**, incluida GHSA-67c8).
+- `npm install` con el override → `npm ls piscina` confirma `piscina@5.3.2 overridden` en ambas rutas
+  (`@angular/build` y la dependencia directa de `@angular-devkit/build-angular`).
+- `npm audit` después → **6 vulnerabilidades (4 moderate, 2 high), 0 critical** — la de `piscina`
+  desaparece por completo; las 6 restantes son las mismas ya documentadas en FID-019 como pendientes
+  de una decisión de usuario (saltar a `@angular-devkit/build-angular@21`, salto de major): `uuid`
+  (vía `sockjs`, que fija `uuid: "^8.3.2"` incluso en su versión más reciente — no hay forma de
+  arreglarlo sin ese salto de major) y `webpack-dev-middleware`/`webpack-dev-server` (ya al tope de su
+  serie 5.x, el siguiente parche real es la 6.0.0).
+- `npm audit --omit=dev` → 0 antes y 0 después (sin cambio, nunca afectó a producción).
+- `ng build --configuration production` → build limpio, mismos warnings de siempre (Sass `@import`
+  deprecado, presupuesto de dos `.scss`, `qrcode` no-ESM) — sin errores nuevos.
+- Diff real en `package-lock.json`: solo la entrada de `piscina` (5.2.0 → 5.3.2), nada más — el
+  override no arrastró ningún otro cambio de versión.
+
+**No se pudo verificar en este entorno** (requeriría backend/frontend/MySQL reales): la suite E2E de
+Playwright — no aplica aquí de todas formas, es una dependencia de build, no de runtime de la app.
+
+Archivos modificados: `frontend/package.json` (nuevo campo `overrides`), `frontend/package-lock.json`
+(solo `piscina` 5.2.0 → 5.3.2), `SECURITY.md` (nueva entrada #12), `AGENT_TASKS.md`.
+
+Pendiente para una futura sesión: las 6 vulnerabilidades restantes (y la decisión ya diferida de
+Angular 21) siguen igual que al cierre de FID-019 — sin cambios aquí más allá de la de `piscina`.
 
 ### FID-018 — completada 2026-09-30
 
