@@ -1,0 +1,31 @@
+{
+  "_comment": "Proveedor/modelo intercambiables por configuracion. Se eligen con AGENT_PROVIDER y AGENT_MODEL (o --provider/--model del runner). Las API keys SOLO se leen de las variables de entorno indicadas aqui. Los precios (USD por millon de tokens) son opcionales: si estan a null el coste se reporta como 'desconocido' en vez de inventarlo; rellenalos con las tarifas vigentes de tu proveedor.",
+  "defaultProvider": "anthropic",
+  "providers": {
+    "anthropic": {
+      "apiKeyVar": "ANTHROPIC_API_KEY",
+      "baseUrl": "https://api.anthropic.com",
+      "defaultModel": "claude-sonnet-5-5",
+      "pricePerMTok": { "input": null, "output": null }
+    },
+    "openai": {
+      "apiKeyVar": "OPENAI_API_KEY",
+      "baseUrl": "https://api.openai.com",
+      "defaultModel": null,
+      "pricePerMTok": { "input": null, "output": null }
+    },
+    "gemini": {
+      "apiKeyVar": "GEMINI_API_KEY",
+      "baseUrl": "https://generativelanguage.googleapis.com",
+      "defaultModel": null,
+      "pricePerMTok": { "input": null, "output": null }
+    }
+  },
+  "budgets": {
+    "maxSteps": 60,
+    "maxWallClockMinutes": 45,
+    "maxTotalTokens": 1500000,
+    "maxCostUsd": null,
+    "loopDetection": { "identicalToolCalls": 3, "consecutiveErrors": 6 }
+  }
+}

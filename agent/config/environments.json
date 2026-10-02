@@ -1,0 +1,33 @@
+{
+  "_comment": "Separacion LOCAL / STAGING / PRODUCTION. Solo contiene nombres de variables de entorno y URLs publicas, nunca secretos. Se elige con AGENT_ENV (por defecto: local).",
+  "local": {
+    "apiBaseUrl": "http://localhost:8081",
+    "frontendUrl": "http://localhost:8100",
+    "db": { "hostVar": "AGENT_DB_HOST", "portVar": "AGENT_DB_PORT", "userVar": "AGENT_DB_USER", "passwordVar": "AGENT_DB_PASSWORD", "nameVar": "AGENT_DB_NAME", "defaults": { "host": "127.0.0.1", "port": "3306", "name": "proyectoTFG" }, "fallbackFromDotEnv": { "user": "DB_USERNAME", "password": "DB_PASSWORD" } },
+    "allowFileWrites": true,
+    "allowGitCommits": true,
+    "allowDbWrites": "approval",
+    "allowApiMutations": true,
+    "allowServiceControl": true
+  },
+  "staging": {
+    "apiBaseUrlVar": "AGENT_STAGING_API_URL",
+    "frontendUrlVar": "AGENT_STAGING_FRONTEND_URL",
+    "db": { "hostVar": "AGENT_STAGING_DB_HOST", "portVar": "AGENT_STAGING_DB_PORT", "userVar": "AGENT_STAGING_DB_USER", "passwordVar": "AGENT_STAGING_DB_PASSWORD", "nameVar": "AGENT_STAGING_DB_NAME", "defaults": { "port": "3306" } },
+    "allowFileWrites": true,
+    "allowGitCommits": true,
+    "allowDbWrites": "approval",
+    "allowApiMutations": "approval",
+    "allowServiceControl": false
+  },
+  "production": {
+    "apiBaseUrlVar": "AGENT_PROD_API_URL",
+    "frontendUrlVar": "AGENT_PROD_FRONTEND_URL",
+    "db": { "hostVar": "AGENT_PROD_DB_HOST", "portVar": "AGENT_PROD_DB_PORT", "userVar": "AGENT_PROD_DB_USER", "passwordVar": "AGENT_PROD_DB_PASSWORD", "nameVar": "AGENT_PROD_DB_NAME", "defaults": { "port": "3306" } },
+    "allowFileWrites": false,
+    "allowGitCommits": false,
+    "allowDbWrites": false,
+    "allowApiMutations": false,
+    "allowServiceControl": false
+  }
+}
