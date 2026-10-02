@@ -7,6 +7,95 @@ resumen — nunca se integra a `main` sin que el usuario lo decida.
 Antes de tocar cualquier archivo: comprobar `git status` en el repo principal;
 si el archivo aparece como modificado sin commitear allí, se salta esa tarea.
 
+## Sistema de tareas del agente (formato AGT-xxx)
+
+Las tareas nuevas viven en el bloque delimitado de abajo (entre `TASKS:START` y `TASKS:END`) y las gestionan las herramientas
+`task_list`, `task_get`, `task_create` y `task_update` del servidor MCP (o el runner: `npm --prefix agent run run -- --task AGT-001`).
+Pueden editarse a mano respetando el formato. El histórico anterior (FID-001…FID-017) sigue más abajo, sin cambios.
+
+**Estados:** `TODO` → `IN_PROGRESS` → `REVIEW` → `DONE` (y `BLOCKED` desde cualquiera).
+- Una tarea solo pasa a `IN_PROGRESS` si todas sus dependencias están `DONE`.
+- **El agente deja la tarea en `REVIEW`; solo una persona la cierra en `DONE`** (`npm --prefix agent run task -- done AGT-001`).
+- Cada tarea lleva: ID, Descripción, Prioridad (P0–P3), Área, Estado, Dependencias, Archivos afectados, Criterios de aceptación, Tests necesarios y Resultado.
+
+Eventos que crean tareas: `npm --prefix agent run event -- issue <n>` (issue de GitHub), `… error backend` (errores del log), `… feature "texto"` (funcionalidad nueva).
+
+<!-- TASKS:START -->
+
+### AGT-001 · Dashboard del restaurante carga los datos dos veces al entrar
+- **ID:** AGT-001
+- **Descripción:** DashboardComponent llama a cargarDatos() tanto en ngOnInit como en ionViewWillEnter; en la primera navegacion Ionic dispara ambos, asi que getDashboardStats, getPromocionesByRestaurante y getEstadisticasPeriodo se piden por duplicado.
+- **Prioridad:** P2
+- **Área:** frontend
+- **Estado:** TODO
+- **Dependencias:** —
+- **Archivos afectados:** frontend/src/app/features/restaurant-app/dashboard/dashboard.component.ts
+- **Criterios de aceptación:** Al entrar por primera vez en /r/dashboard cada endpoint de datos se pide exactamente una vez; al volver a la pestaña se sigue refrescando; sin regresiones visuales.
+- **Tests necesarios:** E2E restaurant-flows (dashboard) + spec nuevo que cuente peticiones con page.on('request')
+- **Resultado:** —
+
+### AGT-002 · Canjear promociones CANJEAR: falta el endpoint POST /api/canjes
+- **ID:** AGT-002
+- **Descripción:** PromocionService (frontend) llama a POST /api/canjes {usuarioId, promocionId} para canjear una promocion tipo CANJEAR, pero el backend no expone ese endpoint (solo existe /api/recompensas/{id}/canjear). Ademas las pantallas leen promo.puntosNecesarios y la entidad Promocion solo tiene puntosOtorgados. Hoy el cliente no puede canjear promociones de gasto de puntos.
+- **Prioridad:** P1
+- **Área:** backend
+- **Estado:** TODO
+- **Dependencias:** —
+- **Archivos afectados:** src/main/java/progresa/springboot_tfg/controller/, src/main/java/progresa/springboot_tfg/service/PromocionService.java, src/main/java/progresa/springboot_tfg/entity/Canje.java, frontend/src/app/core/services/promocion.service.ts
+- **Criterios de aceptación:** Un cliente autenticado puede canjear una promocion CANJEAR de un restaurante: se valida saldo suficiente en ese restaurante, se descuentan los puntos, se registra el MovimientoPuntos (tipo CANJEADOS) y el Canje; saldo insuficiente → 400; un cliente no puede canjear a nombre de otro (ownership por JWT); documentado en API.md.
+- **Tests necesarios:** Tests unitarios Mockito del servicio (saldo suficiente/insuficiente, ownership) + E2E del flujo de canje + prueba manual con call_api
+- **Resultado:** —
+
+### AGT-003 · Cobertura E2E de flujos sin spec: cliente (restaurantes/promociones) y panel admin
+- **ID:** AGT-003
+- **Descripción:** Los specs actuales cubren login de los 3 roles, home/mapa/historial/perfil del cliente, dashboard/promociones/scanner del restaurante y 3 regresiones de seguridad. No hay spec para: detalle de restaurante y promociones/recompensas del cliente, registro de compras desde el restaurante, historial de actividad del restaurante ni funciones del panel admin (solo hay login).
+- **Prioridad:** P2
+- **Área:** testing
+- **Estado:** TODO
+- **Dependencias:** AGT-006
+- **Archivos afectados:** frontend/e2e/
+- **Criterios de aceptación:** Existen specs nuevos para al menos: detalle de restaurante del cliente, actividad del restaurante y un flujo del panel admin (listado de negocios); cada uno falla si se rompe la pantalla y usa helpers/auth.ts sin credenciales hardcodeadas.
+- **Tests necesarios:** run_e2e_tests suite all en verde con backend+frontend+navegador de Playwright disponibles
+- **Resultado:** —
+
+### AGT-004 · Modal 'Crear Promocion' corta el texto a 320 px de ancho
+- **ID:** AGT-004
+- **Descripción:** A exactamente 320 px de viewport el modal de creacion de promocion recorta texto contra el borde derecho (detectado en una revision responsive; sin impacto a 375 px o mas).
+- **Prioridad:** P3
+- **Área:** frontend
+- **Estado:** TODO
+- **Dependencias:** —
+- **Archivos afectados:** frontend/src/app/features/restaurant-app/ (modal de crear promocion; localizar con search_code)
+- **Criterios de aceptación:** A 320 px y 375 px el modal se ve completo, sin texto cortado ni scroll horizontal.
+- **Tests necesarios:** Verificacion visual real a 320/375 px (captura) + build de produccion
+- **Resultado:** —
+
+### AGT-005 · Volver a subir las fotos de promociones y portadas tras desplegar el PR de imagenes en BD
+- **ID:** AGT-005
+- **Descripción:** Las fotos subidas como archivo antes del cambio (PR #45) apuntan a /uploads/... que ya no existen en Render (disco efimero). Tras desplegar el PR, hay que volver a subirlas (promociones de Mexican Food, Alabroster y Venezuela Food y portadas subidas como archivo). Requiere credenciales de produccion: lo hace una persona.
+- **Prioridad:** P1
+- **Área:** deployment
+- **Estado:** BLOCKED
+- **Dependencias:** —
+- **Archivos afectados:** —
+- **Criterios de aceptación:** Todas las promociones y portadas de los 3 restaurantes muestran su foto en produccion y la foto sigue ahi tras un redeploy de Render.
+- **Tests necesarios:** Comprobacion visual en produccion + redeploy manual y segunda comprobacion
+- **Resultado:** Bloqueada hasta que se fusione y despliegue el PR #45 y una persona suba las fotos con credenciales de produccion.
+
+### AGT-006 · Instalar el navegador de Playwright en esta maquina
+- **ID:** AGT-006
+- **Descripción:** Playwright se actualizo y falta el binario chromium_headless_shell-1243: 11 de 16 tests E2E fallan con 'Executable doesn't exist' (los 5 que solo usan la API pasan). Hay que ejecutar `npx playwright install chromium` (descarga ~150 MB). El agente no puede descargar binarios sin aprobacion.
+- **Prioridad:** P1
+- **Área:** testing
+- **Estado:** BLOCKED
+- **Dependencias:** —
+- **Archivos afectados:** —
+- **Criterios de aceptación:** run_e2e_tests suite all se ejecuta con navegador y no falla por 'Executable doesn't exist'.
+- **Tests necesarios:** run_e2e_tests suite all
+- **Resultado:** Necesita aprobacion humana para descargar el navegador (npx playwright install chromium).
+
+<!-- TASKS:END -->
+
 ## P0 — Seguridad / bloqueante
 
 - ~~**FID-001** · SECURITY · Auditar rate-limiting ausente en `/api/auth/**` (login).~~ **COMPLETADA — implementado y verificado** (ver cierre abajo). **REQUIERE ACCIÓN DEL USUARIO tras integrar: reiniciar el backend de desarrollo (puerto 8081).**
