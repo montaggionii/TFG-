@@ -1,7 +1,8 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
 import { RouterModule } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { RestauranteService } from '../../../core/services/restaurante.service';
 import { AuthService } from '../../../core/auth/auth.service';
 import { UsuarioService } from '../../../core/services/usuario.service';
@@ -22,7 +23,7 @@ import {
   templateUrl: './activity-history.component.html',
   styleUrls: ['./activity-history.component.scss']
 })
-export class ActivityHistoryComponent implements OnInit {
+export class ActivityHistoryComponent implements OnInit, OnDestroy {
   private restauranteService = inject(RestauranteService);
   private authService = inject(AuthService);
   private usuarioService = inject(UsuarioService);
@@ -34,6 +35,7 @@ export class ActivityHistoryComponent implements OnInit {
   public restauranteId: number | null = null;
   public hasError = false;
   public rendimientoSemanal: { dia: string; monto: number; alturaPct: number }[] | null = null;
+  private authSub?: Subscription;
 
   constructor() {
     addIcons({ 
@@ -46,13 +48,17 @@ export class ActivityHistoryComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.authService.authState$.subscribe(state => {
+    this.authSub = this.authService.authState$.subscribe(state => {
       if (state.token && state.id) {
         this.restauranteId = state.id;
         this.loadStats();
         this.cargarRendimientoSemanal();
       }
     });
+  }
+
+  ngOnDestroy() {
+    this.authSub?.unsubscribe();
   }
 
   cargarRendimientoSemanal() {

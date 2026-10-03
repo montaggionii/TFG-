@@ -22,6 +22,8 @@ public class Restaurante {
     private String tipo;
     @Column(length = 1200)
     private String descripcion;
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
     private String foto;
     private Double latitud;
     private Double longitud;
