@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "fidelyfood": {
+      "command": "node",
+      "args": ["agent/src/mcp/server.mjs"],
+      "env": {
+        "AGENT_ENV": "local",
+        "AGENT_NAME": "claude-code"
+      }
+    }
+  }
+}

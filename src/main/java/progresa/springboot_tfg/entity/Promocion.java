@@ -28,6 +28,8 @@ public class Promocion {
     @Column(nullable = false)
     private String tipo = "GANAR";
 
+    @Lob
+    @Column(columnDefinition = "LONGTEXT")
     private String imagenUrl;
 
     private LocalDate fechaInicio;

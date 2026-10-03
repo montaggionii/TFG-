@@ -18,3 +18,10 @@
 
 ## Pendiente de decidir
 - Arquitectura real de "modo autónomo" (Fase 7): sesión en la nube vs. tarea programada (`schedule`) vs. proceso local persistente. Requiere que el usuario defina el alcance y frecuencia antes de implementarlo.
+
+## 2026-10-02 — Agent Layer ("Jarvis"): runtime, herramientas y permisos
+- **Runtime principal: Claude Code**, con un servidor MCP propio (`agent/src/mcp/server.mjs`) y un runner multi-LLM opcional. Motivo: Claude Code ya estaba integrado (hooks → access-center, subagente QA, rutina en la nube); no se duplica infraestructura. OpenClaw (instalado, con MCP soportado según su documentación) queda como posible frontal por chat; no se toca su configuración.
+- **Política de mínimo privilegio en el propio servidor MCP** (no depende del arnés): `run_command` sin shell, clasificación automático/aprobación/prohibido, aprobaciones humanas firmadas con HMAC (clave fuera del repo), entornos local/staging/production, auditoría y redacción de secretos. Es una capa de control, **no un sandbox del SO** (documentado en `AGENT_LAYER.md`).
+- **El agente nunca cierra tareas**: deja `REVIEW`; solo una persona pone `DONE`.
+- **Memoria en el repo** (`.agent/memory.jsonl`), revisable en PR; no sustituye a la documentación.
+- **Imágenes subidas en la BD** (data URI, `LONGTEXT`) en vez de en disco: el disco de Render es efímero (PR #45).

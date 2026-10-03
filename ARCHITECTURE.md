@@ -70,3 +70,21 @@ Solo metadatos (herramienta, archivo, tipo de evento) — nunca contenido de com
 - `AGENT_TASKS.md` — backlog técnico con historial de cada tarea autónoma cerrada (qué se hizo, qué se verificó, resultado).
 - `.agent/state.json` / `.agent/tasks.md` — estado leído por el widget "Project Agent", actualizado con resultados reales, no estimaciones.
 - Trabajo autónomo en worktree separado (`../TFG-agent-worktree`, rama `agent/fidelyfood-autonomous`) — nunca toca el directorio de trabajo principal mientras el usuario desarrolla en paralelo.
+
+## Agent Layer (Jarvis)
+
+Infraestructura para que un LLM desarrolle, pruebe, depure y opere el proyecto con permisos controlados. Está **desacoplada del frontend y del backend de producción** (no se despliega con ellos) y vive en `agent/`. Documentación completa en [AGENT_LAYER.md](AGENT_LAYER.md).
+
+```
+LLM intercambiable (Anthropic / OpenAI / Gemini)
+   → Runtime: Claude Code  |  runner propio (agent/src/runner)  |  (OpenClaw, opcional)
+   → MCP "fidelyfood" (agent/src/mcp/server.mjs) — 49 herramientas
+        → política de mínimo privilegio + aprobación humana firmada + auditoría + redacción de secretos
+        → código · git/GitHub · terminal (Maven, npm, Playwright) · API REST · MySQL (solo lectura) · logs
+   → Skills (skills/fidelyfood/*)   → Memoria (.agent/memory.jsonl)   → Tareas (AGENT_TASKS.md)
+   → Monitor (access-center /jarvis.html)   → Registro (CHANGELOG_AGENT.md, agent/data/audit)
+```
+
+- Reutiliza lo que ya existía: Claude Code con sus hooks, el subagente `fidelyfood-qa-security`, el access-center como monitor, `.agent/` como estado persistente y la suite Playwright como QA.
+- Entornos separados `local` / `staging` / `production` (`agent/config/environments.json`); `production` es de solo lectura para el agente.
+- Los datos del agente (`agent/data/`: estado, auditoría, aprobaciones, logs, ejecuciones) no se versionan.
