@@ -27,12 +27,12 @@ Eventos que crean tareas: `npm --prefix agent run event -- issue <n>` (issue de 
 - **Descripción:** DashboardComponent llama a cargarDatos() tanto en ngOnInit como en ionViewWillEnter; en la primera navegacion Ionic dispara ambos, asi que getDashboardStats, getPromocionesByRestaurante y getEstadisticasPeriodo se piden por duplicado.
 - **Prioridad:** P2
 - **Área:** frontend
-- **Estado:** TODO
+- **Estado:** REVIEW
 - **Dependencias:** —
-- **Archivos afectados:** frontend/src/app/features/restaurant-app/dashboard/dashboard.component.ts
+- **Archivos afectados:** frontend/src/app/features/restaurant-app/dashboard/dashboard.component.ts, frontend/e2e/restaurant-flows.spec.ts
 - **Criterios de aceptación:** Al entrar por primera vez en /r/dashboard cada endpoint de datos se pide exactamente una vez; al volver a la pestaña se sigue refrescando; sin regresiones visuales.
 - **Tests necesarios:** E2E restaurant-flows (dashboard) + spec nuevo que cuente peticiones con page.on('request')
-- **Resultado:** —
+- **Resultado:** Corregida 2026-10-03 (rutina en la nube). `cargarDatos()` solo se quitó de `ngOnInit` (que ahora solo sincroniza `this.business` desde el estado global, sin red); `ionViewWillEnter` ya cubre tanto la primera entrada al tab (Ionic lo dispara también en el alta inicial del `ion-router-outlet` de `ion-tabs`, patrón ya usado igual en `restaurant-layout`) como cada reentrada posterior, así que el refresco al volver a la pestaña no cambia. Test E2E nuevo (`dashboard pide /stats una sola vez en la primera entrada`) que cuenta con `page.on('request')` las peticiones a `/api/restaurantes/{id}/stats` tras el primer `authenticateAs(..., '/r/dashboard')` y exige que sea exactamente 1 (antes del fix habría sido 2). Verificado en este entorno: `ng build --configuration production` (éxito, mismos warnings preexistentes de Sass/presupuesto) y `npx playwright test --list restaurant-flows.spec.ts` (el spec nuevo se registra sin errores de sintaxis/tipos, 5/5 tests listados). **No se pudo verificar en este sandbox** (sin MySQL/backend/frontend reales disponibles, igual que en sesiones anteriores de esta misma rutina): la ejecución real de `npx playwright test restaurant-flows.spec.ts` contra un backend vivo — queda para una sesión con esos servicios disponibles o para revisión humana local.
 
 ### AGT-002 · Canjear promociones CANJEAR: falta el endpoint POST /api/canjes
 - **ID:** AGT-002
