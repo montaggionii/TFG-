@@ -55,20 +55,25 @@ if (!DRY && !fs.existsSync(WIDGET)) {
   process.exit(1);
 }
 
+// Hasta 3 intentos de contraseña de administrador (el widget guarda dos: la «activa» y la «pendiente»).
 let adminPassword = process.env.FIDELYFOOD_ADMIN_PASSWORD;
-if (!adminPassword) {
-  if (!process.stdin.isTTY) {
-    console.error("Define FIDELYFOOD_ADMIN_PASSWORD o ejecuta el script desde una terminal para escribirla.");
-    process.exit(1);
-  }
-  adminPassword = (await askHidden(`Contraseña de administrador (${ADMIN_EMAIL}): `)).trim();
+if (!adminPassword && !process.stdin.isTTY) {
+  console.error("Define FIDELYFOOD_ADMIN_PASSWORD o ejecuta el script desde una terminal para escribirla.");
+  process.exit(1);
 }
-const login = await http("POST", "/api/auth/login-admin", { json: { email: ADMIN_EMAIL, password: adminPassword } });
-adminPassword = undefined;
+let login;
+const INTENTOS = adminPassword ? 1 : 3;
+for (let intento = 1; intento <= INTENTOS; intento++) {
+  if (!adminPassword) adminPassword = (await askHidden(`Contraseña de administrador (${ADMIN_EMAIL}) [intento ${intento}/${INTENTOS}]: `)).trim();
+  login = await http("POST", "/api/auth/login-admin", { json: { email: ADMIN_EMAIL, password: adminPassword } });
+  adminPassword = undefined;
+  if (login.ok && login.body?.token) break;
+  console.error(`Login de administrador fallido (HTTP ${login.status}).${intento < INTENTOS ? " Prueba con otra contraseña." : ""}`);
+}
 if (!login.ok || !login.body?.token) {
   console.error(
-    `Login de administrador fallido (HTTP ${login.status}).\n` +
-      "Prueba con la OTRA contraseña de administrador del widget (la «pendiente»: se activa al reiniciar el backend) o con el valor de FIDELYFOOD_ADMIN_PASSWORD en Render → Environment.",
+    "\nNinguna contraseña de administrador valió. La buena es el valor de FIDELYFOOD_ADMIN_PASSWORD en Render → fidelyfood-backend → Environment (pulsa el ojo para verla); " +
+      "si no hay ninguna definida, el backend usa la de por defecto del código.",
   );
   process.exit(1);
 }
