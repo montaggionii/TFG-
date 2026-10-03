@@ -63,3 +63,13 @@ node scripts/resetear-contrasenas-restaurantes.mjs --api https://fidelyfood-back
 - La contraseña de administrador se pide por teclado (o `FIDELYFOOD_ADMIN_PASSWORD`); las nuevas **nunca se imprimen**: solo van al widget y a `~/.fidelyfood-passwords-pendientes.json` (permisos 600), que se borra cuando todo ha ido bien.
 - Se guarda una copia del widget anterior en `index.jsx.bak` (misma carpeta).
 - La contraseña de administrador es la variable `FIDELYFOOD_ADMIN_PASSWORD` de Render; si cambia, actualízala allí y en el widget.
+
+## Cambiar la contraseña de administrador de producción
+
+La contraseña de administrador **no está en la base de datos**: la lee el backend de la variable `FIDELYFOOD_ADMIN_PASSWORD` de Render (si no existe, usa la de por defecto del código, que es pública). Para cambiarla sin que pase por pantalla ni por un chat:
+
+```bash
+node scripts/contrasena-admin.mjs preparar          # genera una nueva, la copia al portapapeles y la deja como PENDIENTE en el widget
+# Render → fidelyfood-backend → Environment → FIDELYFOOD_ADMIN_PASSWORD → pegar → Save → Manual Deploy
+node scripts/contrasena-admin.mjs confirmar --api https://fidelyfood-backend.onrender.com   # login real; si vale, pasa a ACTIVA en el widget
+```
