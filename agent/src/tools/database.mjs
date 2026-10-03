@@ -15,11 +15,40 @@ async function mysql(ctx, sql, { readOnly }) {
   return run(argv, { cwd: ctx.workRoot, env: { MYSQL_PWD: db.password }, timeoutMs: 60000, maxChars: 200000 });
 }
 
-function parseTable(output) {
+// Columnas del SELECT, en orden, resolviendo "AS alias"/alias sin AS a su
+// expresion de origen — enmascarar solo por el nombre de salida se puede
+// evitar con "SELECT password AS foo"; el header entonces es "foo" y nunca
+// coincide con SENSITIVE_COL aunque el dato siga siendo la contraseña real.
+export function selectSourceExpressions(sql) {
+  const m = sql.match(/^\s*select\s+(.*?)\s+from\s+/is);
+  if (!m) return null;
+  const items = [];
+  let depth = 0;
+  let cur = "";
+  for (const ch of m[1]) {
+    if (ch === "(") depth++;
+    else if (ch === ")") depth--;
+    if (ch === "," && depth === 0) {
+      items.push(cur);
+      cur = "";
+    } else cur += ch;
+  }
+  if (cur.trim()) items.push(cur);
+  return items.map((item) => {
+    const trimmed = item.trim();
+    const asMatch = trimmed.match(/^(.*?)\s+as\s+[`"]?[\w$]+[`"]?\s*$/i);
+    const bareAliasMatch = !asMatch && trimmed.match(/^([\w$.]+)\s+[`"]?([A-Za-z_]\w*)[`"]?\s*$/);
+    const source = asMatch ? asMatch[1] : bareAliasMatch ? bareAliasMatch[1] : trimmed;
+    return source.trim();
+  });
+}
+
+export function parseTable(output, sql) {
   const lines = output.split("\n").filter((l) => l.length);
   if (!lines.length) return { columns: [], rows: [] };
   const columns = lines[0].split("\t");
-  const masked = columns.map((c) => SENSITIVE_COL.test(c));
+  const sources = sql ? selectSourceExpressions(sql) : null;
+  const masked = columns.map((c, i) => SENSITIVE_COL.test(c) || Boolean(sources?.[i] && SENSITIVE_COL.test(sources[i])));
   const rows = lines.slice(1).map((l) => {
     const cells = l.split("\t");
     return Object.fromEntries(columns.map((c, i) => [c, masked[i] ? "[MASKED]" : cells[i]]));
@@ -32,7 +61,7 @@ async function readQuery(ctx, tool, sql) {
   await guard(ctx, tool, { sql }, c.kind === "read" ? { decision: "allow", reason: c.reason } : c.decision === "deny" ? deny(c.reason) : deny(`${tool} solo admite consultas de solo lectura. ${c.reason}. Para modificar datos usa execute_database_statement (requiere backup y aprobacion humana).`));
   const r = await mysql(ctx, c.sql, { readOnly: true });
   if (r.code !== 0) throw new Error(r.output.trim());
-  const t = parseTable(r.output);
+  const t = parseTable(r.output, c.sql);
   const max = policy.sql.maxRows;
   return { columns: t.columns, rowCount: t.rows.length, rows: t.rows.slice(0, max), truncated: t.rows.length > max, ...(t.maskedColumns?.length ? { maskedColumns: t.maskedColumns } : {}) };
 }

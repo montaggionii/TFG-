@@ -96,6 +96,58 @@ Eventos que crean tareas: `npm --prefix agent run event -- issue <n>` (issue de 
 
 <!-- TASKS:END -->
 
+### FID-022 — completada 2026-10-03 — VULNERABILIDAD REAL ENCONTRADA Y CORREGIDA (Agent Layer)
+
+Rutina en la nube del 2026-10-03. Al llegar a `agent/fidelyfood-autonomous` la rama seguía abierta en el
+PR #43 (FID-018 a FID-021), 3 commits por detrás de `main` (le faltaban `#44` fix de memory leak en
+historial, `#45` fotos de promociones/restaurantes en BD, y `#46` — el Agent Layer/Jarvis completo,
+servidor MCP + política de permisos + runner). `git merge origin/main` sin conflictos antes de auditar.
+
+Sin tarea "Pendiente" explícita en `AGENT_TASKS.md`/`.agent/tasks.md` adecuada para este entorno sin
+servidores locales, se auditó el código nuevo más grande y más sensible fusionado desde la última
+ejecución: el propio Agent Layer (`agent/src/`), recién incorporado en `#46` y nunca auditado todavía,
+con el mismo criterio ya aplicado al backend en sesiones anteriores (FID-005/013/015/016/017: cualquier
+componente que decide qué datos sensibles expone debe hacerlo de forma robusta, no solo por el nombre
+superficial de un campo).
+
+**Hallazgo (severidad alta)**: `query_database`/`explain_query` — las únicas herramientas de lectura de
+BD que el Agent Layer ejecuta **sin aprobación humana** — enmascaraban columnas sensibles
+(`password`/`token`/`secret`/`hash`) mirando solo el nombre de columna en la salida de `mysql`. Una
+consulta con alias (`SELECT password AS foo FROM restaurante`, o incluso sin `AS`: `SELECT password foo
+FROM restaurante`) cambia ese nombre de salida a `foo`, que nunca coincide con el patrón de enmascarado,
+así que el hash bcrypt real salía en claro — exactamente el mismo tipo de fuga que FID-017 encontró en la
+API REST, pero esta vez en la herramienta MCP del propio agente, documentada en `AGENT_LAYER.md` como
+segura precisamente por este enmascarado.
+
+**Verificación empírica del fallo** (antes de corregir, con el código viejo aislado en memoria, sin
+necesitar MySQL real porque el enmascarado es puro JavaScript sobre el texto de salida): `SELECT
+password AS foo FROM restaurante` devolvía `{"foo": "$2a$10$hash"}` sin enmascarar.
+
+**Corrección**: `parseTable` (`agent/src/tools/database.mjs`) ahora resuelve, para cada columna del
+`SELECT`, su expresión de origen (quita `AS alias` o un alias final sin `AS`, y el prefijo de tabla) y
+enmascara si esa expresión contiene el patrón sensible — cubre alias con/sin `AS`, columna calificada
+(`restaurante.password AS pw`) y columna envuelta en una función (`REVERSE(password) AS pw`). Sin cambio
+de comportamiento en el caso ya cubierto (sin alias).
+
+**Test de regresión añadido**: `agent/test/database.test.mjs` (8 tests nuevos, sin MySQL real): enmascara
+sin alias (caso ya existente), con alias `AS`, con alias sin `AS`, con columna calificada por tabla, con
+la columna envuelta en una función, y confirma que columnas normales con alias (`COUNT(*) AS total`)
+siguen sin enmascararse (sin falsos positivos).
+
+**Verificación real**: `npm --prefix agent test` → **50/50 passed** (42 previos + 8 nuevos). No se tocó
+ningún test existente ni el resto del Agent Layer.
+
+**No se pudo verificar en este entorno** (requeriría MySQL real): el comportamiento end-to-end de
+`query_database` contra una base de datos viva — el fix opera sobre texto (salida de `mysql` + SQL de
+entrada), ya cubierto por los tests unitarios nuevos sin necesitar conexión real.
+
+Archivos modificados: `agent/src/tools/database.mjs`, `SECURITY.md` (#13), `AGENT_TASKS.md`,
+`.agent/tasks.md`.
+Archivos creados: `agent/test/database.test.mjs`.
+
+**Estado**: corregido en `agent/fidelyfood-autonomous` (PR #43, que acumula esta y las sesiones
+anteriores sin fusionar todavía), pendiente de revisión humana.
+
 ## P0 — Seguridad / bloqueante
 
 - ~~**FID-001** · SECURITY · Auditar rate-limiting ausente en `/api/auth/**` (login).~~ **COMPLETADA — implementado y verificado** (ver cierre abajo). **REQUIERE ACCIÓN DEL USUARIO tras integrar: reiniciar el backend de desarrollo (puerto 8081).**
