@@ -193,31 +193,31 @@
         <section class="tab-section" *ngIf="!detailLoading && activeTab === 'edit'">
           <form [formGroup]="editForm" class="detail-form">
             <label>Nombre
-              <ion-input formControlName="nombre"></ion-input>
+              <ion-input formControlName="nombre" aria-label="Nombre"></ion-input>
               <small *ngIf="editForm.controls.nombre.touched && editForm.controls.nombre.invalid">Nombre obligatorio</small>
             </label>
             <label>Email
-              <ion-input type="email" formControlName="email"></ion-input>
+              <ion-input type="email" formControlName="email" aria-label="Email"></ion-input>
               <small *ngIf="editForm.controls.email.touched && editForm.controls.email.invalid">Email obligatorio y válido</small>
             </label>
             <label>Teléfono
-              <ion-input formControlName="telefono"></ion-input>
+              <ion-input formControlName="telefono" aria-label="Teléfono"></ion-input>
               <small *ngIf="editForm.controls.telefono.touched && editForm.controls.telefono.invalid">Teléfono no válido</small>
             </label>
             <label>Ciudad
-              <ion-input formControlName="ciudad"></ion-input>
+              <ion-input formControlName="ciudad" aria-label="Ciudad"></ion-input>
             </label>
             <label>Dirección
-              <ion-input formControlName="direccion"></ion-input>
+              <ion-input formControlName="direccion" aria-label="Dirección"></ion-input>
             </label>
             <label>Tipo
-              <ion-input formControlName="tipo"></ion-input>
+              <ion-input formControlName="tipo" aria-label="Tipo"></ion-input>
             </label>
             <label>Foto
-              <ion-input formControlName="foto"></ion-input>
+              <ion-input formControlName="foto" aria-label="Foto"></ion-input>
             </label>
             <label>Descripción
-              <ion-textarea rows="3" formControlName="descripcion"></ion-textarea>
+              <ion-textarea rows="3" formControlName="descripcion" aria-label="Descripción"></ion-textarea>
             </label>
             <ion-toggle formControlName="active">Negocio activo</ion-toggle>
             <ion-button expand="block" (click)="save()" [disabled]="editForm.invalid || saving">

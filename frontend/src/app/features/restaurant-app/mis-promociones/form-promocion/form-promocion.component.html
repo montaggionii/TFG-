@@ -31,7 +31,7 @@
               <ion-icon name="pricetag-outline" slot="start" class="input-icon"></ion-icon>
               <div class="input-content">
                 <ion-label class="saas-label">Título de la Promoción</ion-label>
-                <ion-input formControlName="titulo" placeholder="Ej: Menú del Día 10% Dto" class="saas-input"></ion-input>
+                <ion-input formControlName="titulo" placeholder="Ej: Menú del Día 10% Dto" class="saas-input" aria-label="Título de la Promoción"></ion-input>
                 <ion-note class="form-error-text" *ngIf="promotionForm.get('titulo')?.touched && promotionForm.get('titulo')?.invalid">
                   Revisa este campo: el título es obligatorio.
                 </ion-note>
@@ -44,7 +44,7 @@
               <ion-icon name="document-text-outline" slot="start" class="input-icon"></ion-icon>
               <div class="input-content">
                 <ion-label class="saas-label">Descripción Detallada</ion-label>
-                <ion-textarea formControlName="descripcion" placeholder="Escribe aquí los detalles de la oferta..." rows="3" class="saas-input"></ion-textarea>
+                <ion-textarea formControlName="descripcion" placeholder="Escribe aquí los detalles de la oferta..." rows="3" class="saas-input" aria-label="Descripción Detallada"></ion-textarea>
                 <ion-note class="form-error-text" *ngIf="promotionForm.get('descripcion')?.touched && promotionForm.get('descripcion')?.invalid">
                   Revisa este campo: añade una descripción.
                 </ion-note>
@@ -57,7 +57,7 @@
               <ion-icon name="star-outline" slot="start" class="input-icon"></ion-icon>
               <div class="input-content">
                 <ion-label class="saas-label">Cantidad de Puntos</ion-label>
-                <ion-input type="number" formControlName="puntosNecesarios" placeholder="Ej: 300" class="saas-input"></ion-input>
+                <ion-input type="number" formControlName="puntosNecesarios" placeholder="Ej: 300" class="saas-input" aria-label="Cantidad de Puntos"></ion-input>
                 <ion-note class="form-error-text" *ngIf="promotionForm.get('puntosNecesarios')?.touched && promotionForm.get('puntosNecesarios')?.invalid">
                   Revisa este campo: introduce al menos 1 punto.
                 </ion-note>
@@ -70,7 +70,7 @@
               <ion-icon name="swap-horizontal-outline" slot="start" class="input-icon"></ion-icon>
               <div class="input-content">
                 <ion-label class="saas-label">Tipo de Promoción</ion-label>
-                <ion-select formControlName="tipo" interface="popover" class="saas-input">
+                <ion-select formControlName="tipo" interface="popover" class="saas-input" aria-label="Tipo de Promoción">
                   <ion-select-option value="GANAR">🎁 Ganar puntos (el cliente acumula)</ion-select-option>
                   <ion-select-option value="CANJEAR">🛒 Canjear puntos (el cliente gasta)</ion-select-option>
                 </ion-select>
@@ -104,7 +104,7 @@
               <ion-item lines="none" class="saas-item url-item" [disabled]="selectedFile !== null">
                 <ion-icon name="link-outline" slot="start" class="input-icon"></ion-icon>
                 <div class="input-content">
-                  <ion-input type="url" formControlName="imagenUrl" placeholder="https://ejemplo.com/imagen.jpg" class="saas-input"></ion-input>
+                  <ion-input type="url" formControlName="imagenUrl" placeholder="https://ejemplo.com/imagen.jpg" class="saas-input" aria-label="URL de la Imagen"></ion-input>
                 </div>
               </ion-item>
             </div>

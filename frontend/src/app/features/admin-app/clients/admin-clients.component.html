@@ -203,19 +203,19 @@
         <section class="tab-section" *ngIf="!detailLoading && activeTab === 'edit'">
           <form [formGroup]="editForm" class="detail-form">
             <label>Nombre
-              <ion-input formControlName="nombre"></ion-input>
+              <ion-input formControlName="nombre" aria-label="Nombre"></ion-input>
               <small *ngIf="editForm.controls.nombre.touched && editForm.controls.nombre.invalid">Nombre obligatorio</small>
             </label>
             <label>Email
-              <ion-input type="email" formControlName="email"></ion-input>
+              <ion-input type="email" formControlName="email" aria-label="Email"></ion-input>
               <small *ngIf="editForm.controls.email.touched && editForm.controls.email.invalid">Email obligatorio y válido</small>
             </label>
             <label>Teléfono
-              <ion-input formControlName="telefono"></ion-input>
+              <ion-input formControlName="telefono" aria-label="Teléfono"></ion-input>
               <small *ngIf="editForm.controls.telefono.touched && editForm.controls.telefono.invalid">Teléfono no válido</small>
             </label>
             <label>Foto de perfil
-              <ion-input formControlName="fotoPerfil"></ion-input>
+              <ion-input formControlName="fotoPerfil" aria-label="Foto de perfil"></ion-input>
             </label>
             <ion-toggle formControlName="active">Cliente activo</ion-toggle>
             <ion-button expand="block" (click)="save()" [disabled]="editForm.invalid || saving">
@@ -232,16 +232,16 @@
           </div>
           <form [formGroup]="pointsForm" class="detail-form">
             <label>Restaurante asociado
-              <ion-select formControlName="restaurantId" interface="popover" placeholder="Sin restaurante específico">
+              <ion-select formControlName="restaurantId" interface="popover" placeholder="Sin restaurante específico" aria-label="Restaurante asociado">
                 <ion-select-option value="">Sin restaurante específico</ion-select-option>
                 <ion-select-option *ngFor="let business of businesses" [value]="business.id">{{ business.nombre }}</ion-select-option>
               </ion-select>
             </label>
             <label>Cantidad / valor
-              <ion-input type="number" formControlName="amount"></ion-input>
+              <ion-input type="number" formControlName="amount" aria-label="Cantidad / valor"></ion-input>
             </label>
             <label>Tipo de movimiento
-              <ion-select formControlName="type" interface="popover">
+              <ion-select formControlName="type" interface="popover" aria-label="Tipo de movimiento">
                 <ion-select-option value="AJUSTE_ADMIN">Ajuste admin</ion-select-option>
                 <ion-select-option value="BONIFICACION_ADMIN">Bonificación admin</ion-select-option>
                 <ion-select-option value="CORRECCION_ADMIN">Corrección admin</ion-select-option>
@@ -249,11 +249,11 @@
               </ion-select>
             </label>
             <label>Motivo
-              <ion-input formControlName="reason"></ion-input>
+              <ion-input formControlName="reason" aria-label="Motivo"></ion-input>
               <small *ngIf="pointsForm.controls.reason.touched && pointsForm.controls.reason.invalid">Motivo obligatorio</small>
             </label>
             <label>Descripción interna
-              <ion-textarea rows="3" formControlName="description"></ion-textarea>
+              <ion-textarea rows="3" formControlName="description" aria-label="Descripción interna"></ion-textarea>
             </label>
           </form>
           <div class="points-actions">
