@@ -13,7 +13,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import readline from "node:readline";
+import { askHidden } from "./lib/prompt.mjs";
 
 const args = Object.fromEntries(
   process.argv.slice(2).flatMap((a, i, all) => (a.startsWith("--") ? [[a.slice(2), all[i + 1] && !all[i + 1].startsWith("--") ? all[i + 1] : true]] : [])),
@@ -32,20 +32,6 @@ if (!set) {
 const email = String(args.email || set.email);
 const norm = (s) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
 const isData = (v) => typeof v === "string" && v.startsWith("data:image/");
-
-function askHidden(prompt) {
-  return new Promise((resolve) => {
-    const rl = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: true });
-    rl._writeToOutput = (s) => {
-      if (s.startsWith(prompt)) process.stdout.write(s);
-    };
-    rl.question(prompt, (answer) => {
-      rl.close();
-      process.stdout.write("\n");
-      resolve(answer);
-    });
-  });
-}
 
 async function http(method, url, { token, json, form, timeout = 120000 } = {}) {
   const headers = { Accept: "application/json" };
@@ -93,7 +79,7 @@ if (!password) {
     console.error("Define FIDELYFOOD_PASSWORD o ejecuta el script desde una terminal para escribirla.");
     process.exit(1);
   }
-  password = await askHidden(`Contraseña de ${email}: `);
+  password = (await askHidden(`Contraseña de ${email}: `)).trim();
 }
 
 const login = await http("POST", "/api/auth/login-restaurante", { json: { email, password } });
