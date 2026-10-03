@@ -80,7 +80,7 @@ Eventos que crean tareas: `npm --prefix agent run event -- issue <n>` (issue de 
 - **Archivos afectados:** —
 - **Criterios de aceptación:** Todas las promociones y portadas de los 3 restaurantes muestran su foto en produccion y la foto sigue ahi tras un redeploy de Render.
 - **Tests necesarios:** Comprobacion visual en produccion + redeploy manual y segunda comprobacion
-- **Resultado:** Bloqueada hasta que se fusione y despliegue el PR #45 y una persona suba las fotos con credenciales de produccion.
+- **Resultado:** Script scripts/subir-fotos-promociones.mjs listo y probado en local (fotos JPEG validas en BD, tipo/puntos/fechas intactos, idempotente, portada ok). Pendiente: que una persona lo ejecute contra produccion con su contrasena (ver DEPLOYMENT.md) y compruebe tras un redeploy.
 
 ### AGT-006 · Instalar el navegador de Playwright en esta maquina
 - **ID:** AGT-006

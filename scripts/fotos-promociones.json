@@ -1,0 +1,45 @@
+{
+  "_comment": "Foto de cada promocion segun el plato que anuncia. 'foto' es el id de Unsplash (licencia Unsplash, uso libre); se descarga con ?w=900&q=75. Cada una se reviso a mano. La clave de emparejamiento es el titulo exacto de la promocion (sin tildes ni mayusculas).",
+  "restaurantes": {
+    "mexican": {
+      "email": "mexicanfood@fidelyfood.local",
+      "portada": "https://offloadmedia.feverup.com/cdmxsecreta.com/wp-content/uploads/2023/08/31174612/restaurantes-comida-mexicana-cdmx-1024x683.jpg",
+      "promociones": [
+        { "titulo": "Combo Mexicano Clásico", "foto": "1582234396794-7fdfcf06b83c", "muestra": "platos de tacos con una bebida" },
+        { "titulo": "Martes de Tacos", "foto": "1599974579688-8dbdd335c77f", "muestra": "tacos de carne con cebolla y cilantro" },
+        { "titulo": "Especial Burrito Grande", "foto": "1585238342107-49a3cdace47f", "muestra": "burrito abierto por la mitad" },
+        { "titulo": "Experiencia Mexicana Completa", "foto": "1588274347149-9c02f0cf05ad", "muestra": "mesa con chile en nogada y cerveza" },
+        { "titulo": "Happy Hour Mexicano", "foto": "1582169296194-e4d644c48063", "muestra": "nachos con queso" },
+        { "titulo": "Postre de la Casa", "foto": "1624371414361-e670edf4898d", "muestra": "churros con chocolate" },
+        { "titulo": "Bebida Refrescante", "foto": "1499638673689-79a0b5115d87", "muestra": "agua de jamaica con hielo y menta" },
+        { "titulo": "Menú Degustación Gratis", "foto": "1722631864812-36f55a8dfcf2", "muestra": "salsas y guacamole con totopos" }
+      ]
+    },
+    "alabroster": {
+      "email": "alabroster@test.com",
+      "promociones": [
+        { "titulo": "Bandeja Paisa Completa", "foto": "1723693407562-bb4fcae76797", "muestra": "plato con huevo, carne, frijol y patacon" },
+        { "titulo": "Empanadas Criollas x6", "foto": "1624128082323-beb6b8b508db", "muestra": "empanadas doradas en una fuente" },
+        { "titulo": "Arepa Especial", "foto": "1587603366933-aa6947174c65", "muestra": "arepas asadas a la parrilla" },
+        { "titulo": "Sancocho de la Casa", "foto": "1665593998976-d957f2827fe7", "muestra": "sopa con mazorca, yuca y verduras" },
+        { "titulo": "Bebida Típica Gratis", "foto": "1508254919937-d4a498e3366c", "muestra": "limonada en un bote con lima" },
+        { "titulo": "Postre Colombiano", "foto": "1611755294724-1350aa86c569", "muestra": "galletas rellenas apiladas" },
+        { "titulo": "Happy Hour Empanadas", "foto": "1679310249395-ae267ae0d273", "muestra": "empanadas recien hechas en el mostrador" },
+        { "titulo": "Bandeja Paisa Gratis", "foto": "1702827496398-b906ab2dd926", "muestra": "tabla con carnes, patacones y yuca frita" }
+      ]
+    },
+    "venezuela": {
+      "email": "venezuelafood@gmail.com",
+      "promociones": [
+        { "titulo": "Pabellón Criollo", "foto": "1734771771447-d943e2b5f4d5", "muestra": "caraotas negras, carne mechada y platano" },
+        { "titulo": "Tequeños x10", "foto": "1548340748-6d2b7d7da280", "muestra": "tequenos dorados con salsa" },
+        { "titulo": "Arepa Reina Pepiada", "foto": "1619683909099-03814b162136", "muestra": "arepas rellenas sostenidas en la mano" },
+        { "titulo": "Cachapa con Queso", "foto": "1582299385140-f316dbbba765", "muestra": "cachapa de maiz dorada" },
+        { "titulo": "Papelón con Limón Gratis", "foto": "1634407094698-edb277926ef7", "muestra": "jarras de limonada con rodajas de limon" },
+        { "titulo": "Postre Venezolano", "foto": "1702728109878-c61a98d80491", "muestra": "quesillo (flan) con caramelo" },
+        { "titulo": "Happy Hour Tequeños", "foto": "1734774924912-dcbb467f8599", "muestra": "tequenos con salsa rosada" },
+        { "titulo": "Pabellón Gratis", "foto": "1734771771447-d943e2b5f4d5", "muestra": "caraotas negras, carne mechada y platano" }
+      ]
+    }
+  }
+}
