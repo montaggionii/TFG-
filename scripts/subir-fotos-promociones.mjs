@@ -13,6 +13,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { askHidden } from "./lib/prompt.mjs";
 
 const args = Object.fromEntries(
   process.argv.slice(2).flatMap((a, i, all) => (a.startsWith("--") ? [[a.slice(2), all[i + 1] && !all[i + 1].startsWith("--") ? all[i + 1] : true]] : [])),
@@ -31,36 +32,6 @@ if (!set) {
 const email = String(args.email || set.email);
 const norm = (s) => String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
 const isData = (v) => typeof v === "string" && v.startsWith("data:image/");
-
-// Lee la contraseña tecla a tecla en modo raw: no la muestra, admite pegar y borrar, y al terminar solo
-// informa de CUANTOS caracteres recibio (nunca cuales), para detectar al instante un pegado vacio o de mas.
-function askHidden(prompt) {
-  return new Promise((resolve, reject) => {
-    const stdin = process.stdin;
-    let buf = "";
-    process.stdout.write(prompt);
-    stdin.setRawMode(true);
-    stdin.resume();
-    stdin.setEncoding("utf8");
-    const finish = (value, err) => {
-      stdin.removeListener("data", onData);
-      stdin.setRawMode(false);
-      stdin.pause();
-      process.stdout.write(`\n(recibidos ${value?.length ?? 0} caracteres)\n`);
-      err ? reject(err) : resolve(value);
-    };
-    const onData = (chunk) => {
-      const text = chunk.replace(/\x1b\[20[01]~/g, "");
-      for (const ch of text) {
-        if (ch === "\r" || ch === "\n") return finish(buf);
-        if (ch === "\u0003") return finish(buf, new Error("Cancelado"));
-        if (ch === "\u007f" || ch === "\b") buf = buf.slice(0, -1);
-        else if (ch >= " ") buf += ch;
-      }
-    };
-    stdin.on("data", onData);
-  });
-}
 
 async function http(method, url, { token, json, form, timeout = 120000 } = {}) {
   const headers = { Accept: "application/json" };

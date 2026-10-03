@@ -65,6 +65,21 @@ public class RestauranteService {
 
 
 
+    public static final int PASSWORD_MIN_LENGTH = 12;
+
+    /** Restablecimiento por un administrador (el negocio no recuerda la suya). Nunca devuelve ni registra la contraseña. */
+    public void restablecerPasswordComoAdmin(Long id, String nuevaPassword) {
+        String limpia = nuevaPassword == null ? "" : nuevaPassword.trim();
+        if (limpia.length() < PASSWORD_MIN_LENGTH) {
+            throw new BadRequestException("La contraseña debe tener al menos " + PASSWORD_MIN_LENGTH + " caracteres.");
+        }
+        Restaurante restaurante = restauranteDAO.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Restaurante no encontrado"));
+        restaurante.setPassword(passwordEncoder.encode(limpia));
+        restauranteDAO.save(restaurante);
+    }
+
+
     public RestauranteLoginResponseDTO login(RestauranteLoginRequestDTO dto) {
 
         // Mismo error (401) tanto si el email no existe como si la contraseña
