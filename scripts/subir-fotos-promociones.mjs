@@ -37,11 +37,19 @@ async function http(method, url, { token, json, form, timeout = 120000 } = {}) {
   const headers = { Accept: "application/json" };
   if (token) headers.Authorization = `Bearer ${token}`;
   if (json) headers["Content-Type"] = "application/json";
+  // Render gratuito puede tardar 1-3 minutos en despertar: se reintenta solo antes de rendirse.
   let res;
-  try {
-    res = await fetch(`${API}${url}`, { method, headers, body: json ? JSON.stringify(json) : form, signal: AbortSignal.timeout(timeout) });
-  } catch (e) {
-    throw new Error(`No se pudo conectar con ${API} (${e.cause?.code || e.message}). Si es Render gratuito puede estar despertando: espera 1 minuto y repite.`);
+  for (let intento = 1; intento <= 3; intento++) {
+    try {
+      res = await fetch(`${API}${url}`, { method, headers, body: json ? JSON.stringify(json) : form, signal: AbortSignal.timeout(timeout) });
+      break;
+    } catch (e) {
+      if (intento === 3) {
+        console.error(`\nNo se pudo conectar con ${API} tras 3 intentos (${e.cause?.code || e.message}). Si es Render gratuito, ábrelo en el navegador, espera a que responda y repite.`);
+        process.exit(1);
+      }
+      console.log(`  (el servidor tarda en responder, quizá está despertando; reintento ${intento}/3…)`);
+    }
   }
   const text = await res.text();
   let body = text;
