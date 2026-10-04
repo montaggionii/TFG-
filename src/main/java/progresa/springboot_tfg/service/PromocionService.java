@@ -3,10 +3,12 @@ package progresa.springboot_tfg.service;
 import org.springframework.stereotype.Service;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.multipart.MultipartFile;
+import progresa.springboot_tfg.dao.CanjeDAO;
 import progresa.springboot_tfg.dao.PromocionDAO;
 import progresa.springboot_tfg.dao.RestauranteDAO;
 import progresa.springboot_tfg.dao.UsuarioDAO;
 import progresa.springboot_tfg.dao.MovimientoPuntosDAO;
+import progresa.springboot_tfg.entity.Canje;
 import progresa.springboot_tfg.entity.Promocion;
 import progresa.springboot_tfg.entity.Restaurante;
 import progresa.springboot_tfg.entity.Usuario;
@@ -24,17 +26,20 @@ public class PromocionService {
     private final RestauranteDAO restauranteDAO;
     private final UsuarioDAO usuarioDAO;
     private final MovimientoPuntosDAO movimientoPuntosDAO;
+    private final CanjeDAO canjeDAO;
 
     public PromocionService(
             PromocionDAO promocionDAO,
             RestauranteDAO restauranteDAO,
             UsuarioDAO usuarioDAO,
-            MovimientoPuntosDAO movimientoPuntosDAO
+            MovimientoPuntosDAO movimientoPuntosDAO,
+            CanjeDAO canjeDAO
     ) {
         this.promocionDAO = promocionDAO;
         this.restauranteDAO = restauranteDAO;
         this.usuarioDAO = usuarioDAO;
         this.movimientoPuntosDAO = movimientoPuntosDAO;
+        this.canjeDAO = canjeDAO;
     }
 
 
@@ -167,6 +172,54 @@ public class PromocionService {
         mov.setDescripcion("Promoción aplicada");
 
         movimientoPuntosDAO.save(mov);
+    }
+
+    /**
+     * Canjea una promoción de tipo CANJEAR: el usuario autenticado (nunca un
+     * usuarioId enviado por el cliente) gasta sus puntos a cambio del
+     * beneficio. Mismo patrón que RecompensaService.canjearRecompensa, pero
+     * sobre una Promocion de un restaurante concreto en vez de una
+     * Recompensa global.
+     */
+    public Canje canjearPromocion(Long promocionId, String emailUsuario) {
+
+        Usuario usuario = usuarioDAO.findByEmail(emailUsuario)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Usuario no encontrado"));
+
+        Promocion promocion = promocionDAO.findById(promocionId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Promoción no encontrada"));
+
+        if (!"CANJEAR".equalsIgnoreCase(promocion.getTipo())) {
+            throw new BadRequestException("Esta promoción no es de tipo canje");
+        }
+
+        if (usuario.getPuntos() < promocion.getPuntosOtorgados()) {
+            throw new BadRequestException("Puntos insuficientes para canjear esta promoción");
+        }
+
+        // restar puntos
+        usuario.setPuntos(
+                usuario.getPuntos() - promocion.getPuntosOtorgados()
+        );
+        usuarioDAO.save(usuario);
+
+        // registrar movimiento
+        MovimientoPuntos mov = new MovimientoPuntos();
+        mov.setUsuario(usuario);
+        mov.setRestaurante(promocion.getRestaurante());
+        mov.setPuntos(-promocion.getPuntosOtorgados());
+        mov.setTipo("CANJEADOS");
+        mov.setDescripcion("Canje de promoción: " + promocion.getTitulo());
+        movimientoPuntosDAO.save(mov);
+
+        // registrar canje
+        Canje canje = new Canje();
+        canje.setUsuario(usuario);
+        canje.setPromocion(promocion);
+        canje.setPuntosGastados(promocion.getPuntosOtorgados());
+        return canjeDAO.save(canje);
     }
 
     private void requirePromotionOwner(Promocion promocion, String emailRestaurante) {

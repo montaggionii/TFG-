@@ -78,6 +78,7 @@ public class SecurityConfig {
 
                         .requestMatchers(HttpMethod.GET, "/api/promociones/**").hasAnyAuthority("ROLE_USER", "ROLE_RESTAURANT", "ROLE_ADMIN")
                         .requestMatchers("/api/promociones/**").hasAuthority("ROLE_RESTAURANT")
+                        .requestMatchers(HttpMethod.POST, "/api/canjes").hasAuthority("ROLE_USER")
                         .requestMatchers("/api/compras/**").hasAuthority("ROLE_RESTAURANT")
 
                         .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
