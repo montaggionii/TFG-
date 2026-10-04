@@ -1,6 +1,6 @@
 # DATABASE — FidelyFood
 
-> Generado desde la base de datos del entorno `local` el 2026-10-02 con `npm --prefix agent run docs`. No lo edites a mano.
+> Generado desde la base de datos del entorno `local` el 2026-10-03 con `npm --prefix agent run docs`. No lo edites a mano.
 
 ## Cómo se gestiona el esquema
 - Motor: MySQL. Local: `proyectoTFG`. Producción: Aiven (plan gratuito: la BD **se apaga sola por inactividad**; ver `DEPLOYMENT.md`).
@@ -81,7 +81,7 @@
 | activa | bit(1) | NO |  |  |
 | fecha_fin | date | YES |  |  |
 | fecha_inicio | date | YES |  |  |
-| imagen_url | varchar(255) | YES |  |  |
+| imagen_url | longtext | YES |  |  |
 | tipo | varchar(255) | NO |  |  |
 
 **Claves foráneas:** `restaurante_id` → `restaurantes.id`
@@ -117,7 +117,7 @@
 | deleted_at | datetime(6) | YES |  |  |
 | deleted_by_admin_email | varchar(255) | YES |  |  |
 | descripcion | varchar(1200) | YES |  |  |
-| foto | varchar(255) | YES |  |  |
+| foto | longtext | YES |  |  |
 | latitud | double | YES |  |  |
 | longitud | double | YES |  |  |
 | tipo | varchar(255) | YES |  |  |

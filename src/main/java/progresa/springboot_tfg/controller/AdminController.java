@@ -12,6 +12,7 @@ import progresa.springboot_tfg.entity.*;
 import progresa.springboot_tfg.exception.BadRequestException;
 import progresa.springboot_tfg.exception.DuplicateResourceException;
 import progresa.springboot_tfg.exception.ResourceNotFoundException;
+import progresa.springboot_tfg.service.RestauranteService;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -33,19 +34,22 @@ public class AdminController {
     private final MovimientoPuntosDAO movimientoPuntosDAO;
     private final AdminLogDAO adminLogDAO;
     private final AdminReservationDAO adminReservationDAO;
+    private final RestauranteService restauranteService;
 
     public AdminController(
             UsuarioDAO usuarioDAO,
             RestauranteDAO restauranteDAO,
             MovimientoPuntosDAO movimientoPuntosDAO,
             AdminLogDAO adminLogDAO,
-            AdminReservationDAO adminReservationDAO
+            AdminReservationDAO adminReservationDAO,
+            RestauranteService restauranteService
     ) {
         this.usuarioDAO = usuarioDAO;
         this.restauranteDAO = restauranteDAO;
         this.movimientoPuntosDAO = movimientoPuntosDAO;
         this.adminLogDAO = adminLogDAO;
         this.adminReservationDAO = adminReservationDAO;
+        this.restauranteService = restauranteService;
     }
 
     @GetMapping("/dashboard")
@@ -139,6 +143,14 @@ public class AdminController {
         Restaurante saved = restauranteDAO.save(item);
         logEntity("BUSINESS_UPDATED", "BUSINESS", id, "Negocio actualizado", oldData, compactBusiness(saved));
         return ResponseEntity.ok(businessDetail(id).getBody());
+    }
+
+    @PostMapping("/businesses/{id}/password")
+    public ResponseEntity<?> resetBusinessPassword(@PathVariable Long id, @RequestBody Map<String, Object> data) {
+        requireBusiness(id);
+        restauranteService.restablecerPasswordComoAdmin(id, nullableValue(data, "password"));
+        logEntity("BUSINESS_PASSWORD_RESET", "BUSINESS", id, "Contraseña del negocio restablecida por un administrador", null, null);
+        return ResponseEntity.ok(Map.of("message", "Contraseña actualizada."));
     }
 
     @PatchMapping("/businesses/{id}/active")

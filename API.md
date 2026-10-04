@@ -1,6 +1,6 @@
 # API — FidelyFood
 
-> Generado desde el código el 2026-10-02 con `npm --prefix agent run docs` (controllers + reglas de `SecurityConfig.java`). No lo edites a mano: cambia el código y regenera.
+> Generado desde el código el 2026-10-03 con `npm --prefix agent run docs` (controllers + reglas de `SecurityConfig.java`). No lo edites a mano: cambia el código y regenera.
 
 ## Convenciones
 - Base URL: local `http://localhost:8081`; producción en Render (ver `DEPLOYMENT.md`).
@@ -10,38 +10,39 @@
 - Errores: `BadRequestException` → 400, `ResourceNotFoundException` → 404, acceso denegado → 403, login incorrecto → 401, demasiados intentos de login → 429.
 - Un recurso de usuario/restaurante solo es accesible por su dueño (`requireOwner` en los servicios), además de por el rol.
 
-## Endpoints (70)
+## Endpoints (71)
 
 ### AdminController
 
 | Método | Ruta | Acceso | Tipo | Código |
 |---|---|---|---|---|
-| GET | `/api/admin/dashboard` | ROLE_ADMIN |  | AdminController.java:51 |
-| GET | `/api/admin/businesses` | ROLE_ADMIN |  | AdminController.java:81 |
-| GET | `/api/admin/businesses/{id}` | ROLE_ADMIN |  | AdminController.java:104 |
-| PUT | `/api/admin/businesses/{id}` | ROLE_ADMIN |  | AdminController.java:122 |
-| PATCH | `/api/admin/businesses/{id}/active` | ROLE_ADMIN |  | AdminController.java:144 |
-| PATCH | `/api/admin/businesses/{id}/status` | ROLE_ADMIN |  | AdminController.java:149 |
-| DELETE | `/api/admin/businesses/{id}` | ROLE_ADMIN |  | AdminController.java:161 |
-| GET | `/api/admin/clients` | ROLE_ADMIN |  | AdminController.java:174 |
-| GET | `/api/admin/clients/{id}` | ROLE_ADMIN |  | AdminController.java:213 |
-| PUT | `/api/admin/clients/{id}` | ROLE_ADMIN |  | AdminController.java:219 |
-| PATCH | `/api/admin/clients/{id}/active` | ROLE_ADMIN |  | AdminController.java:248 |
-| PATCH | `/api/admin/clients/{id}/status` | ROLE_ADMIN |  | AdminController.java:253 |
-| POST | `/api/admin/clients/{id}/points/add` | ROLE_ADMIN |  | AdminController.java:266 |
-| POST | `/api/admin/clients/{id}/points/subtract` | ROLE_ADMIN |  | AdminController.java:271 |
-| POST | `/api/admin/clients/{id}/points/set` | ROLE_ADMIN |  | AdminController.java:276 |
-| GET | `/api/admin/clients/{id}/points/history` | ROLE_ADMIN |  | AdminController.java:281 |
-| GET | `/api/admin/clients/{id}/activity` | ROLE_ADMIN |  | AdminController.java:296 |
-| DELETE | `/api/admin/clients/{id}` | ROLE_ADMIN |  | AdminController.java:308 |
-| DELETE | `/api/admin/clients/{id}/hard` | ROLE_ADMIN |  | AdminController.java:322 |
-| GET | `/api/admin/reservations` | ROLE_ADMIN |  | AdminController.java:330 |
-| POST | `/api/admin/reservations` | ROLE_ADMIN |  | AdminController.java:348 |
-| PUT | `/api/admin/reservations/{id}` | ROLE_ADMIN |  | AdminController.java:357 |
-| PATCH | `/api/admin/reservations/{id}/status` | ROLE_ADMIN |  | AdminController.java:367 |
-| DELETE | `/api/admin/reservations/{id}` | ROLE_ADMIN |  | AdminController.java:381 |
-| GET | `/api/admin/stats` | ROLE_ADMIN |  | AdminController.java:393 |
-| GET | `/api/admin/logs` | ROLE_ADMIN |  | AdminController.java:419 |
+| GET | `/api/admin/dashboard` | ROLE_ADMIN |  | AdminController.java:55 |
+| GET | `/api/admin/businesses` | ROLE_ADMIN |  | AdminController.java:85 |
+| GET | `/api/admin/businesses/{id}` | ROLE_ADMIN |  | AdminController.java:108 |
+| PUT | `/api/admin/businesses/{id}` | ROLE_ADMIN |  | AdminController.java:126 |
+| POST | `/api/admin/businesses/{id}/password` | ROLE_ADMIN |  | AdminController.java:148 |
+| PATCH | `/api/admin/businesses/{id}/active` | ROLE_ADMIN |  | AdminController.java:156 |
+| PATCH | `/api/admin/businesses/{id}/status` | ROLE_ADMIN |  | AdminController.java:161 |
+| DELETE | `/api/admin/businesses/{id}` | ROLE_ADMIN |  | AdminController.java:173 |
+| GET | `/api/admin/clients` | ROLE_ADMIN |  | AdminController.java:186 |
+| GET | `/api/admin/clients/{id}` | ROLE_ADMIN |  | AdminController.java:225 |
+| PUT | `/api/admin/clients/{id}` | ROLE_ADMIN |  | AdminController.java:231 |
+| PATCH | `/api/admin/clients/{id}/active` | ROLE_ADMIN |  | AdminController.java:260 |
+| PATCH | `/api/admin/clients/{id}/status` | ROLE_ADMIN |  | AdminController.java:265 |
+| POST | `/api/admin/clients/{id}/points/add` | ROLE_ADMIN |  | AdminController.java:278 |
+| POST | `/api/admin/clients/{id}/points/subtract` | ROLE_ADMIN |  | AdminController.java:283 |
+| POST | `/api/admin/clients/{id}/points/set` | ROLE_ADMIN |  | AdminController.java:288 |
+| GET | `/api/admin/clients/{id}/points/history` | ROLE_ADMIN |  | AdminController.java:293 |
+| GET | `/api/admin/clients/{id}/activity` | ROLE_ADMIN |  | AdminController.java:308 |
+| DELETE | `/api/admin/clients/{id}` | ROLE_ADMIN |  | AdminController.java:320 |
+| DELETE | `/api/admin/clients/{id}/hard` | ROLE_ADMIN |  | AdminController.java:334 |
+| GET | `/api/admin/reservations` | ROLE_ADMIN |  | AdminController.java:342 |
+| POST | `/api/admin/reservations` | ROLE_ADMIN |  | AdminController.java:360 |
+| PUT | `/api/admin/reservations/{id}` | ROLE_ADMIN |  | AdminController.java:369 |
+| PATCH | `/api/admin/reservations/{id}/status` | ROLE_ADMIN |  | AdminController.java:379 |
+| DELETE | `/api/admin/reservations/{id}` | ROLE_ADMIN |  | AdminController.java:393 |
+| GET | `/api/admin/stats` | ROLE_ADMIN |  | AdminController.java:405 |
+| GET | `/api/admin/logs` | ROLE_ADMIN |  | AdminController.java:431 |
 
 ### AuthController
 
