@@ -258,4 +258,37 @@ class RestauranteServiceTest {
         assertNull(resultado.getAnterior());
         assertNull(resultado.getVariacionVentasPct());
     }
+
+    @Test
+    void restablecerPasswordComoAdminGuardaUnHashQueValidaElLogin() {
+        Restaurante r = new Restaurante();
+        r.setId(7L);
+        r.setEmail("negocio@test.com");
+        r.setPassword(passwordEncoder.encode("la-antigua-123"));
+        when(restauranteDAO.findById(7L)).thenReturn(Optional.of(r));
+
+        restauranteService.restablecerPasswordComoAdmin(7L, "  NuevaClaveSegura-2026  ");
+
+        verify(restauranteDAO).save(r);
+        assertNotEquals("NuevaClaveSegura-2026", r.getPassword(), "nunca se guarda en claro");
+        assertTrue(passwordEncoder.matches("NuevaClaveSegura-2026", r.getPassword()), "se normaliza con trim");
+        assertFalse(passwordEncoder.matches("la-antigua-123", r.getPassword()));
+    }
+
+    @Test
+    void restablecerPasswordComoAdminRechazaContrasenasCortasONulasSinTocarLaBd() {
+        for (String mala : new String[]{null, "", "   ", "corta123"}) {
+            assertThrows(progresa.springboot_tfg.exception.BadRequestException.class,
+                    () -> restauranteService.restablecerPasswordComoAdmin(7L, mala), "debe rechazar: " + mala);
+        }
+        verifyNoInteractions(restauranteDAO);
+    }
+
+    @Test
+    void restablecerPasswordComoAdminConRestauranteInexistenteLanzaNotFound() {
+        when(restauranteDAO.findById(99L)).thenReturn(Optional.empty());
+        assertThrows(ResourceNotFoundException.class,
+                () -> restauranteService.restablecerPasswordComoAdmin(99L, "UnaClaveLargaYSegura1"));
+        verify(restauranteDAO, never()).save(any());
+    }
 }
