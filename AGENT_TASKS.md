@@ -75,12 +75,12 @@ Eventos que crean tareas: `npm --prefix agent run event -- issue <n>` (issue de 
 - **Descripción:** Las fotos subidas como archivo antes del cambio (PR #45) apuntan a /uploads/... que ya no existen en Render (disco efimero). Tras desplegar el PR, hay que volver a subirlas (promociones de Mexican Food, Alabroster y Venezuela Food y portadas subidas como archivo). Requiere credenciales de produccion: lo hace una persona.
 - **Prioridad:** P1
 - **Área:** deployment
-- **Estado:** BLOCKED
+- **Estado:** REVIEW
 - **Dependencias:** —
 - **Archivos afectados:** —
 - **Criterios de aceptación:** Todas las promociones y portadas de los 3 restaurantes muestran su foto en produccion y la foto sigue ahi tras un redeploy de Render.
 - **Tests necesarios:** Comprobacion visual en produccion + redeploy manual y segunda comprobacion
-- **Resultado:** Script scripts/subir-fotos-promociones.mjs listo y probado en local (fotos JPEG validas en BD, tipo/puntos/fechas intactos, idempotente, portada ok). Pendiente: que una persona lo ejecute contra produccion con su contrasena (ver DEPLOYMENT.md) y compruebe tras un redeploy.
+- **Resultado:** 2026-10-04: fotos repuestas en produccion con scripts/subir-fotos-promociones.mjs (Mexican Food 8/8 + portada, Alabroster 8/8, Venezuela Food 8/8; verificado releyendo la API). Pendiente de cierre humano tras comprobar que siguen tras un redeploy de Render y revisar las portadas de Alabroster y Venezuela Food.
 
 ### AGT-006 · Instalar el navegador de Playwright en esta maquina
 - **ID:** AGT-006
