@@ -89,3 +89,4 @@ backups/
 
 # Agent Layer: estado de ejecucion, logs, aprobaciones y auditoria (nunca se versiona)
 agent/data/
+graphify-out/
