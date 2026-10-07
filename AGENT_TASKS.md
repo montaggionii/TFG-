@@ -94,6 +94,54 @@ Eventos que crean tareas: `npm --prefix agent run event -- issue <n>` (issue de 
 - **Tests necesarios:** run_e2e_tests suite all
 - **Resultado:** Navegador instalado el 2026-10-02 con aprobacion del usuario (npx playwright install chromium). run_e2e_tests suite all: 16/16 en verde. Pendiente de cierre humano.
 
+### AGT-007 · Evitar que Aiven apague la base de datos gratuita por inactividad
+- **ID:** AGT-007
+- **Descripción:** El plan gratuito de MySQL en Aiven se apaga solo por inactividad y retira el DNS del host: produccion estuvo caida ~45h (27-29 sep, ver .agent/discoveries.md). Hay que decidir entre pagar el plan minimo de Aiven o mantener la base activa, y dejar documentado el procedimiento de recuperacion.
+- **Prioridad:** P1
+- **Área:** database
+- **Estado:** TODO
+- **Dependencias:** —
+- **Archivos afectados:** DEPLOYMENT.md, DATABASE.md
+- **Criterios de aceptación:** Decision humana registrada en decisions.md (pagar el plan minimo o aceptar el riesgo); si se acepta el riesgo, DEPLOYMENT.md explica como comprobar en console.aiven.io el estado Powered off y como reencenderla. No se cambia ninguna credencial ni se toca produccion sin aprobacion.
+- **Tests necesarios:** Prueba manual: login real contra produccion con password incorrecta devuelve 'Credenciales incorrectas' (no error de conexion).
+- **Resultado:** —
+
+### AGT-008 · Quitar la contrasena de admin por defecto del codigo de AuthController
+- **ID:** AGT-008
+- **Descripción:** AuthController.java inyecta fidelyfood.admin.password con valor por defecto 'admin123'. En produccion ya se sobreescribe con FIDELYFOOD_ADMIN_PASSWORD, pero si la variable faltara el login de admin aceptaria la contrasena publica del repositorio.
+- **Prioridad:** P1
+- **Área:** security
+- **Estado:** TODO
+- **Dependencias:** —
+- **Archivos afectados:** src/main/java/progresa/springboot_tfg/controller/AuthController.java, SECURITY.md
+- **Criterios de aceptación:** Sin valor por defecto: si la variable no esta definida el backend arranca sin cuenta admin utilizable (o falla al arrancar en el perfil de produccion) y lo documenta SECURITY.md. El login de admin con la variable definida sigue funcionando; los tests existentes pasan.
+- **Tests necesarios:** Test unitario Mockito de AuthController (sin variable / con variable) + E2E de login admin.
+- **Resultado:** —
+
+### AGT-009 · Revisar y fusionar el PR #43 del agente (AGT-001 y AGT-002)
+- **ID:** AGT-009
+- **Descripción:** El PR #43 (rama agent/fidelyfood-autonomous) lleva el arreglo del dashboard que cargaba datos dos veces (AGT-001) y el canje real de promociones CANJEAR (AGT-002), con el CI en verde. Falta la revision humana y la fusion a main; el agente no fusiona por si solo.
+- **Prioridad:** P1
+- **Área:** git
+- **Estado:** TODO
+- **Dependencias:** —
+- **Archivos afectados:** AGENT_TASKS.md
+- **Criterios de aceptación:** PR revisado por una persona, CI verde en el ultimo commit, fusionado a main sin conflictos; despues se comprueba en Vercel > Deployments que el despliegue nuevo esta en Production.
+- **Tests necesarios:** CI de GitHub Actions (backend con MySQL efimero + build del frontend).
+- **Resultado:** —
+
+### AGT-010 · Sincronizar .agent/tasks.md con AGENT_TASKS.md tras fusionar el PR #43
+- **ID:** AGT-010
+- **Descripción:** La lista 'Pendiente (por prioridad)' de .agent/tasks.md y el sistema AGT-xxx de AGENT_TASKS.md describen el mismo trabajo (canje de puntos, modal de 320 px, caida de Aiven) en dos sitios y pueden quedar desfasados.
+- **Prioridad:** P2
+- **Área:** memory
+- **Estado:** TODO
+- **Dependencias:** —
+- **Archivos afectados:** .agent/tasks.md, AGENT_TASKS.md
+- **Criterios de aceptación:** .agent/tasks.md solo resume lo pendiente y remite a los AGT-xxx; ningun pendiente aparece contradictorio entre ambos archivos; memory_add registra el cambio.
+- **Tests necesarios:** npm --prefix agent test (tasks-memory.test.mjs) sigue en verde.
+- **Resultado:** —
+
 <!-- TASKS:END -->
 
 ## P0 — Seguridad / bloqueante

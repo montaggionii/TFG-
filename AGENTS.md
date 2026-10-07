@@ -66,6 +66,7 @@ Documentación completa en [AGENT_LAYER.md](AGENT_LAYER.md). Lo esencial:
 - **Tareas**: `AGENT_TASKS.md` (AGT-xxx). Estados: TODO → IN_PROGRESS → REVIEW → DONE. **El agente deja la tarea en REVIEW; solo una persona la pasa a DONE.**
 - **Memoria**: `.agent/memory.jsonl` (`memory_search` antes de empezar, `memory_add` al terminar). No sustituye a la documentación; la fuente de verdad es el repositorio.
 - **Monitor**: `http://localhost:5757/jarvis.html` (access-center) con el estado real del agente.
+- **Oficina de Agentes**: `http://localhost:5757/oficina.html` — vista 3D por departamentos con las tareas AGT-xxx de cada área; Jarvis es el cerebro (estado, aprobaciones y ejecuciones).
 - **Entornos**: `AGENT_ENV=local|staging|production`. `production` es de solo lectura para el agente.
 
 ## Flujo de trabajo del agente (obligatorio)

@@ -79,6 +79,7 @@ npm --prefix agent run task -- done AGT-001         # cierre humano (el agente s
 npm --prefix agent run docs                         # regenera API.md y DATABASE.md desde el código y la BD
 npm --prefix agent test                             # tests del Agent Layer
 # Monitor: arranca el access-center (node access-center/server.js) → http://localhost:5757/jarvis.html
+# Oficina 3D (departamentos, tareas AGT-xxx y Jarvis como cerebro): http://localhost:5757/oficina.html
 ```
 
 ## Modelo de seguridad (mínimo privilegio)

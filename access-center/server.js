@@ -346,7 +346,7 @@ function readJsonl(file) {
   }
 }
 
-app.get("/api/jarvis", (req, res) => {
+function buildJarvis() {
   const status = readJsonSafe(path.join(AGENT_DATA, "status.json"), null);
 
   const approvalLines = readJsonl(path.join(AGENT_DATA, "approvals.jsonl"));
@@ -388,7 +388,7 @@ app.get("/api/jarvis", (req, res) => {
     runs = [];
   }
 
-  res.json({
+  return {
     hasData: Boolean(status),
     status,
     pendingApprovals,
@@ -396,8 +396,10 @@ app.get("/api/jarvis", (req, res) => {
     today: { calls: todays.length, byDecision, topTools },
     recentRuns: runs,
     readAt: new Date().toISOString(),
-  });
-});
+  };
+}
+
+app.get("/api/jarvis", (req, res) => res.json(buildJarvis()));
 
 // --- Oficina de Agentes: datos REALES para la vista isometrica ---
 // Mezcla el audit del Agent Layer, los eventos de hooks de Claude Code y
@@ -414,16 +416,24 @@ function parseAgentTasks() {
       .slice(1)
       .map((part) => {
         const [titleLine, ...rest] = part.split("\n");
+        const body = rest.join("\n");
         const field = (name) => {
-          const m = rest.join("\n").match(new RegExp("^- \\*\\*" + name + ":\\*\\*\\s?(.*)$", "m"));
+          const m = body.match(new RegExp("^- \\*\\*" + name + ":\\*\\*\\s?(.*)$", "m"));
           return m ? m[1].trim() : "";
         };
+        const dash = (v) => (v === "—" ? "" : v);
         return {
           id: (titleLine.match(/^AGT-\d+/) || [""])[0],
           title: titleLine.replace(/^AGT-\d+\s*[·-]\s*/, "").trim(),
           area: field("Área").toLowerCase(),
           priority: field("Prioridad"),
           state: field("Estado"),
+          description: field("Descripción"),
+          files: dash(field("Archivos afectados")),
+          deps: dash(field("Dependencias")),
+          acceptance: field("Criterios de aceptación"),
+          tests: field("Tests necesarios"),
+          result: dash(field("Resultado")),
         };
       });
   } catch {
@@ -466,6 +476,7 @@ app.get("/api/oficina", (req, res) => {
     tasks: parseAgentTasks(),
     brainNotes,
     agentStatus: readJsonSafe(path.join(AGENT_DATA, "status.json"), null),
+    jarvis: buildJarvis(),
     readAt: new Date().toISOString(),
   });
 });

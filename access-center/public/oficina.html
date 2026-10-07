@@ -48,6 +48,17 @@
   .tabs button { font-size:11px; padding:3px 9px; border-radius:999px; }
   .tabs button.on { background:var(--ink); color:#15161f; border-color:var(--ink); font-weight:700; }
   .empty { color:var(--muted); padding:6px 0; }
+  .task { border-top:1px solid var(--line); padding:6px 0; }
+  .task:first-of-type { border-top:0; }
+  .task .head { display:flex; gap:8px; align-items:center; cursor:pointer; border-radius:6px; }
+  .task .head:focus-visible { outline:2px solid var(--info); outline-offset:2px; }
+  .task .more { margin:6px 0 2px; display:grid; gap:6px; font-size:12px; }
+  .task .more dt { font-size:10px; letter-spacing:.8px; text-transform:uppercase; color:var(--muted); font-weight:700; }
+  .task .more dd { margin:0; overflow-wrap:anywhere; }
+  .cmd { display:flex; gap:8px; align-items:center; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:6px 8px; }
+  .cmd code { flex:1; min-width:0; font:11px ui-monospace, Menlo, monospace; overflow-wrap:anywhere; user-select:all; }
+  .cmd button { padding:2px 8px; font-size:11px; }
+  .link-row { cursor:pointer; } .link-row:hover { background:rgba(255,255,255,.04); }
   #view { position:relative; min-width:0; min-height:0; overflow:hidden; background:radial-gradient(900px 600px at 50% 45%, #25283d, var(--bg)); }
   #gl { position:absolute; inset:0; width:100%; height:100%; display:block; cursor:grab; touch-action:none; }
   #gl.drag { cursor:grabbing; }
@@ -117,7 +128,7 @@ const DEPTS = [
       { name: "Edición", tools: ["write_file", "Edit", "Write", "NotebookEdit"] },
       { name: "Proyecto", tools: ["inspect_project", "inspect_architecture"] },
       { name: "Terminal", tools: ["run_command", "Bash"] } ] },
-  { id: "backend", name: "Backend y API", color: 0x4f7fd0, desc: "Inspecciona y llama a la API, revisa logs, levanta servicios y compila con Maven.", areas: ["backend", "security", "deployment"],
+  { id: "backend", name: "Backend y API", color: 0x4f7fd0, desc: "Inspecciona y llama a la API, revisa logs, levanta servicios y compila con Maven.", areas: ["backend", "api", "security", "deployment"],
     desks: [
       { name: "API", tools: ["inspect_api", "inspect_endpoint", "call_api"] },
       { name: "Logs", tools: ["inspect_logs"] },
@@ -138,7 +149,7 @@ const DEPTS = [
       { name: "Estado y diff", tools: ["git_status", "git_diff", "git_log", "git_branch"] },
       { name: "Ramas y commits", tools: ["git_create_branch", "git_commit"] },
       { name: "GitHub", tools: ["github_*"] } ] },
-  { id: "memoria", name: "Tareas y memoria", color: 0xd08a3a, desc: "Cola de tareas AGT-xxx, memoria persistente y skills por área.", areas: [],
+  { id: "memoria", name: "Tareas y memoria", color: 0xd08a3a, desc: "Cola de tareas AGT-xxx, memoria persistente y skills por área.", areas: ["memory", "agent"],
     desks: [
       { name: "Tareas", tools: ["task_*", "TaskCreate", "TaskUpdate", "TaskList"] },
       { name: "Memoria", tools: ["memory_*"] },
@@ -244,9 +255,9 @@ DEPTS.forEach((d, i) => {
 
 // el cerebro
 const brain = new THREE.Group(); scene.add(brain);
-box(4.6, 0.5, 4.6, 0x464a5e, brain, 0, 0.25);
+const brainBase = box(4.6, 0.5, 4.6, 0x464a5e, brain, 0, 0.25); brainBase.userData.i = "jarvis"; pickables.push(brainBase);
 const net = new THREE.Group(); net.position.y = 2.1; brain.add(net);
-const ico = new THREE.Mesh(new THREE.IcosahedronGeometry(1.25, 1), new THREE.MeshBasicMaterial({ color: 0xbfc3de, wireframe: true, transparent: true, opacity: 0.55 })); net.add(ico);
+const ico = new THREE.Mesh(new THREE.IcosahedronGeometry(1.25, 1), new THREE.MeshBasicMaterial({ color: 0xbfc3de, wireframe: true, transparent: true, opacity: 0.55 })); net.add(ico); ico.userData.i = "jarvis"; pickables.push(ico);
 const nodes = new THREE.Points(new THREE.IcosahedronGeometry(1.25, 1), new THREE.PointsMaterial({ color: 0xe9ebff, size: 0.12 })); net.add(nodes);
 brain.add(new THREE.PointLight(0xaab4ff, 0.6, 12).translateY(2.4));
 
@@ -282,7 +293,9 @@ const cards = DEPTS.map((d, i) => {
   return { c, n, s, w };
 });
 const lbls = deskRefs.map((arr, i) => arr.map((r, ki) => { const e = h("div", DEPTS[i].desks[ki].name, "lbl"); e.hidden = true; overlay.append(e); return e; }));
-const brainLbl = h("div", "EL CEREBRO · 0 NOTAS", "brain"); overlay.append(brainLbl);
+const brainLbl = h("div", "JARVIS · SIN CONECTAR", "brain"); brainLbl.style.pointerEvents = "auto"; brainLbl.style.cursor = "pointer"; brainLbl.onclick = () => select("jarvis"); overlay.append(brainLbl);
+const JARVIS_STATE = { RUNNING: ["TRABAJANDO", 0x6fd49a, 2.2], IDLE: ["EN ESPERA", 0xbfc3de, 0.8], BLOCKED_ON_APPROVAL: ["ESPERANDO APROBACIÓN", 0xe3b84a, 0.5], STOPPED: ["DETENIDO", 0xf2788a, 0.1] };
+const jarvisState = () => { const st = data && data.jarvis && data.jarvis.status ? data.jarvis.status.agentStatus : null; return JARVIS_STATE[st] || ["SIN CONECTAR", 0x6a6d82, 0.3]; };
 const v3 = new THREE.Vector3();
 function project(x, y, z, el, dx = 0, dy = 0) {
   v3.set(x, y, z).project(camera);
@@ -298,7 +311,7 @@ function frame(now) {
   const k = reduce ? 1 : 1 - Math.pow(0.0012, dt);
   for (const key of ["theta", "phi", "dist", "tx", "ty", "tz"]) cam[key] += (goal[key] - cam[key]) * k;
   placeCamera();
-  net.rotation.y = time * 0.25; net.position.y = 2.1 + Math.sin(time) * 0.08;
+  { const js = jarvisState(); ico.material.color.setHex(js[1]); nodes.material.color.setHex(js[1]); net.rotation.y += dt * js[2]; } net.position.y = 2.1 + Math.sin(time) * 0.08;
   stats.forEach((st, i) => st.desks.forEach((kd, ki) => {
     const r = deskRefs[i][ki]; const w = kd.working;
     r.screenMat.color.setHex(w ? DEPTS[i].color : 0x2a2d44);
@@ -345,6 +358,7 @@ $("home").onclick = () => select(null); $("zhome").onclick = () => select(null);
 function select(i) {
   selected = i; filter = "ALL"; $("stage").classList.toggle("sel", i !== null); $("home").hidden = i === null;
   if (i === null) Object.assign(goal, HOME);
+  else if (i === "jarvis") Object.assign(goal, { tx: 0, ty: 1.5, tz: 0, dist: camera.aspect < 1 ? 26 : 17, phi: 0.95 });
   else { const p = platforms[i].pos; Object.assign(goal, { tx: p.x, ty: 0.8, tz: p.z, dist: camera.aspect < 1 ? 36 : 26, phi: 0.95 }); }
   setTimeout(resize, 400); refresh();
 }
@@ -361,9 +375,9 @@ function refresh() {
     c.c.title = `${DEPTS[i].name}: en curso ${cnt("IN_PROGRESS")}, pendientes ${cnt("TODO")}, hechas ${cnt("DONE") + cnt("REVIEW")}`;
     st.desks.forEach((kd, ki) => { lbls[i][ki].classList.toggle("hot", kd.working); lbls[i][ki].classList.toggle("warn", kd.waiting); });
   });
-  brainLbl.textContent = `EL CEREBRO · ${data ? data.brainNotes : 0} NOTAS`;
-  const a = data && data.agentStatus ? data.agentStatus.agentStatus : null;
-  $("agent").textContent = SNAP ? "Vista previa del repositorio" : a ? a : "Sin datos del agente";
+  brainLbl.textContent = `JARVIS · ${jarvisState()[0]} · ${data ? data.brainNotes : 0} NOTAS`;
+  const a = data && data.jarvis && data.jarvis.status ? data.jarvis.status.agentStatus : null;
+  $("agent").textContent = SNAP ? "Vista previa del repositorio" : "Jarvis · " + jarvisState()[0].toLowerCase();
   $("dot").className = "dot" + (a && a !== "STOPPED" ? " on" : "");
   const pend = data ? data.pendingApprovals.length : 0;
   $("appr").hidden = !pend; $("appr").textContent = `⚠ ${pend} esperando aprobación`;
@@ -372,15 +386,92 @@ function refresh() {
   renderPanels();
 }
 
+const openTasks = new Set();
+function copyBtn(text) {
+  const b = h("button", "Copiar");
+  b.onclick = async (e) => { e.stopPropagation(); try { await navigator.clipboard.writeText(text); b.textContent = "Copiado"; } catch { b.textContent = "Selecciónalo"; } setTimeout(() => (b.textContent = "Copiar"), 1500); };
+  return b;
+}
+function cmdBox(text) { const c = h("div", undefined, "cmd"); c.append(h("code", text), copyBtn(text)); return c; }
+const kvRow = (l, v) => { const r = h("div", undefined, "kv"); r.append(h("span", l), h("b", v === null || v === undefined || v === "" ? "—" : String(v))); return r; };
+
+function taskRow(t) {
+  const wrap = h("div", undefined, "task"); const isOpen = openTasks.has(t.id);
+  const head = h("div", undefined, "head"); head.tabIndex = 0; head.setAttribute("role", "button"); head.setAttribute("aria-expanded", String(isOpen));
+  const g = h("div", undefined, "grow"); g.append(h("div", t.title), h("div", `${t.id} · ${t.priority || "—"}`, "mono"));
+  head.append(g, h("span", STATE_LABEL[t.state] || t.state, "pill s-" + t.state));
+  const toggle = () => { if (openTasks.has(t.id)) openTasks.delete(t.id); else openTasks.add(t.id); renderPanels(); };
+  head.onclick = toggle; head.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } };
+  wrap.append(head);
+  if (isOpen) {
+    const dl = h("dl", undefined, "more");
+    [["Descripción", t.description], ["Archivos", t.files], ["Dependencias", t.deps], ["Criterios de aceptación", t.acceptance], ["Pruebas", t.tests], ["Resultado", t.result]].forEach(([k, v]) => { if (!v) return; const d = h("div"); d.append(h("dt", k), h("dd", v)); dl.append(d); });
+    if (t.state === "TODO" || t.state === "IN_PROGRESS" || t.state === "BLOCKED") {
+      const d = h("div"); d.append(h("dt", "Que lo haga Jarvis (en tu terminal)"), cmdBox(`npm --prefix agent run run -- --task ${t.id}`), h("dd", "Jarvis deja la tarea en REVISIÓN y solo una persona la cierra.", "mono")); dl.append(d);
+    }
+    wrap.append(dl);
+  }
+  return wrap;
+}
+
+function renderJarvis() {
+  const left = $("left"), right = $("right");
+  const jv = data && data.jarvis ? data.jarvis : null; const s = jv && jv.status ? jv.status : null; const js = jarvisState();
+  const b1 = h("div", undefined, "box"); b1.append(h("h2", "Jarvis"), h("div", "Cerebro de la oficina: el Agent Layer decide, usa las herramientas con política de permisos y recuerda en .agent/memory.jsonl.", "mono"));
+  const cost = s && s.estimatedCostUsd != null ? "$" + s.estimatedCostUsd.toFixed(4) : null;
+  const tokens = s && s.tokens && (s.tokens.input || s.tokens.output) ? `${s.tokens.input} entrada / ${s.tokens.output} salida` : null;
+  const run = h("div", undefined, "kv"); run.append(h("span", "Estado")); const pill = h("span", js[0], "pill " + (js[0] === "TRABAJANDO" ? "p-work" : js[0] === "ESPERANDO APROBACIÓN" ? "p-wait" : "p-idle")); run.append(pill);
+  b1.append(run, kvRow("Notas en la memoria", data ? data.brainNotes : 0));
+  if (s) [["Entorno", s.environment], ["Modelo", s.provider && s.model ? `${s.provider}/${s.model}` : null], ["Rama", s.branch], ["Tarea actual", s.currentTask], ["Operación", s.currentOperation], ["Pasos del modelo", s.steps], ["Tokens", tokens], ["Coste estimado", cost], ["Tests ok / fallidos", `${s.testsPassed} / ${s.testsFailed}`]].forEach(([l, v]) => b1.append(kvRow(l, v)));
+  else b1.append(h("div", SNAP ? "Vista previa del repositorio: no hay agente conectado." : "Jarvis todavía no ha escrito ningún estado. Arranca Claude Code con el servidor MCP «fidelyfood» o el runner: npm --prefix agent run run -- --help", "empty"));
+  left.append(b1);
+
+  const pend = jv ? jv.pendingApprovals : [];
+  const b2 = h("div", undefined, "box"); b2.append(h("h3", "Aprobaciones pendientes"));
+  if (!pend.length) b2.append(h("div", "Nada esperando a una persona.", "empty"));
+  pend.forEach((a) => { const d = h("div", undefined, "task"); d.append(h("div", `${a.tool} · ${a.reason || ""}`), h("div", a.summary || "", "mono"), cmdBox(`npm --prefix agent run approve -- approve ${a.id}`)); b2.append(d); });
+  left.append(b2);
+
+  const b3 = h("div", undefined, "box"); b3.append(h("h3", "Hoy"));
+  const t = jv ? jv.today : null;
+  b3.append(kvRow("Llamadas a herramientas", t ? t.calls : 0));
+  const dec = t ? Object.entries(t.byDecision).map(([k, v]) => `${k}: ${v}`).join(" · ") : ""; b3.append(kvRow("Por decisión", dec));
+  const top = t ? t.topTools.map(([k, v]) => `${k} ×${v}`).join(" · ") : ""; b3.append(kvRow("Más usadas", top));
+  left.append(b3);
+
+  const b4 = h("div", undefined, "box"); b4.append(h("h3", "Cola de tareas por departamento"));
+  stats.forEach((st, i) => {
+    const open = st.tasks.filter((x) => x.state !== "DONE").length;
+    const r = h("div", undefined, "row link-row"); r.tabIndex = 0; r.setAttribute("role", "button");
+    const dot = h("span"); dot.style.cssText = `width:9px;height:9px;border-radius:50%;background:${hex(st.dept.color)};flex:none`;
+    const g = h("div", st.dept.name, "grow"); r.append(dot, g, h("span", `${open} abiertas`, "pill p-idle"));
+    r.onclick = () => select(i); r.onkeydown = (e) => { if (e.key === "Enter") select(i); }; b4.append(r);
+  });
+  right.append(b4);
+
+  const b5 = h("div", undefined, "box"); b5.append(h("h3", "Ejecuciones recientes"));
+  const runs = jv ? jv.recentRuns : [];
+  if (!runs.length) b5.append(h("div", "Aún no hay ejecuciones del runner.", "empty"));
+  runs.forEach((r) => { const row = h("div", undefined, "row"); const g = h("div", undefined, "grow");
+    g.append(h("div", `${r.task || "—"} · ${r.stopReason || ""}`), h("div", [ago(r.finishedAt), r.model, `${r.steps} pasos`, `${r.testsPassed} ok / ${r.testsFailed} fallos`].join(" · "), "mono")); row.append(g); b5.append(row); });
+  right.append(b5);
+
+  const b6 = h("div", undefined, "box"); b6.append(h("h3", "Últimas llamadas"));
+  const calls = data ? data.activity.slice().sort((a, b) => String(b.ts).localeCompare(String(a.ts))) : [];
+  if (!calls.length) b6.append(h("div", "Sin llamadas registradas.", "empty"));
+  calls.slice(0, 10).forEach((c) => { const row = h("div", undefined, "row"); const g = h("div", undefined, "grow"); g.append(h("div", c.tool), h("div", [ago(c.ts), c.decision, c.file ? c.file.split("/").slice(-2).join("/") : null].filter(Boolean).join(" · "), "mono")); row.append(g); b6.append(row); });
+  right.append(b6);
+}
+
 function renderPanels() {
   const left = $("left"), right = $("right"); left.replaceChildren(); right.replaceChildren();
   if (selected === null) return;
+  if (selected === "jarvis") return renderJarvis();
   const st = stats[selected], d = st.dept; const cnt = (s) => st.tasks.filter((t) => t.state === s).length;
   const b1 = h("div", undefined, "box"); b1.append(h("h2", d.name), h("div", d.desc, "mono"));
-  const kv = (l, v) => { const r = h("div", undefined, "kv"); r.append(h("span", l), h("b", String(v))); return r; };
-  b1.append(kv("Puestos activos", `${st.active} / ${st.desks.length}`), kv("Llamadas hoy", st.calls), kv("Denegadas", st.denied));
+  b1.append(kvRow("Puestos activos", `${st.active} / ${st.desks.length}`), kvRow("Llamadas hoy", st.calls), kvRow("Denegadas", st.denied));
   const trio = h("div", undefined, "trio");
-  [["En curso", cnt("IN_PROGRESS")], ["Pendientes", cnt("TODO")], ["Hechas", cnt("DONE") + cnt("REVIEW")]].forEach(([l, v]) => { const s = h("span", l); s.append(h("b", String(v))); trio.append(s); });
+  [["En curso", cnt("IN_PROGRESS")], ["Pendientes", cnt("TODO")], ["Hechas", cnt("DONE") + cnt("REVIEW")]].forEach(([l, v]) => { const sp = h("span", l); sp.append(h("b", String(v))); trio.append(sp); });
   b1.append(trio); if (st.pending) b1.append(h("div", `⚠ ${st.pending} esperando aprobación humana`, "wait")); left.append(b1);
 
   const b2 = h("div", undefined, "box"); b2.append(h("h3", "Puestos"));
@@ -405,7 +496,7 @@ function renderPanels() {
   b4.append(tabs);
   const list = st.tasks.filter((t) => filter === "ALL" || t.state === filter);
   if (!list.length) b4.append(h("div", st.tasks.length ? "Ninguna tarea en este estado." : "Sin tareas para este departamento en AGENT_TASKS.md.", "empty"));
-  list.forEach((t) => { const r = h("div", undefined, "row"); const g = h("div", undefined, "grow"); g.append(h("div", t.title), h("div", `${t.id} · ${t.priority || "—"}`, "mono")); r.append(g, h("span", STATE_LABEL[t.state] || t.state, "pill s-" + t.state)); b4.append(r); });
+  list.forEach((t) => b4.append(taskRow(t)));
   right.append(b4);
 }
 
@@ -422,9 +513,11 @@ if (SNAP) {
   const pool = DEPTS.flatMap((d) => d.desks.map((k) => k.tools[0].replace("*", "status")));
   $("sim").onclick = () => {
     const on = $("sim").classList.toggle("on"); $("sim").textContent = on ? "Simulando…" : "Simular actividad";
-    clearInterval(simTimer); if (!on) { data.activity = []; data.pendingApprovals = []; refresh(); return; }
+    clearInterval(simTimer); if (!on) { data.activity = []; data.pendingApprovals = []; data.jarvis = null; refresh(); return; }
     const tick = () => { const tool = pool[Math.floor(Math.random() * pool.length)]; data.activity.push({ ts: new Date().toISOString(), tool, decision: "allow" });
       if (Math.random() < 0.12) data.pendingApprovals = [{ id: "sim", tool: "execute_database_statement" }]; else if (Math.random() < 0.2) data.pendingApprovals = [];
+      const pend = data.pendingApprovals;
+      data.jarvis = { hasData: true, status: { agentStatus: pend.length ? "BLOCKED_ON_APPROVAL" : "RUNNING", steps: data.activity.length, testsPassed: 0, testsFailed: 0 }, pendingApprovals: pend.map((x) => ({ ...x, id: "sim", reason: "simulado", summary: "" })), today: { calls: data.activity.length, byDecision: { allow: data.activity.length }, topTools: [] }, recentRuns: [], recentToolCalls: data.activity.slice(-10).reverse() };
       refresh(); };
     tick(); tick(); tick(); simTimer = setInterval(tick, 1800);
   };
