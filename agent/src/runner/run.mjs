@@ -89,6 +89,16 @@ export async function runAgent({ provider, ctx, taskId, prompt, budgets, approva
   const seen = new Map();
   let consecutiveErrors = 0;
 
+  // Proveedores "delegados" (claude-code): el bucle agentico lo ejecuta `claude -p`; las herramientas
+  // siguen pasando por el servidor MCP (politica, approvals, audit). El runner solo aporta contexto y registro.
+  let auth = null;
+  if (provider.delegated) {
+    const out = await provider.run({ system, userText, budgets: b, ctx, stats, log });
+    stop = out.stop; finalText = out.text; blocked = out.blocked; auth = out.auth;
+    if (stop === "provider_error") finalText = `Error del proveedor de IA: ${redact(finalText)}`;
+    updateStatus({ steps: stats.steps, tokens: { ...stats.tokens }, estimatedCostUsd: stats.cost });
+  }
+
   while (!stop) {
     if (stats.steps >= b.maxSteps) stop = "max_steps";
     else if (Date.now() - started > b.maxWallClockMinutes * 60000) stop = "timeout";
@@ -150,7 +160,7 @@ export async function runAgent({ provider, ctx, taskId, prompt, budgets, approva
 
   const runtimeSeconds = Math.round((Date.now() - started) / 1000);
   const status = getStatus();
-  const report = { runId: ctx.runId, finishedAt: new Date().toISOString(), stopReason: stop, task: taskId ?? null, provider: provider.name, model: provider.model, environment: ctx.profile.name, runtimeSeconds, steps: stats.steps, tokens: stats.tokens, estimatedCostUsd: stats.cost, toolCalls: stats.toolCalls, toolErrors: stats.errors, filesChanged: status.filesChanged, testsPassed: status.testsPassed, testsFailed: status.testsFailed, blocked, summary: redact(finalText).slice(0, 6000) };
+  const report = { runId: ctx.runId, finishedAt: new Date().toISOString(), stopReason: stop, task: taskId ?? null, provider: provider.name, model: provider.model, environment: ctx.profile.name, runtimeSeconds, steps: stats.steps, tokens: stats.tokens, cacheReadTokens: stats.cacheReadTokens ?? 0, estimatedCostUsd: stats.cost, billing: provider.delegated ? (auth === "none" ? "suscripcion-claude" : `credencial:${auth}`) : "api", toolCalls: stats.toolCalls, toolErrors: stats.errors, filesChanged: status.filesChanged, testsPassed: status.testsPassed, testsFailed: status.testsFailed, blocked, summary: redact(finalText).slice(0, 6000) };
   const runsDir = ensureDir(path.join(DATA_DIR, "runs"));
   fs.writeFileSync(path.join(runsDir, `${ctx.runId}.json`), JSON.stringify(report, null, 2));
   appendChangelog(ctx, report);
@@ -196,9 +206,9 @@ function parseArgs(argv) {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.help || (!args.task && !args.prompt)) {
-    console.log(`Uso: npm --prefix agent run run -- (--task AGT-001 | --prompt "texto") [--provider anthropic|openai|gemini] [--model id] [--env local]
+    console.log(`Uso: npm --prefix agent run run -- (--task AGT-001 | --prompt "texto") [--provider claude-code|anthropic|openai|gemini] [--model id] [--env local]
        [--max-steps N] [--max-minutes N] [--max-tokens N] [--max-cost-usd N] [--approval apr_xxx]
-Variables: AGENT_PROVIDER, AGENT_MODEL, ANTHROPIC_API_KEY | OPENAI_API_KEY | GEMINI_API_KEY, AGENT_ENV, AGENT_WORKDIR`);
+Variables: AGENT_PROVIDER, AGENT_MODEL, ANTHROPIC_API_KEY | OPENAI_API_KEY | GEMINI_API_KEY (no hacen falta con --provider claude-code: usa tu suscripcion de Claude), AGENT_ENV, AGENT_WORKDIR`);
     process.exit(args.help ? 0 : 1);
   }
   if (args.env) process.env.AGENT_ENV = String(args.env);

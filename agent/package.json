@@ -14,7 +14,8 @@
     "event": "node src/cli/event.mjs",
     "docs": "node src/cli/gen-docs.mjs",
     "task": "node src/cli/task.mjs",
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "claude:check": "node src/cli/claude-check.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.31.0",
