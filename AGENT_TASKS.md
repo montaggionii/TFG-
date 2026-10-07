@@ -27,24 +27,44 @@ Eventos que crean tareas: `npm --prefix agent run event -- issue <n>` (issue de 
 - **Descripción:** DashboardComponent llama a cargarDatos() tanto en ngOnInit como en ionViewWillEnter; en la primera navegacion Ionic dispara ambos, asi que getDashboardStats, getPromocionesByRestaurante y getEstadisticasPeriodo se piden por duplicado.
 - **Prioridad:** P2
 - **Área:** frontend
-- **Estado:** TODO
+- **Estado:** REVIEW
 - **Dependencias:** —
-- **Archivos afectados:** frontend/src/app/features/restaurant-app/dashboard/dashboard.component.ts
+- **Archivos afectados:** frontend/src/app/features/restaurant-app/dashboard/dashboard.component.ts, frontend/e2e/restaurant-flows.spec.ts
 - **Criterios de aceptación:** Al entrar por primera vez en /r/dashboard cada endpoint de datos se pide exactamente una vez; al volver a la pestaña se sigue refrescando; sin regresiones visuales.
 - **Tests necesarios:** E2E restaurant-flows (dashboard) + spec nuevo que cuente peticiones con page.on('request')
-- **Resultado:** —
+- **Resultado:** Corregida 2026-10-03 (rutina en la nube). `cargarDatos()` solo se quitó de `ngOnInit` (que ahora solo sincroniza `this.business` desde el estado global, sin red); `ionViewWillEnter` ya cubre tanto la primera entrada al tab (Ionic lo dispara también en el alta inicial del `ion-router-outlet` de `ion-tabs`, patrón ya usado igual en `restaurant-layout`) como cada reentrada posterior, así que el refresco al volver a la pestaña no cambia. Test E2E nuevo (`dashboard pide /stats una sola vez en la primera entrada`) que cuenta con `page.on('request')` las peticiones a `/api/restaurantes/{id}/stats` tras el primer `authenticateAs(..., '/r/dashboard')` y exige que sea exactamente 1 (antes del fix habría sido 2). Verificado en este entorno: `ng build --configuration production` (éxito, mismos warnings preexistentes de Sass/presupuesto) y `npx playwright test --list restaurant-flows.spec.ts` (el spec nuevo se registra sin errores de sintaxis/tipos, 5/5 tests listados). **No se pudo verificar en este sandbox** (sin MySQL/backend/frontend reales disponibles, igual que en sesiones anteriores de esta misma rutina): la ejecución real de `npx playwright test restaurant-flows.spec.ts` contra un backend vivo — queda para una sesión con esos servicios disponibles o para revisión humana local.
 
 ### AGT-002 · Canjear promociones CANJEAR: falta el endpoint POST /api/canjes
 - **ID:** AGT-002
 - **Descripción:** PromocionService (frontend) llama a POST /api/canjes {usuarioId, promocionId} para canjear una promocion tipo CANJEAR, pero el backend no expone ese endpoint (solo existe /api/recompensas/{id}/canjear). Ademas las pantallas leen promo.puntosNecesarios y la entidad Promocion solo tiene puntosOtorgados. Hoy el cliente no puede canjear promociones de gasto de puntos.
 - **Prioridad:** P1
 - **Área:** backend
-- **Estado:** TODO
+- **Estado:** REVIEW
 - **Dependencias:** —
-- **Archivos afectados:** src/main/java/progresa/springboot_tfg/controller/, src/main/java/progresa/springboot_tfg/service/PromocionService.java, src/main/java/progresa/springboot_tfg/entity/Canje.java, frontend/src/app/core/services/promocion.service.ts
-- **Criterios de aceptación:** Un cliente autenticado puede canjear una promocion CANJEAR de un restaurante: se valida saldo suficiente en ese restaurante, se descuentan los puntos, se registra el MovimientoPuntos (tipo CANJEADOS) y el Canje; saldo insuficiente → 400; un cliente no puede canjear a nombre de otro (ownership por JWT); documentado en API.md.
+- **Archivos afectados:** src/main/java/progresa/springboot_tfg/controller/CanjeController.java (nuevo), src/main/java/progresa/springboot_tfg/dao/CanjeDAO.java (nuevo), src/main/java/progresa/springboot_tfg/dto/CanjePromocionDTO.java (nuevo), src/main/java/progresa/springboot_tfg/entity/Canje.java, src/main/java/progresa/springboot_tfg/service/PromocionService.java, src/main/java/progresa/springboot_tfg/security/SecurityConfig.java, src/test/java/progresa/springboot_tfg/service/PromocionServiceTest.java, frontend/src/app/core/services/promocion.service.ts, frontend/e2e/canje-promocion.spec.ts (nuevo), API.md.
+- **Criterios de aceptación:** Un cliente autenticado puede canjear una promocion CANJEAR de un restaurante: se valida saldo suficiente, se descuentan los puntos, se registra el MovimientoPuntos (tipo CANJEADOS) y el Canje; saldo insuficiente → 400; un cliente no puede canjear a nombre de otro (ownership por JWT); documentado en API.md.
 - **Tests necesarios:** Tests unitarios Mockito del servicio (saldo suficiente/insuficiente, ownership) + E2E del flujo de canje + prueba manual con call_api
-- **Resultado:** —
+- **Resultado:** Resuelta 2026-10-04 (rutina en la nube). Investigación previa (agente de exploración) confirmó los dos hechos clave de la descripción: `PromocionService.canjearPromocion` (frontend) ya llama a `POST /api/canjes {usuarioId, promocionId}` desde al menos dos pantallas (`restaurante-detalle-page`, `recompensas.component.ts`, que a pesar de su nombre usa este servicio y no `RecompensaService`), y `Canje.java` ya existía pero como placeholder vacío sin anotaciones JPA ni DAO/Service/Controller.
+
+  **Decisión de diseño que se desvía del literal de la descripción** ("saldo suficiente en ese restaurante"): existe una tabla/entidad `UsuarioRestaurantePuntos` que sugeriría saldo por restaurante, pero auditado el código real (`grep` de sus usos) solo la leen dos clases de depuración (`scratch/DataIntegrityChecker.java`, `scratch/PointsDebugger.java`) — ningún flujo de producción escribe en ella. Tanto `CompraService.registrarCompra` como `PromocionService.aplicarPromocion` y `RecompensaService.canjearRecompensa` (el único mecanismo de canje que ya funciona hoy) usan un saldo **global** en `Usuario.puntos`. Implementar el canje de promociones con saldo por restaurante habría sido inconsistente con el resto de la app y un cambio de arquitectura no pedido por esta tarea, así que `canjearPromocion` sigue el mismo patrón global ya usado por `canjearRecompensa`, solo que sobre una `Promocion` de tipo `CANJEAR` en vez de una `Recompensa`. Señalado aquí explícitamente para que el usuario lo revise: si el proyecto sí quiere puntos por restaurante, haría falta una tarea aparte que migre los tres flujos (compra/aplicar/canjear) a la vez, no solo este.
+
+  **Backend**: `Canje` ahora es una entidad JPA real (`usuario`, `promocion`, `puntosGastados`, `fecha`) con `CanjeDAO`. `PromocionService.canjearPromocion(Long promocionId, String emailUsuario)` — nunca recibe un `usuarioId` del body, solo el email del JWT (como `RecompensaController.canjear`): busca el usuario por email, la promoción por id, exige `tipo == "CANJEAR"` (`BadRequestException` si no), exige saldo suficiente (`BadRequestException` si no), resta los puntos, registra `MovimientoPuntos` (`tipo=CANJEADOS`, con el restaurante de la promoción) y guarda el `Canje`. Nuevo `CanjeController` en `POST /api/canjes`, acepta `{usuarioId, promocionId}` (el campo `usuarioId` se documenta como ignorado, se mantiene solo para no romper la deserialización del payload que ya manda el frontend). `SecurityConfig` restringe `POST /api/canjes` a `ROLE_USER` (mismo criterio que `POST /api/recompensas/*/canjear`).
+
+  **Frontend**: el mismatch `puntosNecesarios` vs `puntosOtorgados` (ya resuelto a mano con un comentario explicativo en `mis-promociones.component.ts`, pero no en `home.component.ts`, `recompensas.component.ts` ni `restaurante-detalle-page.component.ts`) se corrigió una sola vez en `PromocionService.getPromociones()`/`getPromocionesByRestaurante()`: ambos métodos ahora mapean la respuesta añadiendo `puntosNecesarios: p.puntosNecesarios ?? p.puntosOtorgados` antes de devolverla, así que ningún componente que lea `promo.puntosNecesarios` recibe `undefined`. No se tocó el mapeo manual ya existente en `mis-promociones.component.ts` (queda redundante pero inocuo).
+
+  **Tests unitarios (Mockito, sin BD)**: 6 tests nuevos en `PromocionServiceTest` — usuario inexistente → `ResourceNotFoundException` sin tocar nada; promoción inexistente → igual; promoción de tipo `GANAR` (no `CANJEAR`) → `BadRequestException`; puntos insuficientes → `BadRequestException` sin restar ni guardar; canje con saldo exacto → resta los puntos correctos, registra el `MovimientoPuntos` y el `Canje` esperados; y un test de regresión de seguridad explícito que prueba que un `usuarioId` distinto del autenticado en el body nunca se usa (el saldo que baja es siempre el del email del JWT).
+
+  **Verificación real en este entorno** (sin MySQL/backend/frontend real disponibles, igual que en sesiones anteriores de esta rutina):
+  - `mvn compile` → éxito.
+  - `mvn test -Dtest=PromocionServiceTest` → **19/19 passed** (13 ya existentes + 6 nuevos).
+  - `mvn test` completo (excluyendo `contextLoads`, que requiere MySQL real) → **73/73 passed** en los 8 ficheros de test del backend.
+  - `npx tsc --noEmit` (frontend) → sin errores nuevos.
+  - `ng build --configuration production` → build limpio, mismos warnings preexistentes de Sass/presupuesto documentados en sesiones anteriores.
+  - `npm audit --omit=dev` (frontend) → 0 vulnerabilidades (sin cambios).
+  - `npx playwright test --list` → 19/19 tests de toda la suite se registran sin errores de sintaxis/tipos, incluidos los 2 nuevos de `canje-promocion.spec.ts`.
+  - `npm --prefix agent run docs` → `API.md` regenerado automáticamente (71 → 72 endpoints), documenta `POST /api/canjes` con acceso `ROLE_USER`.
+
+  **No se pudo verificar en este entorno** (requeriría backend/frontend/MySQL reales, no disponibles en este sandbox en la nube): la ejecución real de `canje-promocion.spec.ts` contra un backend vivo (gana puntos con una compra real, canjea, comprueba el saldo) — el spec está escrito y listado, pero no ejecutado; tampoco la prueba manual con `call_api` que pedían los criterios de aceptación. Queda para una sesión con esos servicios disponibles o para revisión humana local. Nota para quien lo ejecute: el primer test de `canje-promocion.spec.ts` usa un delta de puntos (no un valor absoluto) precisamente porque la cuenta E2E del cliente se comparte con el resto de la suite — si Playwright corre los ficheros en paralelo (no forzado a `workers: 1` en `playwright.config.ts`), dos specs podrían mutar el saldo de la misma cuenta a la vez; no se ha tocado `playwright.config.ts` para no ampliar el alcance de esta tarea, pero es una fragilidad preexistente de toda la suite, no solo de este spec nuevo.
 
 ### AGT-003 · Cobertura E2E de flujos sin spec: cliente (restaurantes/promociones) y panel admin
 - **ID:** AGT-003
@@ -96,6 +116,58 @@ Eventos que crean tareas: `npm --prefix agent run event -- issue <n>` (issue de 
 
 <!-- TASKS:END -->
 
+### FID-022 — completada 2026-10-03 — VULNERABILIDAD REAL ENCONTRADA Y CORREGIDA (Agent Layer)
+
+Rutina en la nube del 2026-10-03. Al llegar a `agent/fidelyfood-autonomous` la rama seguía abierta en el
+PR #43 (FID-018 a FID-021), 3 commits por detrás de `main` (le faltaban `#44` fix de memory leak en
+historial, `#45` fotos de promociones/restaurantes en BD, y `#46` — el Agent Layer/Jarvis completo,
+servidor MCP + política de permisos + runner). `git merge origin/main` sin conflictos antes de auditar.
+
+Sin tarea "Pendiente" explícita en `AGENT_TASKS.md`/`.agent/tasks.md` adecuada para este entorno sin
+servidores locales, se auditó el código nuevo más grande y más sensible fusionado desde la última
+ejecución: el propio Agent Layer (`agent/src/`), recién incorporado en `#46` y nunca auditado todavía,
+con el mismo criterio ya aplicado al backend en sesiones anteriores (FID-005/013/015/016/017: cualquier
+componente que decide qué datos sensibles expone debe hacerlo de forma robusta, no solo por el nombre
+superficial de un campo).
+
+**Hallazgo (severidad alta)**: `query_database`/`explain_query` — las únicas herramientas de lectura de
+BD que el Agent Layer ejecuta **sin aprobación humana** — enmascaraban columnas sensibles
+(`password`/`token`/`secret`/`hash`) mirando solo el nombre de columna en la salida de `mysql`. Una
+consulta con alias (`SELECT password AS foo FROM restaurante`, o incluso sin `AS`: `SELECT password foo
+FROM restaurante`) cambia ese nombre de salida a `foo`, que nunca coincide con el patrón de enmascarado,
+así que el hash bcrypt real salía en claro — exactamente el mismo tipo de fuga que FID-017 encontró en la
+API REST, pero esta vez en la herramienta MCP del propio agente, documentada en `AGENT_LAYER.md` como
+segura precisamente por este enmascarado.
+
+**Verificación empírica del fallo** (antes de corregir, con el código viejo aislado en memoria, sin
+necesitar MySQL real porque el enmascarado es puro JavaScript sobre el texto de salida): `SELECT
+password AS foo FROM restaurante` devolvía `{"foo": "$2a$10$hash"}` sin enmascarar.
+
+**Corrección**: `parseTable` (`agent/src/tools/database.mjs`) ahora resuelve, para cada columna del
+`SELECT`, su expresión de origen (quita `AS alias` o un alias final sin `AS`, y el prefijo de tabla) y
+enmascara si esa expresión contiene el patrón sensible — cubre alias con/sin `AS`, columna calificada
+(`restaurante.password AS pw`) y columna envuelta en una función (`REVERSE(password) AS pw`). Sin cambio
+de comportamiento en el caso ya cubierto (sin alias).
+
+**Test de regresión añadido**: `agent/test/database.test.mjs` (8 tests nuevos, sin MySQL real): enmascara
+sin alias (caso ya existente), con alias `AS`, con alias sin `AS`, con columna calificada por tabla, con
+la columna envuelta en una función, y confirma que columnas normales con alias (`COUNT(*) AS total`)
+siguen sin enmascararse (sin falsos positivos).
+
+**Verificación real**: `npm --prefix agent test` → **50/50 passed** (42 previos + 8 nuevos). No se tocó
+ningún test existente ni el resto del Agent Layer.
+
+**No se pudo verificar en este entorno** (requeriría MySQL real): el comportamiento end-to-end de
+`query_database` contra una base de datos viva — el fix opera sobre texto (salida de `mysql` + SQL de
+entrada), ya cubierto por los tests unitarios nuevos sin necesitar conexión real.
+
+Archivos modificados: `agent/src/tools/database.mjs`, `SECURITY.md` (#13), `AGENT_TASKS.md`,
+`.agent/tasks.md`.
+Archivos creados: `agent/test/database.test.mjs`.
+
+**Estado**: corregido en `agent/fidelyfood-autonomous` (PR #43, que acumula esta y las sesiones
+anteriores sin fusionar todavía), pendiente de revisión humana.
+
 ## P0 — Seguridad / bloqueante
 
 - ~~**FID-001** · SECURITY · Auditar rate-limiting ausente en `/api/auth/**` (login).~~ **COMPLETADA — implementado y verificado** (ver cierre abajo). **REQUIERE ACCIÓN DEL USUARIO tras integrar: reiniciar el backend de desarrollo (puerto 8081).**
@@ -123,6 +195,269 @@ Eventos que crean tareas: `npm --prefix agent run event -- issue <n>` (issue de 
 - ~~**FID-013** · TEST · Tests unitarios del backend — sin cobertura más allá de `contextLoads`.~~ **COMPLETADA** (ver cierre abajo).
 - ~~**FID-015** · TEST · Cobertura unitaria de `PromocionService` y del nuevo endpoint `GET /api/restaurantes/{id}/estadisticas` — código añadido en #29/#30 sin tests unitarios, solo E2E.~~ **COMPLETADA** (ver cierre abajo).
 - ~~**FID-016** · TEST · Cobertura unitaria de `CompraService` y `RecompensaService` — últimos dos servicios de negocio del backend sin ningún test unitario, solo E2E.~~ **COMPLETADA** (ver cierre abajo).
+- ~~**FID-020** · MAINTENANCE · Nuevo aviso CRÍTICO de `npm audit` (RCE por prototype pollution en `piscina`) publicado tras el cierre de FID-019.~~ **COMPLETADA — vulnerabilidad crítica corregida sin breaking change** (ver cierre abajo).
+- ~~**FID-018** · TEST · Cobertura unitaria de `MovimientoPuntosService` — único servicio de negocio no trivial que quedaba sin tests tras FID-016.~~ **COMPLETADA** (ver cierre abajo) — **pendiente de revisión humana (PR #43)**.
+- ~~**FID-019** · MAINTENANCE · `npm audit` del frontend volvió a detectar vulnerabilidades (postcss, vite, piscina, http-proxy-middleware, @babel/core, esbuild — 12 en total) tras nuevos avisos publicados desde FID-012.~~ **COMPLETADA — 6 de 12 corregidas dentro de Angular 20, 6 pendientes de decisión (requieren Angular 21)** (ver cierre abajo).
+- ~~**FID-021** · A11Y · El commit `#38` (fuera de este backlog) dejó documentado que, tras arreglar los dos formularios de login, quedaban otros 10 formularios con `ion-input`/`ion-select`/`ion-textarea` sin ninguna asociación accesible real a su etiqueta visible.~~ **COMPLETADA** (ver cierre abajo).
+
+### FID-021 — completada 2026-10-02
+
+**Nota de concurrencia**: esta tarea se identificó y resolvió en paralelo a otra ejecución de la misma
+rutina que, el mismo día, encontró y corrigió FID-020 (RCE crítica en `piscina`). Ambas partieron del
+mismo `main`/rama sin tareas "Pendiente" explícitas y llegaron a hallazgos distintos sin solapamiento
+de archivos (ésta solo toca plantillas HTML del frontend; FID-020 solo toca `package.json`/lockfile) —
+al integrar ambas ramas con `git merge`, esta entrada se renumeró de FID-020 a FID-021 para no chocar
+con la ya asignada, mismo criterio que se usó para FID-013/FID-014.
+
+Rutina en la nube del 2026-10-02. La rama `agent/fidelyfood-autonomous` ya estaba al día con `main`
+(el PR #43 de FID-018/FID-019 seguía abierto y sin commits nuevos en `main` que auditar — verificado
+con `git log origin/main..origin/agent/fidelyfood-autonomous` / al revés), así que este commit se
+añade a la misma rama/PR (mismo criterio que FID-015/FID-016/FID-019).
+
+**Elección de la tarea**: `AGENT_TASKS.md`/`.agent/tasks.md` no tenían ninguna entrada "Pendiente"
+explícita. Antes de buscar un hallazgo nuevo desde cero, se revisó el único commit de accesibilidad
+fusionado directamente a `main` (`08cdbff fix(a11y): asociar las etiquetas de email/password en los
+logins (#38)`, fuera de este backlog): su propio mensaje dejaba escrito textualmente que, tras
+arreglar los dos formularios de login, "hay otros 10 formularios con el mismo patrón (registro de
+usuario/restaurante, ajustes, promociones, perfil, paneles de admin) que quedan pendientes". Un
+pendiente ya identificado y acotado por nombre es más fiable que inventar un hallazgo nuevo, así que
+se eligió cerrar exactamente ese hueco.
+
+**El problema real** (el mismo que `#38` ya había corregido en los logins): Ionic renderiza
+`ion-input`/`ion-select`/`ion-textarea` como Web Components con Shadow DOM. Ni un `<ion-label
+position="stacked">` hermano ni un `<label>` nativo que envuelve al componente asocian su texto como
+nombre accesible del control interno (el `<input>`/`<textarea>` real vive dentro del Shadow DOM, fuera
+del árbol donde el algoritmo de cómputo de nombre accesible busca un `<label>` asociado). Un lector de
+pantalla solo anuncia el `placeholder` — y éste desaparece en cuanto el usuario empieza a escribir,
+dejando el campo sin nombre alguna vez tiene contenido.
+
+**Alcance**: se localizaron y corrigieron los 10 formularios señalados, uno por área:
+- Registro: `register-user.component.html` (3 campos), `register-restaurant.component.html` (7 campos).
+- Restaurante: `settings.component.html`/"ajustes" (7 campos: nombre, descripción, email, teléfono,
+  categoría, dirección, c. postal, ciudad — 8 en total), `mis-promociones/form-promocion.component.html`
+  (5 campos) y el formulario legado `gestion-promos.component.html` (4 campos, todavía enrutado y en
+  uso — verificado en `restaurant.routes.ts`).
+- Cliente: `perfil.component.html` (2 campos, usando `[attr.aria-label]` con el mismo pipe
+  `ffTranslate` que ya usa cada `<label>` visible, para no desincronizar el idioma) y
+  `security-center.component.html` (3 campos de contraseña, mismo criterio de `ffTranslate` donde
+  aplica).
+- Admin: `admin-reservations.component.html`, `admin-clients.component.html` y
+  `admin-businesses.component.html` — los tres paneles usan `<label>Texto<ion-input .../></label>`
+  (envoltura nativa), que tiene el mismo problema de Shadow DOM que el `ion-label` de los demás
+  formularios; se añadió `aria-label` a cada campo de sus formularios de edición/alta. Se dejaron
+  fuera deliberadamente los `ion-select` de los filtros de cabecera de cada listado (fuera del alcance
+  que describía el commit original, centrado en "formularios"), y los que ya usaban el atributo
+  `label` nativo de Ionic (`admin-clients`/`admin-businesses`, filtros de estado/ciudad/orden), que sí
+  expone nombre accesible.
+
+Cambio puramente aditivo: un atributo `aria-label`/`[attr.aria-label]` nuevo por campo, sin tocar
+diseño, maquetación, ni lógica de ningún componente.
+
+**Verificación real**: `npm install` (primera vez en este sandbox, `node_modules` no existía) + `ng
+build --configuration production` → **éxito**, sin ningún error nuevo. Los únicos avisos son los ya
+preexistentes (Sass `@import` deprecado en varios `_shared-admin.scss`, presupuesto de tamaño ya
+excedido en `admin-clients`/`restaurante-detalle-page` antes de este cambio, `qrcode` no-ESM) — nada
+causado por este commit. No se tocó ningún archivo de backend, así que no hizo falta `mvn test`.
+
+**No se pudo verificar en este entorno** (requeriría un lector de pantalla real, o un navegador con
+backend/frontend en marcha): confirmar de oído que cada campo se anuncia correctamente. El cambio es
+mecánico y repite exactamente el mismo patrón que `#38` ya verificó así para los logins.
+
+**Nota aparte, no accionada esta sesión**: `npm install` reportó 8 vulnerabilidades (3 críticas) en
+vez de las 6 que documentó el cierre de FID-019 (2026-10-01). Puede ser que se hayan publicado nuevos
+avisos en 24h, o un recuento distinto del mismo problema — resultó ser lo segundo: la ejecución paralela
+de esta misma rutina lo identificó como FID-020 (RCE crítica en `piscina`) y ya lo corrigió, ver esa
+entrada más abajo.
+
+Archivos modificados: `frontend/src/app/features/public/register-user/register-user.component.html`,
+`frontend/src/app/features/public/register-restaurant/register-restaurant.component.html`,
+`frontend/src/app/features/restaurant-app/settings/settings.component.html`,
+`frontend/src/app/features/restaurant-app/mis-promociones/form-promocion/form-promocion.component.html`,
+`frontend/src/app/features/restaurant-app/gestion-promos/gestion-promos.component.html`,
+`frontend/src/app/features/user-app/perfil/perfil.component.html`,
+`frontend/src/app/features/user-app/security-center/security-center.component.html`,
+`frontend/src/app/features/admin-app/reservations/admin-reservations.component.html`,
+`frontend/src/app/features/admin-app/clients/admin-clients.component.html`,
+`frontend/src/app/features/admin-app/businesses/admin-businesses.component.html`.
+
+### FID-020 — completada 2026-10-02 — VULNERABILIDAD CRÍTICA CORREGIDA
+
+Rutina en la nube del 2026-10-02. `main` no llevaba commits nuevos desde el cierre de FID-018/019
+(PR #43 seguía abierto con `base` = HEAD actual de `main`, `mergeable_state: clean`), así que no hizo
+falta ningún `git merge` ni recrear la rama. Sin ninguna tarea "Pendiente" explícita en
+`AGENT_TASKS.md`/`.agent/tasks.md`, se repitió el primer paso de siempre en estas sesiones sin tarea
+asignada: `npm audit` en `frontend/` (tras `npm ci` limpio, no reusando `node_modules` de una sesión
+anterior) para ver si hay avisos nuevos desde el último cierre.
+
+**Hallazgo**: desde el cierre de FID-019 (2026-10-01) se publicó un aviso nuevo de severidad
+**crítica**: [GHSA-67c8-pqhq-4rmx](https://github.com/advisories/GHSA-67c8-pqhq-4rmx) — gadget de
+*prototype pollution* en `piscina` (el pool de worker threads que usa `@angular/build`/
+`@angular-devkit/build-angular` internamente para `ng build`/`ng serve`) que permite RCE si algo
+contamina `Object.prototype` antes de construir el `ThreadPool`. Rango afectado: `piscina` 5.0.0 –
+5.3.1 (resuelto en este proyecto a 5.2.0, vía `@angular/build@20.3.37` → `piscina@5.2.0`, dependencia
+transitiva fijada por versión exacta, sin rango `^`). `npm audit` pasó de 6 vulnerabilidades (estado
+de cierre de FID-019) a **8** (4 moderate, 1 high, 3 critical) tras `npm ci` en este sandbox limpio —
+confirma que es un aviso publicado después de FID-019, no algo que FID-019 ya hubiera visto y dejado
+pendiente.
+
+**Alcance real**: dependencia 100% de build (`devDependencies` vía `@angular-devkit/build-angular`),
+nunca se envía al navegador del usuario final — `npm audit --omit=dev` ya daba 0 antes y sigue dando
+0 después. Aun así, severidad crítica + RCE merece arreglo inmediato: el pool de workers se usa en
+cada `ng build`/`ng serve`, incluido en CI/CD si lo hubiera.
+
+**Corrección** (sin breaking change, sin tocar la versión de `@angular-devkit/build-angular` ni saltar
+a Angular 21): se descartó `npm audit fix --force` porque proponía **instalar
+`@angular-devkit/build-angular@19.2.27`, una regresión de versión** (downgrade, no upgrade) con
+cambios de API no evaluados. En su lugar, override selectivo en `frontend/package.json`:
+
+```json
+"overrides": {
+  "piscina": "5.3.2"
+}
+```
+
+`piscina@5.3.2` (publicado 2026-08-28, confirmado en su `CHANGELOG.md`: "avoid re-linking
+Object.prototype in Piscina constructor", "sanitize run/close options with withNullPrototype") es la
+primera versión parcheada dentro de la misma rama 5.x — mismo major, mismo rango de API pública que
+`@angular/build` espera (su único cambio incompatible documentado es para quien llame
+`pool.options.hasOwnProperty(...)` directamente, algo que `@angular/build` no hace). Se prefirió el
+override puntual sobre esperar un parche de `@angular-devkit/build-angular` (no existe ninguno más
+nuevo que `20.3.37`, ya instalado, verificado con `npm view @angular-devkit/build-angular versions`).
+
+**Verificación real**:
+- `npm audit` antes → 8 vulnerabilidades (4 moderate, 1 high, **3 critical**, incluida GHSA-67c8).
+- `npm install` con el override → `npm ls piscina` confirma `piscina@5.3.2 overridden` en ambas rutas
+  (`@angular/build` y la dependencia directa de `@angular-devkit/build-angular`).
+- `npm audit` después → **6 vulnerabilidades (4 moderate, 2 high), 0 critical** — la de `piscina`
+  desaparece por completo; las 6 restantes son las mismas ya documentadas en FID-019 como pendientes
+  de una decisión de usuario (saltar a `@angular-devkit/build-angular@21`, salto de major): `uuid`
+  (vía `sockjs`, que fija `uuid: "^8.3.2"` incluso en su versión más reciente — no hay forma de
+  arreglarlo sin ese salto de major) y `webpack-dev-middleware`/`webpack-dev-server` (ya al tope de su
+  serie 5.x, el siguiente parche real es la 6.0.0).
+- `npm audit --omit=dev` → 0 antes y 0 después (sin cambio, nunca afectó a producción).
+- `ng build --configuration production` → build limpio, mismos warnings de siempre (Sass `@import`
+  deprecado, presupuesto de dos `.scss`, `qrcode` no-ESM) — sin errores nuevos.
+- Diff real en `package-lock.json`: solo la entrada de `piscina` (5.2.0 → 5.3.2), nada más — el
+  override no arrastró ningún otro cambio de versión.
+
+**No se pudo verificar en este entorno** (requeriría backend/frontend/MySQL reales): la suite E2E de
+Playwright — no aplica aquí de todas formas, es una dependencia de build, no de runtime de la app.
+
+Archivos modificados: `frontend/package.json` (nuevo campo `overrides`), `frontend/package-lock.json`
+(solo `piscina` 5.2.0 → 5.3.2), `SECURITY.md` (nueva entrada #12), `AGENT_TASKS.md`.
+
+Pendiente para una futura sesión: las 6 vulnerabilidades restantes (y la decisión ya diferida de
+Angular 21) siguen igual que al cierre de FID-019 — sin cambios aquí más allá de la de `piscina`.
+
+### FID-018 — completada 2026-09-30
+
+Rutina en la nube del 2026-09-30. El PR #28 (FID-013 a FID-016) ya estaba fusionado a `main` — la rama
+`agent/fidelyfood-autonomous` se recreó desde el `main` actual (`eaf26d4`) siguiendo la regla de "PR ya
+fusionado ⇒ rama nueva desde `main`", en vez de seguir apilando commits sobre historia ya integrada.
+
+Sin ninguna tarea "Pendiente" explícita en `AGENT_TASKS.md`/`.agent/tasks.md`, primero se auditó (mismo
+criterio que FID-005/013/015/016) el único cambio de backend fusionado desde el cierre de FID-016: el PR
+#33 (`fix(historial)`), que añadió los campos `monto`, `usuarioNombre` y `usuarioFotoPerfil` a
+`MovimientoPuntosDTO` y los usos correspondientes en `MovimientoPuntosService`/`RestauranteService`.
+Verificado leyendo el código: los tres puntos donde se construye ese DTO cuelgan de endpoints que ya
+identifican al restaurante/usuario por el email autenticado (`RestauranteController` vía `requireOwner`,
+ya corregido en FID-005; `MovimientoPuntosController.obtenerHistorial` vía
+`authentication.getName()`, nunca un id del cliente) — sin vulnerabilidad nueva de Broken Access Control,
+los datos de cliente expuestos (nombre/foto) son del propio flujo autorizado del restaurante sobre sus
+movimientos.
+
+De ese mismo cambio salió el hallazgo de bajo riesgo de esta sesión: `MovimientoPuntosService` (que
+gestiona `GET /api/movimientos`, el historial de puntos del cliente autenticado) era, junto a
+`QrService` (trivial, descartado ya en FID-016), el único de los siete servicios de negocio del backend
+sin ningún test unitario — un descuido de FID-013/015/016, que cubrieron el resto uno a uno pero nunca
+llegaron a este.
+
+- **`MovimientoPuntosServiceTest.java` (nuevo, 3 tests)**: usuario inexistente lanza
+  `ResourceNotFoundException` sin consultar `MovimientoPuntosDAO`; usuario sin movimientos devuelve
+  lista vacía; y el mapeo a DTO de varios movimientos reales conserva puntos/tipo/monto (incluido `null`
+  cuando el movimiento no viene de un consumo, caso `CANJEADOS`) y el nombre/foto reales del usuario
+  autenticado — fija el comportamiento de los tres campos añadidos en el PR #33.
+
+**Verificación real**: `mvn compile` → éxito. `mvn test -Dtest=MovimientoPuntosServiceTest,
+CompraServiceTest,RecompensaServiceTest,PromocionServiceTest,UsuarioServiceTest,RestauranteServiceTest,
+LoginRateLimiterTest,GlobalExceptionHandlerTest` → **64/64 passed** (3+6+6+13+15+13+7+1). `mvn test`
+completo → **65 tests, 64 passed, 1 error** (`SpringBootTfgApplicationTests.contextLoads`, mismo motivo
+ya documentado en FID-013/014/015/016: `Communications link failure`, no hay MySQL en este sandbox —
+confirmado leyendo la traza completa, `Connection refused`). No se tocó ningún test ni código de
+producción existente (solo un test nuevo).
+
+**No se pudo verificar en este entorno** (requeriría backend/frontend/MySQL reales): el flujo E2E
+completo del historial de puntos del cliente y de "Actividad Reciente"/"Historial de Actividad" del
+restaurante (PR #33), ya cubierto por la suite E2E existente (`client-flows.spec.ts`,
+`restaurant-flows.spec.ts`), no duplicado aquí; tampoco `npm audit`/dependencias de frontend (sin
+cambios de `package.json` desde FID-012, no había nada nuevo que auditar en esta sesión).
+
+Con esto, los 7 servicios de negocio del backend tienen cobertura unitaria (salvo `QrService`, trivial),
+cerrando el hueco que quedó abierto tras FID-016.
+
+Archivo creado: `src/test/java/progresa/springboot_tfg/service/MovimientoPuntosServiceTest.java`.
+
+### FID-019 — completada 2026-10-01
+
+Rutina en la nube del 2026-10-01. El PR #43 (FID-018) seguía abierto y la rama `agent/fidelyfood-autonomous`
+ya estaba al día con `main` (sin ningún commit nuevo en `main` desde el cierre de FID-018: verificado con
+`git log origin/main..origin/agent/fidelyfood-autonomous` / en sentido inverso, cero commits en ambos
+casos salvo el propio commit de FID-018), así que esta sesión añade un commit nuevo a la misma rama/PR en
+vez de abrir uno aparte — mismo criterio ya seguido en FID-015/FID-016 cuando el PR previo seguía sin
+fusionar.
+
+Sin ninguna tarea "Pendiente" explícita, y sin ningún commit de backend nuevo que auditar (confirmado con
+`git show --stat` de los diez commits mergeados a `main` el 2026-09-29 — `#41,#32,#31,#33,#34,#35,#36,
+#38,#12` —, ninguno toca `src/main/java/**` ni `pom.xml` salvo el ya auditado `#33` en FID-018), se repitió
+el tipo de hallazgo de FID-010/FID-012: dependencias con vulnerabilidades conocidas. `npm audit` en
+`frontend/` volvió a reportar 12 vulnerabilidades (2 bajas, 3 moderadas, 7 altas) aparecidas desde el
+cierre de FID-012 — nuevos avisos (`postcss`, `vite`, `piscina`, `http-proxy-middleware`, `@babel/core`,
+`esbuild`, y transitivamente `uuid`/`sockjs`/`webpack-dev-server`/`webpack-dev-middleware`), todas en la
+cadena de dependencias de build de Angular (`@angular-devkit/build-angular`), ninguna en código servido a
+los usuarios (`npm audit --omit=dev` ya daba 0 antes y después del cambio).
+
+**Causa real**: `@angular-devkit/build-angular` estaba fijado en `^20.0.0` en `package.json`, y la copia
+instalada (`20.3.26`) no se había actualizado junto con `@angular/core` en FID-012 (ese cambio solo tocó
+los paquetes `@angular/*` de primer nivel, no el propio `@angular/cli`/`build-angular`) — quedó rezagada
+varios parches (20.3.26 → 20.3.37 disponible) mientras el ecosistema de bundling (`postcss`/`vite`/
+`webpack-dev-server`, dependencias de `@angular/build`) recibía parches de seguridad en esas versiones
+más recientes.
+
+**Corrección aplicada** (mismo criterio que FID-012 — parche dentro de Angular 20, sin saltar a un major):
+`npx ng update @angular/core@20 @angular/cli@20` (sube `@angular/core` y paquetes hermanos de 20.3.32 a
+20.3.33) + `npm install @angular-devkit/build-angular@20.3.37 --save-dev` (el `ng update` no subió
+`@angular-devkit/build-angular` por sí solo, pese al rango `^20.0.0` que lo permitía — se instaló el
+parche más reciente de la serie 20.3.x explícitamente). Sin cambios de versión mayor en ningún paquete.
+
+**Resultado**: de 12 vulnerabilidades, 6 corregidas (`postcss`, `vite`, `piscina`, `http-proxy-middleware`,
+`@babel/core`, `esbuild`). Las 6 restantes (`uuid`/`sockjs`/`webpack-dev-server`/`webpack-dev-middleware`,
+2 moderadas + 2 altas con sus dependientes) solo tienen arreglo saltando a
+`@angular-devkit/build-angular@21.2.24` (Angular 21, cambio de versión mayor) — **no aplicado aquí**, mismo
+motivo que FID-010 → FID-012: un salto de major necesita una ronda completa de regresión que esta sesión
+no puede ejecutar (sin frontend/backend reales en este entorno). Documentado como decisión pendiente del
+usuario, igual que el resto de "major version" ya abiertos en el backlog (Angular 21 completo, descartado
+en FID-010/FID-012; `spring-boot-starter-parent` 3.2.1 → 3.2.12, descartado en FID-014).
+
+**Verificación real**:
+- `npm audit --omit=dev` → 0 vulnerabilidades (antes y después; estas vulnerabilidades siempre fueron solo
+  de dependencias de build, nunca de código enviado a producción).
+- `npm audit` completo → 12 → 6 vulnerabilidades (bajada real, no solo supresión de avisos).
+- `npx ng build --configuration production` → build limpio, mismos warnings de siempre (deprecación de
+  `@import` de Sass, presupuestos de tamaño de 2 componentes ya señalados antes, módulo `qrcode` no-ESM) —
+  sin errores nuevos.
+- `npx ng lint` → 8 errores/1 warning preexistentes (reglas de estilo `@angular-eslint/prefer-inject` y
+  `no-output-on-prefix`), no relacionados con este cambio de dependencias (confirmado: son reglas de
+  `@angular-eslint/*`, paquete no tocado en este commit) — no corregidos aquí, fuera de alcance de esta
+  tarea de mantenimiento de dependencias.
+
+**No se pudo verificar en este entorno** (requeriría backend/frontend/MySQL reales): la suite E2E
+completa de Playwright contra el build actualizado — ya se verificó así en FID-012 cuando había un
+servidor de desarrollo local disponible, pero este sandbox en la nube no tiene ningún servidor local
+corriendo. El build de producción (`ng build`) y `npm audit` son lo máximo verificable aquí, tal y como
+pide la rutina para este tipo de entorno.
+
+Archivos modificados: `frontend/package.json`, `frontend/package-lock.json` (parches dentro de Angular 20,
+sin cambios de versión mayor).
 
 ### FID-016 — completada 2026-09-27
 

@@ -91,11 +91,14 @@ export class DashboardComponent implements OnInit {
 
   ngOnInit() {
     this.business = this.globalState.getState();
-    this.cargarDatos();
   }
 
   /**
-   * Refresco automático al entrar en la pestaña (Ionic Lifecycle)
+   * Única carga de datos del dashboard: ionViewWillEnter ya cubre tanto la
+   * primera entrada a la pestaña (Ionic lo dispara también en el alta
+   * inicial del tab) como cada reentrada posterior, así que no hace falta
+   * duplicarla en ngOnInit (antes pedía stats/promociones/periodo dos veces
+   * en la primera navegación).
    */
   ionViewWillEnter() {
     console.log('🔄 [DASHBOARD] Re-sincronizando datos al entrar...');

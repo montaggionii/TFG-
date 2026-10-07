@@ -51,32 +51,32 @@
         <ion-list lines="none" class="glass-list">
           <ion-item class="glass-input-item">
             <ion-label position="stacked">Nombre Comercial</ion-label>
-            <ion-input formControlName="nombre" placeholder="Ej: Pizzería Roma"></ion-input>
+            <ion-input formControlName="nombre" placeholder="Ej: Pizzería Roma" aria-label="Nombre Comercial"></ion-input>
             <ion-icon name="business-outline" slot="start"></ion-icon>
           </ion-item>
 
           <ion-item class="glass-input-item">
             <ion-label position="stacked">Descripción de Ventas</ion-label>
-            <ion-textarea formControlName="descripcion" rows="3" placeholder="Describe tu especialidad..."></ion-textarea>
+            <ion-textarea formControlName="descripcion" rows="3" placeholder="Describe tu especialidad..." aria-label="Descripción de Ventas"></ion-textarea>
             <ion-icon name="chatbox-ellipses-outline" slot="start"></ion-icon>
           </ion-item>
 
           <div class="input-grid">
             <ion-item class="glass-input-item">
               <ion-label position="stacked">Email de Contacto</ion-label>
-              <ion-input formControlName="email" type="email" placeholder="email@ejemplo.com"></ion-input>
+              <ion-input formControlName="email" type="email" placeholder="email@ejemplo.com" aria-label="Email de Contacto"></ion-input>
               <ion-icon name="mail-outline" slot="start"></ion-icon>
             </ion-item>
             <ion-item class="glass-input-item">
               <ion-label position="stacked">Teléfono</ion-label>
-              <ion-input formControlName="telefono" type="tel"></ion-input>
+              <ion-input formControlName="telefono" type="tel" aria-label="Teléfono"></ion-input>
               <ion-icon name="call-outline" slot="start"></ion-icon>
             </ion-item>
           </div>
 
           <ion-item class="glass-input-item">
             <ion-label position="stacked">Categoría</ion-label>
-            <ion-select formControlName="tipo" interface="popover">
+            <ion-select formControlName="tipo" interface="popover" aria-label="Categoría">
               <ion-select-option value="Restaurante">Restaurante</ion-select-option>
               <ion-select-option value="Bar">Bar</ion-select-option>
               <ion-select-option value="Cafetería">Cafetería</ion-select-option>
@@ -100,7 +100,7 @@
           <div class="input-row">
             <div class="input-main">
               <ion-label position="stacked">Dirección Pública</ion-label>
-              <ion-input formControlName="direccion" placeholder="Calle, número..."></ion-input>
+              <ion-input formControlName="direccion" placeholder="Calle, número..." aria-label="Dirección Pública"></ion-input>
             </div>
           </div>
           <ion-icon name="map-outline" slot="start"></ion-icon>
@@ -109,12 +109,12 @@
         <div class="input-grid location-fields">
           <ion-item class="glass-input-item">
             <ion-label position="stacked">C. Postal</ion-label>
-            <ion-input formControlName="codigoPostal" placeholder="46001"></ion-input>
+            <ion-input formControlName="codigoPostal" placeholder="46001" aria-label="C. Postal"></ion-input>
             <ion-icon name="pin-outline" slot="start"></ion-icon>
           </ion-item>
           <ion-item class="glass-input-item">
             <ion-label position="stacked">Ciudad</ion-label>
-            <ion-input formControlName="ciudad" placeholder="Valencia"></ion-input>
+            <ion-input formControlName="ciudad" placeholder="Valencia" aria-label="Ciudad"></ion-input>
             <ion-icon name="location-outline" slot="start"></ion-icon>
           </ion-item>
           <button type="button" (click)="buscarDireccion()" class="map-search-btn-v2 tap-effect">

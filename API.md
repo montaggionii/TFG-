@@ -1,6 +1,6 @@
 # API — FidelyFood
 
-> Generado desde el código el 2026-10-03 con `npm --prefix agent run docs` (controllers + reglas de `SecurityConfig.java`). No lo edites a mano: cambia el código y regenera.
+> Generado desde el código el 2026-10-04 con `npm --prefix agent run docs` (controllers + reglas de `SecurityConfig.java`). No lo edites a mano: cambia el código y regenera.
 
 ## Convenciones
 - Base URL: local `http://localhost:8081`; producción en Render (ver `DEPLOYMENT.md`).
@@ -10,7 +10,7 @@
 - Errores: `BadRequestException` → 400, `ResourceNotFoundException` → 404, acceso denegado → 403, login incorrecto → 401, demasiados intentos de login → 429.
 - Un recurso de usuario/restaurante solo es accesible por su dueño (`requireOwner` en los servicios), además de por el rol.
 
-## Endpoints (71)
+## Endpoints (72)
 
 ### AdminController
 
@@ -53,6 +53,12 @@
 | POST | `/api/auth/login-admin` | permitAll |  | AuthController.java:73 |
 | POST | `/api/auth/register` | permitAll |  | AuthController.java:104 |
 | POST | `/api/auth/register-restaurante` | permitAll |  | AuthController.java:131 |
+
+### CanjeController
+
+| Método | Ruta | Acceso | Tipo | Código |
+|---|---|---|---|---|
+| POST | `/api/canjes` | ROLE_USER |  | CanjeController.java:39 |
 
 ### CompraController
 

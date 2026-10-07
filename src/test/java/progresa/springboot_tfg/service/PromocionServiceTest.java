@@ -8,10 +8,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.multipart.MultipartFile;
+import progresa.springboot_tfg.dao.CanjeDAO;
 import progresa.springboot_tfg.dao.MovimientoPuntosDAO;
 import progresa.springboot_tfg.dao.PromocionDAO;
 import progresa.springboot_tfg.dao.RestauranteDAO;
 import progresa.springboot_tfg.dao.UsuarioDAO;
+import progresa.springboot_tfg.entity.Canje;
 import progresa.springboot_tfg.entity.Promocion;
 import progresa.springboot_tfg.entity.Restaurante;
 import progresa.springboot_tfg.entity.Usuario;
@@ -43,12 +45,14 @@ class PromocionServiceTest {
     private UsuarioDAO usuarioDAO;
     @Mock
     private MovimientoPuntosDAO movimientoPuntosDAO;
+    @Mock
+    private CanjeDAO canjeDAO;
 
     private PromocionService promocionService;
 
     @BeforeEach
     void setUp() {
-        promocionService = new PromocionService(promocionDAO, restauranteDAO, usuarioDAO, movimientoPuntosDAO);
+        promocionService = new PromocionService(promocionDAO, restauranteDAO, usuarioDAO, movimientoPuntosDAO, canjeDAO);
     }
 
     private Restaurante restaurante(long id, String email) {
@@ -245,5 +249,118 @@ class PromocionServiceTest {
 
         assertDoesNotThrow(() ->
                 promocionService.validarRestauranteAutenticado(1L, "mexicanfood@fidelyfood.local"));
+    }
+
+    private Promocion promocionCanjear(Restaurante restaurante, int puntosOtorgados) {
+        Promocion p = new Promocion();
+        p.setId(7L);
+        p.setTitulo("Postre gratis");
+        p.setPuntosOtorgados(puntosOtorgados);
+        p.setTipo("CANJEAR");
+        p.setRestaurante(restaurante);
+        return p;
+    }
+
+    @Test
+    void canjearPromocionConUsuarioInexistenteLanzaResourceNotFoundYNoTocaNada() {
+        when(usuarioDAO.findByEmail("cliente@test.com")).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> promocionService.canjearPromocion(7L, "cliente@test.com"));
+        verifyNoInteractions(promocionDAO, movimientoPuntosDAO, canjeDAO);
+    }
+
+    @Test
+    void canjearPromocionConPromocionInexistenteLanzaResourceNotFound() {
+        Usuario usuario = new Usuario();
+        usuario.setId(42L);
+        usuario.setPuntos(100);
+        when(usuarioDAO.findByEmail("cliente@test.com")).thenReturn(Optional.of(usuario));
+        when(promocionDAO.findById(7L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> promocionService.canjearPromocion(7L, "cliente@test.com"));
+        verifyNoInteractions(movimientoPuntosDAO, canjeDAO);
+        verify(usuarioDAO, never()).save(any());
+    }
+
+    @Test
+    void canjearPromocionDeTipoGanarLanzaBadRequestYNoTocaNada() {
+        // Una promocion GANAR (el cliente acumula) no se puede "canjear": el
+        // endpoint de canje es solo para promociones de tipo CANJEAR.
+        Restaurante dueno = restaurante(1L, "mexicanfood@fidelyfood.local");
+        Promocion ganar = promocionDe(dueno); // tipo por defecto queda null/GANAR, no CANJEAR
+        Usuario usuario = new Usuario();
+        usuario.setId(42L);
+        usuario.setPuntos(100);
+        when(usuarioDAO.findByEmail("cliente@test.com")).thenReturn(Optional.of(usuario));
+        when(promocionDAO.findById(7L)).thenReturn(Optional.of(ganar));
+
+        assertThrows(BadRequestException.class,
+                () -> promocionService.canjearPromocion(7L, "cliente@test.com"));
+        verifyNoInteractions(movimientoPuntosDAO, canjeDAO);
+        verify(usuarioDAO, never()).save(any());
+    }
+
+    @Test
+    void canjearPromocionConPuntosInsuficientesLanzaBadRequestYNoRestaNada() {
+        Restaurante dueno = restaurante(1L, "mexicanfood@fidelyfood.local");
+        Promocion canjear = promocionCanjear(dueno, 50);
+        Usuario usuario = new Usuario();
+        usuario.setId(42L);
+        usuario.setPuntos(49);
+        when(usuarioDAO.findByEmail("cliente@test.com")).thenReturn(Optional.of(usuario));
+        when(promocionDAO.findById(7L)).thenReturn(Optional.of(canjear));
+
+        assertThrows(BadRequestException.class,
+                () -> promocionService.canjearPromocion(7L, "cliente@test.com"));
+        assertEquals(49, usuario.getPuntos());
+        verify(usuarioDAO, never()).save(any());
+        verifyNoInteractions(movimientoPuntosDAO, canjeDAO);
+    }
+
+    @Test
+    void canjearPromocionConSaldoExactoRestaPuntosYRegistraMovimientoYCanje() {
+        Restaurante dueno = restaurante(1L, "mexicanfood@fidelyfood.local");
+        Promocion canjear = promocionCanjear(dueno, 50);
+        Usuario usuario = new Usuario();
+        usuario.setId(42L);
+        usuario.setPuntos(50);
+        when(usuarioDAO.findByEmail("cliente@test.com")).thenReturn(Optional.of(usuario));
+        when(promocionDAO.findById(7L)).thenReturn(Optional.of(canjear));
+        when(canjeDAO.save(any(Canje.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Canje resultado = promocionService.canjearPromocion(7L, "cliente@test.com");
+
+        assertEquals(0, usuario.getPuntos());
+        verify(usuarioDAO).save(usuario);
+        verify(movimientoPuntosDAO).save(argThat(mov ->
+                mov.getPuntos() == -50
+                        && "CANJEADOS".equals(mov.getTipo())
+                        && mov.getUsuario() == usuario
+                        && mov.getRestaurante() == dueno));
+        assertSame(usuario, resultado.getUsuario());
+        assertSame(canjear, resultado.getPromocion());
+        assertEquals(50, resultado.getPuntosGastados());
+    }
+
+    @Test
+    void canjearPromocionNuncaUsaElUsuarioIdDelBodySinoElEmailAutenticado() {
+        // Regresion de seguridad: el frontend manda {usuarioId, promocionId},
+        // pero el servicio solo recibe el email del JWT -- no hay forma de
+        // que un cliente canjee puntos a nombre de otro usuario.
+        Restaurante dueno = restaurante(1L, "mexicanfood@fidelyfood.local");
+        Promocion canjear = promocionCanjear(dueno, 50);
+        Usuario propietarioReal = new Usuario();
+        propietarioReal.setId(42L);
+        propietarioReal.setPuntos(50);
+        when(usuarioDAO.findByEmail("cliente-real@test.com")).thenReturn(Optional.of(propietarioReal));
+        when(promocionDAO.findById(7L)).thenReturn(Optional.of(canjear));
+        when(canjeDAO.save(any(Canje.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        promocionService.canjearPromocion(7L, "cliente-real@test.com");
+
+        verify(usuarioDAO, never()).findById(any());
+        assertEquals(0, propietarioReal.getPuntos());
     }
 }

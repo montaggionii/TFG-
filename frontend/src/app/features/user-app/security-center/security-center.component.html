@@ -83,6 +83,7 @@
               [(ngModel)]="securityData.current"
               type="password"
               placeholder="Introduce tu contraseña actual"
+              aria-label="Contraseña actual"
               (ionBlur)="passwordTouched = true">
             </ion-input>
           </ion-item>
@@ -95,6 +96,7 @@
               [(ngModel)]="securityData.new"
               type="password"
               [placeholder]="'security.password.newPlaceholder' | ffTranslate"
+              [attr.aria-label]="'security.password.new' | ffTranslate"
               (ionBlur)="passwordTouched = true">
             </ion-input>
           </ion-item>
@@ -115,6 +117,7 @@
               [(ngModel)]="securityData.confirm"
               type="password"
               [placeholder]="'security.password.confirmPlaceholder' | ffTranslate"
+              [attr.aria-label]="'security.password.confirm' | ffTranslate"
               (ionBlur)="passwordTouched = true">
             </ion-input>
           </ion-item>

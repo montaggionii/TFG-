@@ -16,22 +16,22 @@
       <ion-list lines="none" class="ion-margin-bottom">
         <ion-item class="custom-item">
           <ion-label position="stacked">Nombre de la Promoción</ion-label>
-          <ion-input type="text" formControlName="nombre" placeholder="Ej: Café de Bienvenida"></ion-input>
+          <ion-input type="text" formControlName="nombre" placeholder="Ej: Café de Bienvenida" aria-label="Nombre de la Promoción"></ion-input>
         </ion-item>
 
         <ion-item class="custom-item">
           <ion-label position="stacked">Descripción Detallada</ion-label>
-          <ion-textarea formControlName="descripcion" placeholder="Explica en qué consiste la promo..." [autoGrow]="true"></ion-textarea>
+          <ion-textarea formControlName="descripcion" placeholder="Explica en qué consiste la promo..." [autoGrow]="true" aria-label="Descripción Detallada"></ion-textarea>
         </ion-item>
 
         <ion-item class="custom-item">
           <ion-label position="stacked">Puntos Requeridos</ion-label>
-          <ion-input type="number" formControlName="puntosRequeridos" placeholder="Ej: 100"></ion-input>
+          <ion-input type="number" formControlName="puntosRequeridos" placeholder="Ej: 100" aria-label="Puntos Requeridos"></ion-input>
         </ion-item>
 
         <ion-item class="custom-item">
           <ion-label position="stacked">URL de la Imagen</ion-label>
-          <ion-input type="url" formControlName="imagenUrl" placeholder="https://miweb.com/imagen.jpg"></ion-input>
+          <ion-input type="url" formControlName="imagenUrl" placeholder="https://miweb.com/imagen.jpg" aria-label="URL de la Imagen"></ion-input>
           <ion-button slot="end" fill="clear" (click)="showPreview()" class="preview-btn">
             <ion-icon name="eye-outline" slot="start"></ion-icon>
             Vista Previa
