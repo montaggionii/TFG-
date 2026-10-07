@@ -29,6 +29,25 @@ test.describe('Restaurante', () => {
     await expect(page.locator('.dashboard-scroll-container')).toBeVisible({ timeout: 10000 });
   });
 
+  // AGT-001 — Antes de este fix, ngOnInit e ionViewWillEnter llamaban los
+  // dos a cargarDatos(), así que la primera navegación a /r/dashboard
+  // disparaba cada endpoint (stats incluido) por duplicado.
+  test('dashboard pide /stats una sola vez en la primera entrada', async ({ page, request }) => {
+    const seedPassword = process.env.APP_SEED_RESTAURANT_PASSWORD;
+    test.skip(!seedPassword, 'APP_SEED_RESTAURANT_PASSWORD no está definida en el entorno de este proceso.');
+
+    let statsRequests = 0;
+    page.on('request', (req) => {
+      if (/\/api\/restaurantes\/\d+\/stats(\?|$)/.test(req.url())) statsRequests++;
+    });
+
+    const session = await apiLoginRestaurant(request, RESTAURANT_EMAIL, seedPassword!);
+    await authenticateAs(page, session, '/r/dashboard');
+    await expect(page.locator('.dashboard-scroll-container')).toBeVisible({ timeout: 10000 });
+
+    expect(statsRequests).toBe(1);
+  });
+
   test('promociones carga el listado real', async ({ page, request }) => {
     await loginAndGoto(page, request, '/r/promociones');
     await expect(page).toHaveURL(/\/r\/promociones/);

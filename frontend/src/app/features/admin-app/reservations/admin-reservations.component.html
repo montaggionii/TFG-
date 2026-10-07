@@ -198,38 +198,38 @@
         <section class="tab-section" *ngIf="activeTab === 'edit'">
           <form [formGroup]="reservationForm" class="detail-form">
             <label>Cliente existente
-              <ion-select formControlName="clientId" interface="popover" placeholder="Opcional" (ionChange)="onClientChange($event.detail.value)">
+              <ion-select formControlName="clientId" interface="popover" placeholder="Opcional" aria-label="Cliente existente" (ionChange)="onClientChange($event.detail.value)">
                 <ion-select-option value="">Manual</ion-select-option>
                 <ion-select-option *ngFor="let client of clients" [value]="client.id">{{ client.nombre }} · {{ client.email }}</ion-select-option>
               </ion-select>
             </label>
             <label>Negocio
-              <ion-select formControlName="businessId" interface="popover">
+              <ion-select formControlName="businessId" interface="popover" aria-label="Negocio">
                 <ion-select-option *ngFor="let business of businesses" [value]="business.id">{{ business.nombre }}</ion-select-option>
               </ion-select>
               <small *ngIf="reservationForm.controls.businessId.touched && reservationForm.controls.businessId.invalid">Negocio obligatorio</small>
             </label>
             <label>Nombre cliente
-              <ion-input formControlName="clientName"></ion-input>
+              <ion-input formControlName="clientName" aria-label="Nombre cliente"></ion-input>
               <small *ngIf="reservationForm.controls.clientName.touched && reservationForm.controls.clientName.invalid">Nombre obligatorio</small>
             </label>
             <label>Email cliente
-              <ion-input type="email" formControlName="clientEmail"></ion-input>
+              <ion-input type="email" formControlName="clientEmail" aria-label="Email cliente"></ion-input>
               <small *ngIf="reservationForm.controls.clientEmail.touched && reservationForm.controls.clientEmail.invalid">Email no válido</small>
             </label>
             <label>Teléfono cliente
-              <ion-input formControlName="clientPhone"></ion-input>
+              <ion-input formControlName="clientPhone" aria-label="Teléfono cliente"></ion-input>
               <small *ngIf="reservationForm.controls.clientPhone.touched && reservationForm.controls.clientPhone.invalid">Teléfono no válido</small>
             </label>
             <label>Fecha y hora
-              <ion-input type="datetime-local" formControlName="date"></ion-input>
+              <ion-input type="datetime-local" formControlName="date" aria-label="Fecha y hora"></ion-input>
               <small *ngIf="reservationForm.controls.date.touched && reservationForm.controls.date.invalid">Fecha obligatoria</small>
             </label>
             <label>Personas
-              <ion-input type="number" formControlName="people"></ion-input>
+              <ion-input type="number" formControlName="people" aria-label="Personas"></ion-input>
             </label>
             <label>Estado
-              <ion-select formControlName="status" interface="popover">
+              <ion-select formControlName="status" interface="popover" aria-label="Estado">
                 <ion-select-option value="PENDING">Pendiente</ion-select-option>
                 <ion-select-option value="CONFIRMED">Confirmada</ion-select-option>
                 <ion-select-option value="CANCELLED">Cancelada</ion-select-option>
@@ -239,7 +239,7 @@
               </ion-select>
             </label>
             <label>Notas internas
-              <ion-textarea rows="3" formControlName="notes"></ion-textarea>
+              <ion-textarea rows="3" formControlName="notes" aria-label="Notas internas"></ion-textarea>
             </label>
             <ion-button expand="block" (click)="save()" [disabled]="reservationForm.invalid || saving">
               <ion-icon name="save-outline" slot="start"></ion-icon>
