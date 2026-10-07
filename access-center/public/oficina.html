@@ -32,8 +32,8 @@
   .box { margin:12px; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 14px; }
   .box h2 { margin:0 0 6px; font:700 17px var(--serif); }
   .box h3 { margin:0 0 8px; font:700 15px var(--serif); }
-  .kv { display:flex; justify-content:space-between; padding:3px 0; border-top:1px solid var(--line); }
-  .kv:first-of-type { border-top:0; } .kv b { font-variant-numeric:tabular-nums; }
+  .kv { display:flex; justify-content:space-between; gap:12px; padding:3px 0; border-top:1px solid var(--line); }
+  .kv:first-of-type { border-top:0; } .kv b { font-variant-numeric:tabular-nums; text-align:right; min-width:0; overflow-wrap:anywhere; }
   .trio { display:flex; justify-content:space-between; gap:6px; margin-top:8px; padding-top:8px; border-top:1px solid var(--line); font-size:11px; letter-spacing:.5px; text-transform:uppercase; color:var(--muted); }
   .trio b { color:var(--ink); font-size:14px; margin-left:4px; }
   .wait { margin-top:8px; text-align:center; border:1px solid var(--gold); color:var(--gold); border-radius:8px; padding:5px; font-weight:700; letter-spacing:.5px; }
@@ -294,7 +294,7 @@ const cards = DEPTS.map((d, i) => {
 });
 const lbls = deskRefs.map((arr, i) => arr.map((r, ki) => { const e = h("div", DEPTS[i].desks[ki].name, "lbl"); e.hidden = true; overlay.append(e); return e; }));
 const brainLbl = h("div", "JARVIS · SIN CONECTAR", "brain"); brainLbl.style.pointerEvents = "auto"; brainLbl.style.cursor = "pointer"; brainLbl.onclick = () => select("jarvis"); overlay.append(brainLbl);
-const JARVIS_STATE = { RUNNING: ["TRABAJANDO", 0x6fd49a, 2.2], IDLE: ["EN ESPERA", 0xbfc3de, 0.8], BLOCKED_ON_APPROVAL: ["ESPERANDO APROBACIÓN", 0xe3b84a, 0.5], STOPPED: ["DETENIDO", 0xf2788a, 0.1] };
+const JARVIS_STATE = { RUNNING: ["TRABAJANDO", 0x6fd49a, 2.2], CONNECTED: ["CONECTADO", 0x7cb2ff, 0.8], IDLE: ["EN ESPERA", 0xbfc3de, 0.8], BLOCKED_ON_APPROVAL: ["ESPERANDO APROBACIÓN", 0xe3b84a, 0.5], STOPPED: ["DETENIDO", 0xf2788a, 0.1] };
 const jarvisState = () => { const st = data && data.jarvis && data.jarvis.status ? data.jarvis.status.agentStatus : null; return JARVIS_STATE[st] || ["SIN CONECTAR", 0x6a6d82, 0.3]; };
 const v3 = new THREE.Vector3();
 function project(x, y, z, el, dx = 0, dy = 0) {
@@ -420,7 +420,7 @@ function renderJarvis() {
   const b1 = h("div", undefined, "box"); b1.append(h("h2", "Jarvis"), h("div", "Cerebro de la oficina: el Agent Layer decide, usa las herramientas con política de permisos y recuerda en .agent/memory.jsonl.", "mono"));
   const cost = s && s.estimatedCostUsd != null ? "$" + s.estimatedCostUsd.toFixed(4) : null;
   const tokens = s && s.tokens && (s.tokens.input || s.tokens.output) ? `${s.tokens.input} entrada / ${s.tokens.output} salida` : null;
-  const run = h("div", undefined, "kv"); run.append(h("span", "Estado")); const pill = h("span", js[0], "pill " + (js[0] === "TRABAJANDO" ? "p-work" : js[0] === "ESPERANDO APROBACIÓN" ? "p-wait" : "p-idle")); run.append(pill);
+  const run = h("div", undefined, "kv"); run.append(h("span", "Estado")); const pill = h("span", js[0], "pill " + ((js[0] === "TRABAJANDO" || js[0] === "CONECTADO") ? "p-work" : js[0] === "ESPERANDO APROBACIÓN" ? "p-wait" : "p-idle")); run.append(pill);
   b1.append(run, kvRow("Notas en la memoria", data ? data.brainNotes : 0));
   if (s) [["Entorno", s.environment], ["Modelo", s.provider && s.model ? `${s.provider}/${s.model}` : null], ["Rama", s.branch], ["Tarea actual", s.currentTask], ["Operación", s.currentOperation], ["Pasos del modelo", s.steps], ["Tokens", tokens], ["Coste estimado", cost], ["Tests ok / fallidos", `${s.testsPassed} / ${s.testsFailed}`]].forEach(([l, v]) => b1.append(kvRow(l, v)));
   else b1.append(h("div", SNAP ? "Vista previa del repositorio: no hay agente conectado." : "Jarvis todavía no ha escrito ningún estado. Arranca Claude Code con el servidor MCP «fidelyfood» o el runner: npm --prefix agent run run -- --help", "empty"));

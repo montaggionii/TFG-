@@ -45,15 +45,10 @@ Eventos que crean tareas: `npm --prefix agent run event -- issue <n>` (issue de 
 - **Criterios de aceptación:** Un cliente autenticado puede canjear una promocion CANJEAR de un restaurante: se valida saldo suficiente, se descuentan los puntos, se registra el MovimientoPuntos (tipo CANJEADOS) y el Canje; saldo insuficiente → 400; un cliente no puede canjear a nombre de otro (ownership por JWT); documentado en API.md.
 - **Tests necesarios:** Tests unitarios Mockito del servicio (saldo suficiente/insuficiente, ownership) + E2E del flujo de canje + prueba manual con call_api
 - **Resultado:** Resuelta 2026-10-04 (rutina en la nube). Investigación previa (agente de exploración) confirmó los dos hechos clave de la descripción: `PromocionService.canjearPromocion` (frontend) ya llama a `POST /api/canjes {usuarioId, promocionId}` desde al menos dos pantallas (`restaurante-detalle-page`, `recompensas.component.ts`, que a pesar de su nombre usa este servicio y no `RecompensaService`), y `Canje.java` ya existía pero como placeholder vacío sin anotaciones JPA ni DAO/Service/Controller.
-
   **Decisión de diseño que se desvía del literal de la descripción** ("saldo suficiente en ese restaurante"): existe una tabla/entidad `UsuarioRestaurantePuntos` que sugeriría saldo por restaurante, pero auditado el código real (`grep` de sus usos) solo la leen dos clases de depuración (`scratch/DataIntegrityChecker.java`, `scratch/PointsDebugger.java`) — ningún flujo de producción escribe en ella. Tanto `CompraService.registrarCompra` como `PromocionService.aplicarPromocion` y `RecompensaService.canjearRecompensa` (el único mecanismo de canje que ya funciona hoy) usan un saldo **global** en `Usuario.puntos`. Implementar el canje de promociones con saldo por restaurante habría sido inconsistente con el resto de la app y un cambio de arquitectura no pedido por esta tarea, así que `canjearPromocion` sigue el mismo patrón global ya usado por `canjearRecompensa`, solo que sobre una `Promocion` de tipo `CANJEAR` en vez de una `Recompensa`. Señalado aquí explícitamente para que el usuario lo revise: si el proyecto sí quiere puntos por restaurante, haría falta una tarea aparte que migre los tres flujos (compra/aplicar/canjear) a la vez, no solo este.
-
   **Backend**: `Canje` ahora es una entidad JPA real (`usuario`, `promocion`, `puntosGastados`, `fecha`) con `CanjeDAO`. `PromocionService.canjearPromocion(Long promocionId, String emailUsuario)` — nunca recibe un `usuarioId` del body, solo el email del JWT (como `RecompensaController.canjear`): busca el usuario por email, la promoción por id, exige `tipo == "CANJEAR"` (`BadRequestException` si no), exige saldo suficiente (`BadRequestException` si no), resta los puntos, registra `MovimientoPuntos` (`tipo=CANJEADOS`, con el restaurante de la promoción) y guarda el `Canje`. Nuevo `CanjeController` en `POST /api/canjes`, acepta `{usuarioId, promocionId}` (el campo `usuarioId` se documenta como ignorado, se mantiene solo para no romper la deserialización del payload que ya manda el frontend). `SecurityConfig` restringe `POST /api/canjes` a `ROLE_USER` (mismo criterio que `POST /api/recompensas/*/canjear`).
-
   **Frontend**: el mismatch `puntosNecesarios` vs `puntosOtorgados` (ya resuelto a mano con un comentario explicativo en `mis-promociones.component.ts`, pero no en `home.component.ts`, `recompensas.component.ts` ni `restaurante-detalle-page.component.ts`) se corrigió una sola vez en `PromocionService.getPromociones()`/`getPromocionesByRestaurante()`: ambos métodos ahora mapean la respuesta añadiendo `puntosNecesarios: p.puntosNecesarios ?? p.puntosOtorgados` antes de devolverla, así que ningún componente que lea `promo.puntosNecesarios` recibe `undefined`. No se tocó el mapeo manual ya existente en `mis-promociones.component.ts` (queda redundante pero inocuo).
-
   **Tests unitarios (Mockito, sin BD)**: 6 tests nuevos en `PromocionServiceTest` — usuario inexistente → `ResourceNotFoundException` sin tocar nada; promoción inexistente → igual; promoción de tipo `GANAR` (no `CANJEAR`) → `BadRequestException`; puntos insuficientes → `BadRequestException` sin restar ni guardar; canje con saldo exacto → resta los puntos correctos, registra el `MovimientoPuntos` y el `Canje` esperados; y un test de regresión de seguridad explícito que prueba que un `usuarioId` distinto del autenticado en el body nunca se usa (el saldo que baja es siempre el del email del JWT).
-
   **Verificación real en este entorno** (sin MySQL/backend/frontend real disponibles, igual que en sesiones anteriores de esta rutina):
   - `mvn compile` → éxito.
   - `mvn test -Dtest=PromocionServiceTest` → **19/19 passed** (13 ya existentes + 6 nuevos).
@@ -63,7 +58,6 @@ Eventos que crean tareas: `npm --prefix agent run event -- issue <n>` (issue de 
   - `npm audit --omit=dev` (frontend) → 0 vulnerabilidades (sin cambios).
   - `npx playwright test --list` → 19/19 tests de toda la suite se registran sin errores de sintaxis/tipos, incluidos los 2 nuevos de `canje-promocion.spec.ts`.
   - `npm --prefix agent run docs` → `API.md` regenerado automáticamente (71 → 72 endpoints), documenta `POST /api/canjes` con acceso `ROLE_USER`.
-
   **No se pudo verificar en este entorno** (requeriría backend/frontend/MySQL reales, no disponibles en este sandbox en la nube): la ejecución real de `canje-promocion.spec.ts` contra un backend vivo (gana puntos con una compra real, canjea, comprueba el saldo) — el spec está escrito y listado, pero no ejecutado; tampoco la prueba manual con `call_api` que pedían los criterios de aceptación. Queda para una sesión con esos servicios disponibles o para revisión humana local. Nota para quien lo ejecute: el primer test de `canje-promocion.spec.ts` usa un delta de puntos (no un valor absoluto) precisamente porque la cuenta E2E del cliente se comparte con el resto de la suite — si Playwright corre los ficheros en paralelo (no forzado a `workers: 1` en `playwright.config.ts`), dos specs podrían mutar el saldo de la misma cuenta a la vez; no se ha tocado `playwright.config.ts` para no ampliar el alcance de esta tarea, pero es una fragilidad preexistente de toda la suite, no solo de este spec nuevo.
 
 ### AGT-003 · Cobertura E2E de flujos sin spec: cliente (restaurantes/promociones) y panel admin
@@ -143,12 +137,12 @@ Eventos que crean tareas: `npm --prefix agent run event -- issue <n>` (issue de 
 - **Descripción:** El PR #43 (rama agent/fidelyfood-autonomous) lleva el arreglo del dashboard que cargaba datos dos veces (AGT-001) y el canje real de promociones CANJEAR (AGT-002), con el CI en verde. Falta la revision humana y la fusion a main; el agente no fusiona por si solo.
 - **Prioridad:** P1
 - **Área:** git
-- **Estado:** TODO
+- **Estado:** REVIEW
 - **Dependencias:** —
 - **Archivos afectados:** AGENT_TASKS.md
 - **Criterios de aceptación:** PR revisado por una persona, CI verde en el ultimo commit, fusionado a main sin conflictos; despues se comprueba en Vercel > Deployments que el despliegue nuevo esta en Production.
 - **Tests necesarios:** CI de GitHub Actions (backend con MySQL efimero + build del frontend).
-- **Resultado:** —
+- **Resultado:** PR #43 fusionado a main (squash, 9e4cf7a) el 2026-10-07 por orden del usuario: CI en verde (backend y frontend), sin conflictos, base = main actual. Pendiente de comprobar en Vercel > Deployments que el despliegue nuevo esta en Production, y de cierre humano.
 
 ### AGT-010 · Sincronizar .agent/tasks.md con AGENT_TASKS.md tras fusionar el PR #43
 - **ID:** AGT-010
