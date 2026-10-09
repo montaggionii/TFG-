@@ -102,7 +102,15 @@ $modal-bg: transparent;
 
   .main-content {
     display: grid;
-    grid-template-columns: 1fr;
+    // minmax(0, 1fr), no un 1fr a secas: un grid item sin min-width
+    // explícito usa min-width:auto (el ancho mínimo de su contenido). El
+    // ion-select de "Tipo de Promoción" no puede partir su texto
+    // (white-space:nowrap interno de Ionic para el valor seleccionado), así
+    // que con 1fr esa columna crecía para caber ese texto completo y
+    // desbordaba el modal a 320px, recortando todos los campos contra el
+    // borde derecho. Mismo criterio ya usado abajo para el breakpoint de
+    // escritorio.
+    grid-template-columns: minmax(0, 1fr);
     gap: 32px;
 
     @container (min-width: 700px) {

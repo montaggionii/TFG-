@@ -105,12 +105,26 @@ Eventos que crean tareas: `npm --prefix agent run event -- issue <n>` (issue de 
 - **Descripción:** A exactamente 320 px de viewport el modal de creacion de promocion recorta texto contra el borde derecho (detectado en una revision responsive; sin impacto a 375 px o mas).
 - **Prioridad:** P3
 - **Área:** frontend
-- **Estado:** TODO
+- **Estado:** REVIEW
 - **Dependencias:** —
-- **Archivos afectados:** frontend/src/app/features/restaurant-app/ (modal de crear promocion; localizar con search_code)
+- **Archivos afectados:** frontend/src/app/features/restaurant-app/mis-promociones/form-promocion/form-promocion.component.scss
 - **Criterios de aceptación:** A 320 px y 375 px el modal se ve completo, sin texto cortado ni scroll horizontal.
 - **Tests necesarios:** Verificacion visual real a 320/375 px (captura) + build de produccion
-- **Resultado:** —
+- **Resultado:** Corregida 2026-10-09 (rutina en la nube). Localizado el modal: `FormPromocionComponent` (`mis-promociones/form-promocion/`), el componente que `MisPromocionesComponent.openCreateModal()`/`editarPromo()` abre vía `ModalController`.
+
+  **Causa raíz encontrada y verificada visualmente** (no solo leída, reproducida de verdad — ver metodología abajo): `.main-content` (el grid que envuelve el formulario y la vista previa) usa `grid-template-columns: 1fr` para el caso base (una sola columna, móvil). Un *grid item* sin `min-width` explícito usa `min-width: auto`, que el navegador resuelve como el ancho mínimo de su contenido — y el `<ion-select>` de "Tipo de Promoción" no puede partir su texto (el valor seleccionado se renderiza con `white-space: nowrap` dentro del Shadow DOM de Ionic), así que con `1fr` a secas esa columna crecía para caber el texto completo de la opción ("🎁 Ganar puntos (el cliente acumula)") y todo el `.form-wrapper` se desbordaba — con el modal en `overflow: hidden` (regla global `ion-modal::part(content)`), ese desbordamiento no se ve como scroll, se ve como texto recortado contra el borde derecho, exactamente el síntoma descrito. A 375 px el `ion-select` entraba por poco (de ahí "sin impacto a 375 px o más"); a 320 px no.
+
+  La propia regla de abajo, para el breakpoint de escritorio (`@container (min-width: 700px) { grid-template-columns: minmax(0, 1fr) minmax(280px, 360px); }`), ya usaba `minmax(0, 1fr)` — el patrón correcto contra este mismo problema —, así que el caso base de una columna se había quedado sin ese mismo guard por descuido. Fix de una línea: `grid-template-columns: 1fr` → `minmax(0, 1fr)`, con un comentario explicando el porqué (no es obvio por qué `1fr` solo desbordaba a 320 px). Sin tocar nada más: ni el HTML, ni el resto del CSS, ni el breakpoint de escritorio (ya correcto).
+
+  **Metodología de verificación visual real** (sin backend/MySQL disponibles en este sandbox, igual que el resto de esta rutina, pero con verificación visual genuina, no solo lectura de código): se compiló el SCSS real del componente (`sass` CLI) y se montó en un arnés HTML que carga los Web Components reales de `@ionic/core` (los mismos que usa la app en producción — `ion-header`, `ion-item`, `ion-input`, `ion-select`, etc., con su Shadow DOM real), con el HTML del template reproducido fielmente y envuelto en un contenedor con el `max-width: min(94vw, 520px)` y `overflow: hidden` reales de `ion-modal::part(content)` (`global.scss`). Con Playwright a 320 px de viewport, un script midió automáticamente qué elementos desbordaban el límite derecho del modal — confirmó desbordamientos de 20-46 px en prácticamente todos los campos del formulario antes del fix, y 0 después, en ambos anchos (320 y 375 px) — y se guardaron capturas de pantalla reales antes/después. Se intentó primero abrir el modal real dentro de la app completa (`ng serve` + Playwright con login/API simulados vía `localStorage`/interceptación de red), pero la barra de pestañas (`<ion-tabs>` sin `<ion-router-outlet>` anidado, patrón ya existente en `restaurant-layout.component.html`) no resuelve bien una navegación inicial simulada fuera de un login real contra el backend (error `[ion-tabs] Tab with id: "undefined" does not exist`, aparentemente inofensivo en el flujo real de clics de un usuario/con backend real, pero no replicable aquí sin él) — no es un problema de este componente ni de este fix, así que se descartó esa vía y se usó el arnés de Web Components reales en su lugar, más fiable para aislar justo el CSS de este modal.
+
+  **Verificado en este entorno**:
+  - `npx ng build --configuration production` → éxito, mismos warnings preexistentes (deprecación de `@import` de Sass, presupuesto de tamaño de `restaurante-detalle-page`/`admin-clients`, `qrcode` no-ESM) — nada nuevo.
+  - `npx tsc --noEmit` → mismos errores preexistentes `TS4111` en `frontend/e2e/` (ya documentados en el cierre de AGT-003), ninguno nuevo; cero errores en el archivo tocado.
+  - `npx playwright test --list` → 22/22 tests en 10 ficheros, igual que antes del cambio.
+  - Verificación visual real a 320 px y 375 px con Web Components de Ionic reales (ver metodología arriba): 0 elementos desbordando el modal en ambos anchos tras el fix, frente a ~20 elementos desbordando 20-46 px a 320 px antes del fix. Capturas antes/después guardadas.
+
+  **No se pudo verificar en este entorno** (requeriría backend/frontend/MySQL reales): abrir el modal real dentro de la app completa vía un login real y clic en el botón "+" — el arnés de Web Components reales usado aquí reproduce el CSS/HTML exacto del componente pero no pasa por `ModalController`/Angular; queda para una sesión con esos servicios disponibles o para revisión humana local (abrir "Mis Promociones" → "+" con el navegador a 320 px de ancho).
 
 ### AGT-005 · Volver a subir las fotos de promociones y portadas tras desplegar el PR de imagenes en BD
 - **ID:** AGT-005
