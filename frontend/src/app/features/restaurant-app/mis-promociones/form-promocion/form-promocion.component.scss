@@ -517,6 +517,24 @@ $modal-bg: transparent;
   .saas-container .input-card .saas-item .input-icon {
     display: none;
   }
+
+  // El modal es min(94vw, 520px): a 320px de viewport quedan ~239px de ancho
+  // util para el texto del select, y a 375px ~287px — el texto mas largo
+  // ("Ganar puntos (el cliente acumula)", 283px) no entra en ninguno de los
+  // dos y Ionic lo recorta con ellipsis contra el borde derecho (verificado
+  // en un navegador real: con el fix de abajo pasa de 1 linea truncada a 2
+  // lineas completas, sin desbordar el contenedor). Se permite el salto de
+  // linea solo en este rango estrecho (≤390px); a partir de ahi el modal ya
+  // tiene sitio de sobra y el comportamiento no cambia.
+  ion-select.saas-input {
+    &::part(text) {
+      white-space: normal;
+      overflow: visible;
+      text-overflow: unset;
+    }
+
+    max-width: 100%;
+  }
 }
 
 @media (max-width: 991px) {
