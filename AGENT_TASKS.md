@@ -105,12 +105,27 @@ Eventos que crean tareas: `npm --prefix agent run event -- issue <n>` (issue de 
 - **Descripción:** A exactamente 320 px de viewport el modal de creacion de promocion recorta texto contra el borde derecho (detectado en una revision responsive; sin impacto a 375 px o mas).
 - **Prioridad:** P3
 - **Área:** frontend
-- **Estado:** TODO
+- **Estado:** REVIEW
 - **Dependencias:** —
-- **Archivos afectados:** frontend/src/app/features/restaurant-app/ (modal de crear promocion; localizar con search_code)
+- **Archivos afectados:** frontend/src/app/features/restaurant-app/mis-promociones/form-promocion/form-promocion.component.scss
 - **Criterios de aceptación:** A 320 px y 375 px el modal se ve completo, sin texto cortado ni scroll horizontal.
 - **Tests necesarios:** Verificacion visual real a 320/375 px (captura) + build de produccion
-- **Resultado:** —
+- **Resultado:** Corregida 2026-10-09 (rutina en la nube). **Modal real localizado**: la descripción original apuntaba a "el modal de creación de promoción" sin más detalle; confirmado con el único componente realmente enrutado (`mis-promociones.component.ts` → `modalCtrl.create({ component: FormPromocionComponent })`, enlazado desde el tab de restaurante y el dashboard) — `gestion-promos.component.ts` sigue en `restaurant.routes.ts` pero huérfano, sin ningún enlace que navegue a él, descartado.
+
+  **Causa raíz** (confirmada leyendo el CSS fuente de `@ionic/core` instalado, no solo el componente): el `ion-select` de "Tipo de Promoción" (`form-promocion.component.html:73-76`) hereda `white-space: nowrap` de su propio `:host` de Ionic, y su parte interna `.select-text` (expuesta oficialmente como `::part(text)`) añade `text-overflow: ellipsis; overflow: hidden`. El modal mide `min(94vw, 520px)` (`global.scss:441`), así que a 320px de viewport quedan ~239px útiles para ese texto (94vw≈300.8px menos el padding de `.saas-container`+`.input-card`, ambos en su suelo de `clamp(14px,4vw,24px)`≈14px hasta ~350px de viewport) y a 375px quedan ~287px.
+
+  **Corrección real de lo que la descripción original no detectaba**: verificado con un arnés de navegador real (Chromium + los Web Components reales de `@ionic/core`, ver más abajo) que el texto más largo de las dos opciones ("🎁 Ganar puntos (el cliente acumula)", 283px de ancho natural) **no cabía en ninguno de los dos anchos pedidos por los criterios de aceptación** — ni 239px (320px de viewport) ni 287px (375px) — así que el bug sí afectaba a 375px para esa opción, al contrario de lo que decía la descripción original (que probablemente solo probó la opción "Canjear", más corta). El fix cubre ambos casos.
+
+  **Fix** (`form-promocion.component.scss`, dentro del `@media (max-width: 390px)` ya existente en el archivo — ninguna otra resolución se ve afectada): `ion-select.saas-input::part(text) { white-space: normal; overflow: visible; text-overflow: unset; } ion-select.saas-input { max-width: 100%; }` — permite que el texto salte de línea en vez de recortarse con ellipsis, solo por debajo de 391px.
+
+  **Verificación real** (sin backend/MySQL en este sandbox, así que no se pudo abrir la pantalla completa de la app): en vez de solo leer el CSS, se montó un arnés HTML aislado en un navegador real (Chromium headless vía Playwright, `@ionic/core` cargado como Web Components reales con Shadow DOM, no una simulación) reproduciendo exactamente la estructura `ion-item > div.input-content > ion-select.saas-input` dentro de un contenedor `width: min(94vw, 520px)` idéntico al `ion-modal::part(content)` real, con el SCSS del componente compilado a CSS de verdad (`sass`, ya en `node_modules`) — antes y después del cambio, en los dos viewports pedidos (320/375) y dos de control fuera de rango (414/520, para confirmar cero regresión por encima de 390px):
+  - **Antes** (CSS sin el fix): 320px → `clippedByEllipsis: true` (scrollWidth 283px > clientWidth 222px); 375px → también `true` (283px > 270px) — confirma que el bug afectaba también a 375px para esta opción, no solo a 320px como decía la descripción.
+  - **Después** (CSS con el fix): 320px y 375px → `clippedByEllipsis: false`, `whiteSpace: normal`, el texto pasa a 2 líneas sin desbordar el contenedor (`overflowsPastWrapper: false` en ambos). Capturas de pantalla reales (no simuladas) confirman visualmente el antes/después: "Ganar puntos (el client…" recortado vs. "Ganar puntos (el cliente acumula)" completo en 2 líneas.
+  - **Sin regresión por encima de 390px**: 414px y 520px dan exactamente el mismo resultado (`whiteSpace: nowrap`, `textOverflow: ellipsis`, 1 línea) antes y después del cambio — el `@media (max-width: 390px)` no toca esos anchos.
+  - `ng build --configuration production` → limpio, mismos warnings preexistentes de siempre (Sass `@import`, presupuesto de 2 componentes, `qrcode` no-ESM) — nada nuevo de este cambio (solo toca una hoja de estilos).
+  - `npx tsc --noEmit` → mismos 17 errores `TS4111` preexistentes en specs de `e2e/` (ya documentados como preexistentes en el PR de la sesión anterior), ninguno nuevo; no se tocó ningún archivo `.ts`.
+
+  **No se pudo verificar en este entorno** (requeriría backend/frontend reales): abrir la pantalla real `/r/promociones` de la app, autenticado como restaurante, y pulsar "Crear" para ver el modal en contexto completo (con el resto de campos del formulario, no solo el `ion-select` aislado) — el arnés reproduce fielmente el CSS y el Shadow DOM reales de Ionic, pero no sustituye una verificación end-to-end completa de la pantalla. Queda para una sesión con esos servicios disponibles o para revisión humana local.
 
 ### AGT-005 · Volver a subir las fotos de promociones y portadas tras desplegar el PR de imagenes en BD
 - **ID:** AGT-005
