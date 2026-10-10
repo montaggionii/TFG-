@@ -14,7 +14,7 @@ const RESTAURANT_EMAIL = 'venezuelafood@gmail.com';
 
 test.describe('Cliente — detalle de restaurante', () => {
   test('carga el restaurante real y su sección de promociones', async ({ page, request }) => {
-    const seedPassword = process.env.APP_SEED_RESTAURANT_PASSWORD;
+    const seedPassword = process.env['APP_SEED_RESTAURANT_PASSWORD'];
     test.skip(!seedPassword, 'APP_SEED_RESTAURANT_PASSWORD no está definida en el entorno de este proceso.');
 
     const restaurantSession = await apiLoginRestaurant(request, RESTAURANT_EMAIL, seedPassword!);

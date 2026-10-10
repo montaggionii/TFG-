@@ -13,7 +13,7 @@ import { apiLoginRestaurant, authenticateAs } from './helpers/auth';
 const RESTAURANT_EMAIL = 'venezuelafood@gmail.com';
 
 async function loginAndGoto(page: any, request: any, path: string) {
-  const seedPassword = process.env.APP_SEED_RESTAURANT_PASSWORD;
+  const seedPassword = process.env['APP_SEED_RESTAURANT_PASSWORD'];
   test.skip(!seedPassword, 'APP_SEED_RESTAURANT_PASSWORD no está definida en el entorno de este proceso.');
   const session = await apiLoginRestaurant(request, RESTAURANT_EMAIL, seedPassword!);
   await authenticateAs(page, session, path);
@@ -33,7 +33,7 @@ test.describe('Restaurante', () => {
   // dos a cargarDatos(), así que la primera navegación a /r/dashboard
   // disparaba cada endpoint (stats incluido) por duplicado.
   test('dashboard pide /stats una sola vez en la primera entrada', async ({ page, request }) => {
-    const seedPassword = process.env.APP_SEED_RESTAURANT_PASSWORD;
+    const seedPassword = process.env['APP_SEED_RESTAURANT_PASSWORD'];
     test.skip(!seedPassword, 'APP_SEED_RESTAURANT_PASSWORD no está definida en el entorno de este proceso.');
 
     let statsRequests = 0;

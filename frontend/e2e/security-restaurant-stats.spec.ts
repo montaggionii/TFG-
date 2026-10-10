@@ -12,7 +12,7 @@ import { apiLoginClient, apiLoginRestaurant } from './helpers/auth';
 // mismo patrón `requireOwner` que ya protegía el resto de endpoints de
 // RestauranteController/UsuarioController.
 
-const API_URL = `${process.env.E2E_API_URL || 'http://localhost:8081'}/api`;
+const API_URL = `${process.env['E2E_API_URL'] || 'http://localhost:8081'}/api`;
 // Venezuela Food — cuenta sembrada real, ver .agent/discoveries.md. Su ID
 // numérico depende de qué otras cuentas existan ya en la base de datos
 // (p.ej. un "Restaurante E2E" previo la desplaza), así que no se
@@ -22,7 +22,7 @@ const RESTAURANT_EMAIL = 'venezuelafood@gmail.com';
 
 test.describe('Seguridad — stats de restaurante', () => {
   test('un cliente NO puede ver las stats de un restaurante ajeno', async ({ request }) => {
-    const seedPassword = process.env.APP_SEED_RESTAURANT_PASSWORD;
+    const seedPassword = process.env['APP_SEED_RESTAURANT_PASSWORD'];
     test.skip(!seedPassword, 'APP_SEED_RESTAURANT_PASSWORD no está definida en el entorno de este proceso.');
 
     const creds = JSON.parse(readFileSync(path.join(__dirname, '.e2e-client.json'), 'utf-8'));
@@ -36,7 +36,7 @@ test.describe('Seguridad — stats de restaurante', () => {
   });
 
   test('el propio restaurante SÍ puede ver sus stats', async ({ request }) => {
-    const seedPassword = process.env.APP_SEED_RESTAURANT_PASSWORD;
+    const seedPassword = process.env['APP_SEED_RESTAURANT_PASSWORD'];
     test.skip(!seedPassword, 'APP_SEED_RESTAURANT_PASSWORD no está definida en el entorno de este proceso.');
 
     const session = await apiLoginRestaurant(request, RESTAURANT_EMAIL, seedPassword!);

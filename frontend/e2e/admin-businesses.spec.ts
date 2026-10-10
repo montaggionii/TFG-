@@ -11,7 +11,7 @@ const ADMIN_EMAIL = 'admin@fidelyfood.local';
 
 test.describe('Admin — listado de negocios', () => {
   test('carga el listado real de negocios y sus métricas', async ({ page, request }) => {
-    const adminPassword = process.env.FIDELYFOOD_ADMIN_PASSWORD;
+    const adminPassword = process.env['FIDELYFOOD_ADMIN_PASSWORD'];
     test.skip(!adminPassword, 'FIDELYFOOD_ADMIN_PASSWORD no está definida en el entorno de este proceso.');
 
     const session = await apiLoginAdmin(request, ADMIN_EMAIL, adminPassword!);

@@ -9,7 +9,7 @@ import { test, expect } from '@playwright/test';
 // ve afectada (la clave del límite es IP+email, no solo IP), así que
 // esto no interfiere con el resto de la suite E2E.
 
-const API_URL = `${process.env.E2E_API_URL || 'http://localhost:8081'}/api/auth/login`;
+const API_URL = `${process.env['E2E_API_URL'] || 'http://localhost:8081'}/api/auth/login`;
 
 test('bloquea con 429 tras demasiados intentos fallidos contra la misma cuenta', async ({ request }) => {
   const dummyEmail = `ratelimit-e2e-${Date.now()}@fidelyfood.local`;
