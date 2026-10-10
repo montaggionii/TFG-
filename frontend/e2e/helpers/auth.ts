@@ -1,6 +1,6 @@
 import { APIRequestContext, Page } from '@playwright/test';
 
-const API_URL = `${process.env.E2E_API_URL || 'http://localhost:8081'}/api/auth`;
+const API_URL = `${process.env['E2E_API_URL'] || 'http://localhost:8081'}/api/auth`;
 
 export interface Session {
   token: string;
@@ -24,6 +24,18 @@ export async function apiLoginRestaurant(request: APIRequestContext, email: stri
   if (!res.ok()) throw new Error(`Login de restaurante falló (${res.status()}): ${await res.text()}`);
   const body = await res.json();
   return { token: body.token, role: 'ROLE_RESTAURANT', nombre: body.nombre || 'Restaurante E2E', userId: body.id };
+}
+
+// Login real de administrador (POST /api/auth/login-admin) — a diferencia
+// de cliente/restaurante no valida contra la BD sino contra
+// fidelyfood.admin.password (variable de entorno FIDELYFOOD_ADMIN_PASSWORD
+// en desarrollo/producción, ver AuthController). Sin esa variable en el
+// entorno de este proceso, cualquier test que la use debe saltarse.
+export async function apiLoginAdmin(request: APIRequestContext, email: string, password: string): Promise<Session> {
+  const res = await request.post(`${API_URL}/login-admin`, { data: { email, password } });
+  if (!res.ok()) throw new Error(`Login de administrador falló (${res.status()}): ${await res.text()}`);
+  const body = await res.json();
+  return { token: body.token, role: 'ROLE_ADMIN', nombre: body.nombre || 'Administrador E2E', userId: body.id };
 }
 
 // Inyecta la sesión real en localStorage con TODAS las claves que deja el
