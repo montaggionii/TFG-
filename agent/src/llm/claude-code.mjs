@@ -45,7 +45,7 @@ export function claudeCode({ model, env = process.env, spawnImpl = spawn }) {
       const systemFile = path.join(tmp, "system.md");
       fs.writeFileSync(systemFile, system);
       fs.writeFileSync(mcpConfigFile, JSON.stringify({ mcpServers: { fidelyfood: { command: process.execPath, args: [path.join(AGENT_ROOT, "src", "mcp", "server.mjs")], env: {
-        AGENT_ENV: ctx.profile.name, AGENT_NAME: "jarvis-claude-code", AGENT_PROVIDER: "claude-code", AGENT_MODEL: model || "", AGENT_RUN_ID: ctx.runId, AGENT_STATUS_FILE: childStatus,
+        AGENT_ENV: ctx.profile.name, AGENT_NAME: "jarvis-claude-code", ...(ctx.role ? { AGENT_ROLE: ctx.role.id } : {}), AGENT_PROVIDER: "claude-code", AGENT_MODEL: model || "", AGENT_RUN_ID: ctx.runId, AGENT_STATUS_FILE: childStatus,
         ...(env.AGENT_WORKDIR ? { AGENT_WORKDIR: env.AGENT_WORKDIR } : {}), ...(env.AGENT_DATA_DIR ? { AGENT_DATA_DIR: env.AGENT_DATA_DIR } : {}),
       } } } }));
 

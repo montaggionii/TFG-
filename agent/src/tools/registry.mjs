@@ -7,6 +7,7 @@ import { redact, truncate } from "../lib/redact.mjs";
 import { loadProfile } from "../lib/env.mjs";
 import { WORK_ROOT, REPO_ROOT } from "../lib/paths.mjs";
 import { policy } from "../lib/policy.mjs";
+import { loadRoster, getAgent, allowedToolsFor, checkWritePath } from "../lib/roster.mjs";
 
 export class ApprovalRequired extends Error {
   constructor(approvalId, reason, detail) {
@@ -24,8 +25,10 @@ export function defineTool(def) {
   tools.set(def.name, { risk: "read", ...def, inputSchema: def.inputSchema ?? z.object({}) });
 }
 
-export function createContext({ agent = "claude-code", model = null, runId = null, provider = null } = {}) {
-  return { agent, model, provider, runId: runId ?? `run_${Date.now().toString(36)}`, profile: loadProfile(), workRoot: WORK_ROOT, repoRoot: REPO_ROOT };
+export function createContext({ agent = "claude-code", model = null, runId = null, provider = null, role = null } = {}) {
+  const roleAgent = role ? getAgent(role) : null;
+  if (role && !roleAgent) throw new Error(`Rol desconocido: ${role}`);
+  return { role: roleAgent, allowedTools: roleAgent ? allowedToolsFor(roleAgent) : null, agent: roleAgent ? roleAgent.id : agent, model, provider, runId: runId ?? `run_${Date.now().toString(36)}`, profile: loadProfile(), workRoot: WORK_ROOT, repoRoot: REPO_ROOT };
 }
 
 // Aplica el veredicto de la politica. 'deny' siempre bloquea; 'approval'
@@ -56,6 +59,16 @@ export async function invokeTool(name, rawArgs, ctx) {
   const started = Date.now();
   if (!tool) return { ok: false, status: "error", error: `Herramienta desconocida: ${name}` };
 
+  if (ctx.allowedTools && !ctx.allowedTools.has(name)) {
+    const error = `El rol ${ctx.role.id} no tiene la herramienta ${name}.`;
+    auditToolCall({ runId: ctx.runId, agent: ctx.agent, model: ctx.model, env: ctx.profile.name, tool: name, decision: "deny", ok: false, error, durationMs: 0 });
+    return { ok: false, status: "denied", error };
+  }
+  if (ctx.role && (name === "write_file") && !checkWritePath(ctx.role, String(rawArgs?.path ?? ""))) {
+    const error = `El rol ${ctx.role.id} no puede escribir en ${rawArgs?.path}.`;
+    auditToolCall({ runId: ctx.runId, agent: ctx.agent, model: ctx.model, env: ctx.profile.name, tool: name, decision: "deny", ok: false, error, durationMs: 0 });
+    return { ok: false, status: "denied", error };
+  }
   const parsed = schemaWithApproval(tool).safeParse(rawArgs ?? {});
   if (!parsed.success) {
     const error = `Argumentos invalidos: ${parsed.error.issues.map((i) => `${i.path.join(".") || "(raiz)"}: ${i.message}`).join("; ")}`;

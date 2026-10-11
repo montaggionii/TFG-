@@ -9,11 +9,12 @@ Rama de trabajo actual: `consolidacion/fidelyfood-unificado` (desde `origin/main
 - `src/` Spring Boot (Java 17, Maven, MySQL) · `frontend/` Angular + Ionic + Capacitor
 - `agent/` Agent Layer ("Jarvis"): runner, servidor MCP `fidelyfood`, política, aprobaciones
 - `access-center/` Express, solo 127.0.0.1:5757: **Oficina de Agentes** (`/oficina.html`) y Harvey (`POST /api/jarvis/run`, Claude Code)
+- Equipo de 14 agentes: `agent/config/agents.json` (ver AGENT_LAYER.md); estado en `GET /api/team`, tiempo real en `/api/oficina/stream`
 - `skills/fidelyfood/`, `.claude/agents/`, `AGENT_TASKS.md`, `.agent/` (memoria/tareas)
 
 ## Arranque y verificación
 - Oficina web: `cd access-center && node server.js` → http://localhost:5757/oficina.html
-- Tests del Agent Layer: `cd agent && npm test` (100 deben pasar)
+- Tests del Agent Layer: `cd agent && npm test` (105 deben pasar)
 - Backend: `./mvnw test` y `./mvnw spring-boot:run`; frontend: `cd frontend && npm test`
 - Una tarea solo está hecha si se ejecutó y verificó; no marques DONE sin evidencia.
 

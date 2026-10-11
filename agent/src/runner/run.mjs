@@ -10,6 +10,7 @@ import { parseTasks } from "../lib/tasks.mjs";
 import { updateStatus, getStatus, emitEvent } from "../lib/status.mjs";
 import { DATA_DIR, WORK_ROOT, ensureDir } from "../lib/paths.mjs";
 import { redact } from "../lib/redact.mjs";
+import { rolePrompt } from "../lib/roster.mjs";
 
 export const EXIT = { completed: 0, error: 1, budget: 2, approval_required: 3, loop_detected: 4 };
 
@@ -64,7 +65,7 @@ export async function runAgent({ provider, ctx, taskId, prompt, budgets, approva
   const cfg = modelsConfig();
   const b = { ...cfg.budgets, ...(budgets ?? {}) };
   const specs = toolSpecs();
-  const system = buildSystemPrompt(ctx);
+  const system = buildSystemPrompt(ctx) + (ctx.role ? `\n\n${rolePrompt(ctx.role)}` : "");
   const started = Date.now();
   const stats = { steps: 0, tokens: { input: 0, output: 0 }, cost: null, toolCalls: {}, errors: 0 };
   const messages = [];
@@ -160,7 +161,7 @@ export async function runAgent({ provider, ctx, taskId, prompt, budgets, approva
 
   const runtimeSeconds = Math.round((Date.now() - started) / 1000);
   const status = getStatus();
-  const report = { runId: ctx.runId, finishedAt: new Date().toISOString(), stopReason: stop, task: taskId ?? null, provider: provider.name, model: provider.model, environment: ctx.profile.name, runtimeSeconds, steps: stats.steps, tokens: stats.tokens, cacheReadTokens: stats.cacheReadTokens ?? 0, estimatedCostUsd: stats.cost, billing: provider.delegated ? (auth === "none" ? "suscripcion-claude" : `credencial:${auth}`) : "api", toolCalls: stats.toolCalls, toolErrors: stats.errors, filesChanged: status.filesChanged, testsPassed: status.testsPassed, testsFailed: status.testsFailed, blocked, summary: redact(finalText).slice(0, 6000) };
+  const report = { runId: ctx.runId, agent: ctx.agent, finishedAt: new Date().toISOString(), stopReason: stop, task: taskId ?? null, provider: provider.name, model: provider.model, environment: ctx.profile.name, runtimeSeconds, steps: stats.steps, tokens: stats.tokens, cacheReadTokens: stats.cacheReadTokens ?? 0, estimatedCostUsd: stats.cost, billing: provider.delegated ? (auth === "none" ? "suscripcion-claude" : `credencial:${auth}`) : "api", toolCalls: stats.toolCalls, toolErrors: stats.errors, filesChanged: status.filesChanged, testsPassed: status.testsPassed, testsFailed: status.testsFailed, blocked, summary: redact(finalText).slice(0, 6000) };
   const runsDir = ensureDir(path.join(DATA_DIR, "runs"));
   fs.writeFileSync(path.join(runsDir, `${ctx.runId}.json`), JSON.stringify(report, null, 2));
   appendChangelog(ctx, report);

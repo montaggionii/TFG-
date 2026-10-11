@@ -165,3 +165,14 @@ Variables que reconoce el Agent Layer (solo nombres): `AGENT_ENV`, `AGENT_PROVID
 2. Montar el repositorio en `/workspace` (copia en rama `agent/*`), un volumen para `AGENT_DATA_DIR` y, aparte, el volumen con la clave de aprobación que solo monta quien aprueba.
 3. `AGENT_ENV=staging` con credenciales de staging; **nunca** poner credenciales de producción en el agente. `production` queda de solo lectura.
 4. Monitor y aprobaciones accesibles solo por túnel/VPN (el access-center escucha únicamente en `127.0.0.1`).
+
+## Equipo de desarrollo multiagente (oficina FidelyFood)
+
+Independiente de `ai-virtual-office` (cripto): sin agentes, memoria, tareas ni BD compartidos.
+
+- **Roster**: [`agent/config/agents.json`](agent/config/agents.json), 14 roles (Harvey + 13 especialistas). Un agente es un *rol* sobre el mismo motor (Harvey → `claude -p` + MCP `fidelyfood`): instrucciones, herramientas expuestas y `writePaths`. Se aplica en dos sitios: el servidor MCP solo registra las herramientas del rol y `invokeTool` deniega herramienta o ruta de escritura fuera del rol (`agent/src/lib/roster.mjs`, tests en `agent/test/roster.test.mjs`).
+- **Asignación**: `POST /api/jarvis/run {prompt, taskId?, agent?}`. Sin `agent`, se enruta por el área de la tarea (`GET /api/jarvis/route/:taskId`); si no hay especialista, lo atiende Harvey. Enrutado por reglas, no por LLM.
+- **Coordinación**: una sola ejecución simultánea (bloqueo global) → dos agentes nunca editan a la vez. Los agentes deciden `REVIEW`, nunca `DONE`; push, merge y despliegue siguen requiriendo aprobación humana.
+- **Estado real**: `GET /api/team`. `ejecutando`/`bloqueado` solo con una ejecución activa de ese agente; `en espera` = definido y ejecutable bajo demanda; `desconectado` = Claude Code no responde. Cada ejecución guarda `agent` en `agent/data/runs/*.json`.
+- **Tiempo real**: `GET /api/oficina/stream` (SSE): `snapshot` completo al conectar y ante cualquier cambio, y eventos `office` con `id` persistido en `agent/data/office-events.jsonl` (`run.started|finished|failed`, `approval.pending|resolved`). Reconexión automática con `Last-Event-ID`; `GET /api/events?after=N` para recuperar historial.
+- **Limitaciones**: los especialistas comparten el mismo motor y cupo de suscripción; no hay ejecución en paralelo; el panel "Equipo" muestra solo lo que ocurrió de verdad.

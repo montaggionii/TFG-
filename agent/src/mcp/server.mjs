@@ -6,11 +6,12 @@ import { updateStatus } from "../lib/status.mjs";
 
 // IMPORTANTE: en un servidor MCP stdio, stdout es el canal del protocolo.
 // Todo diagnostico va a stderr.
-const ctx = createContext({ agent: process.env.AGENT_NAME || "claude-code", model: process.env.AGENT_MODEL || null, provider: process.env.AGENT_PROVIDER || null, runId: process.env.AGENT_RUN_ID || null });
+const ctx = createContext({ agent: process.env.AGENT_NAME || "claude-code", model: process.env.AGENT_MODEL || null, provider: process.env.AGENT_PROVIDER || null, runId: process.env.AGENT_RUN_ID || null, role: process.env.AGENT_ROLE || null });
 
 const server = new McpServer({ name: "fidelyfood", version: "0.1.0" });
 
 for (const tool of tools.values()) {
+  if (ctx.allowedTools && !ctx.allowedTools.has(tool.name)) continue; // el rol solo ve sus herramientas
   server.registerTool(
     tool.name,
     {

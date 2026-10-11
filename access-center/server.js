@@ -9,6 +9,7 @@ import { registerApprovalRoutes } from "./approvals-routes.mjs";
 import { runAgent } from "../agent/src/runner/run.mjs";
 import { createProvider } from "../agent/src/llm/providers.mjs";
 import { createContext } from "../agent/src/tools/registry.mjs";
+import { loadRoster, getAgent, routeByArea } from "../agent/src/lib/roster.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_PATH = path.join(__dirname, "..");
@@ -439,6 +440,20 @@ app.post("/api/jarvis/run", async (req, res) => {
     });
   }
 
+  // Harvey asigna: agente explicito, o enrutado por el area de la tarea (reglas, no LLM).
+  const roster = loadRoster();
+  let agentId = typeof req.body?.agent === "string" && req.body.agent.trim() ? req.body.agent.trim() : null;
+  let routedBy = agentId ? "explicito" : null;
+  if (!agentId && taskId) {
+    const t = parseAgentTasks().find((x) => x.id === taskId);
+    const routed = t ? routeByArea(t.area, roster) : null;
+    if (routed) { agentId = routed.id; routedBy = `area de la tarea: ${t.area}`; }
+  }
+  agentId = agentId || "harvey";
+  if (!getAgent(agentId, roster)) {
+    return res.status(400).json({ ok: false, error: `Agente desconocido: ${agentId}`, agents: roster.agents.map((a) => a.id) });
+  }
+
   const runId = `run_${Date.now().toString(36)}`;
 
   activeHarveyRuns.set(runId, {
@@ -447,12 +462,16 @@ app.post("/api/jarvis/run", async (req, res) => {
     startedAt: new Date().toISOString(),
     taskId,
     prompt,
+    agent: agentId,
   });
+  publishEvent("run.started", { runId, agent: agentId, taskId, routedBy });
 
   res.status(202).json({
     ok: true,
     runId,
     status: "RUNNING",
+    agent: agentId,
+    routedBy,
     message: "Harvey ha recibido la orden.",
   });
 
@@ -464,6 +483,7 @@ app.post("/api/jarvis/run", async (req, res) => {
 
       const ctx = createContext({
         agent: "harvey",
+        role: agentId === "harvey" ? null : agentId,
         model: provider.model,
         provider: provider.name,
         runId,
@@ -482,8 +502,10 @@ app.post("/api/jarvis/run", async (req, res) => {
       });
 
       activeHarveyRuns.delete(runId);
+      publishEvent("run.finished", { runId, agent: agentId, taskId, stopReason: result?.stopReason ?? null, filesChanged: result?.filesChanged ?? [], testsPassed: result?.testsPassed ?? 0, testsFailed: result?.testsFailed ?? 0 });
     } catch (error) {
       activeHarveyRuns.delete(runId);
+      publishEvent("run.failed", { runId, agent: agentId, taskId, error: String(error?.message ?? error).slice(0, 300) });
     }
   })();
 });
@@ -559,7 +581,7 @@ function parseAgentTasks() {
   }
 }
 
-app.get("/api/oficina", (req, res) => {
+function buildOficina() {
   const today = new Date().toISOString().slice(0, 10);
   let audit = [];
   try {
@@ -587,7 +609,7 @@ app.get("/api/oficina", (req, res) => {
     brainNotes = 0;
   }
 
-  res.json({
+  return {
     today,
     activity,
     pendingApprovals,
@@ -595,9 +617,131 @@ app.get("/api/oficina", (req, res) => {
     brainNotes,
     agentStatus: readJsonSafe(path.join(AGENT_DATA, "status.json"), null),
     jarvis: buildJarvis(),
+    team: buildTeam(),
     readAt: new Date().toISOString(),
+  };
+}
+
+app.get("/api/oficina", (req, res) => res.json(buildOficina()));
+
+// --- Equipo de agentes: estado DERIVADO de ejecuciones reales -----------------
+// "ejecutando"/"bloqueado" solo si hay una ejecucion activa de ese agente; "en espera" = definido y
+// ejecutable bajo demanda; "desconectado" = el motor (Claude Code) no responde.
+let claudeCheck = { ok: null, at: 0, version: null };
+function checkClaude() {
+  if (Date.now() - claudeCheck.at < 60000) return;
+  claudeCheck.at = Date.now();
+  execFile(process.env.AGENT_CLAUDE_BIN || "claude", ["--version"], { timeout: 5000 }, (err, out) => {
+    claudeCheck = { ok: !err, at: Date.now(), version: err ? null : String(out).trim() };
   });
+}
+
+function lastRunsByAgent() {
+  const by = {};
+  try {
+    const dir = path.join(AGENT_DATA, "runs");
+    for (const f of fs.readdirSync(dir).filter((x) => x.endsWith(".json"))) {
+      const r = readJsonSafe(path.join(dir, f), null);
+      if (!r) continue;
+      const id = r.agent || "harvey";
+      if (!by[id] || String(r.finishedAt) > String(by[id].finishedAt)) by[id] = r;
+      by[id].count = (by[id].count || 0) + 1;
+    }
+  } catch { /* sin ejecuciones aun */ }
+  return by;
+}
+
+function buildTeam() {
+  checkClaude();
+  const roster = loadRoster();
+  const runs = lastRunsByAgent();
+  const status = readJsonSafe(path.join(AGENT_DATA, "status.json"), null);
+  const active = [...activeHarveyRuns.values()];
+  return {
+    engine: { name: "Claude Code", connected: claudeCheck.ok, version: claudeCheck.version },
+    singleRunLock: true,
+    agents: roster.agents.map((a) => {
+      const act = active.find((r) => r.agent === a.id);
+      const last = runs[a.id] || null;
+      let state = claudeCheck.ok === false ? "desconectado" : "en espera";
+      if (act) state = status?.runId === act.runId && status?.agentStatus === "BLOCKED_ON_APPROVAL" ? "bloqueado" : "ejecutando";
+      return {
+        id: a.id, name: a.name, department: a.department, mode: a.mode, areas: a.areas,
+        tools: a.extraTools.length, writePaths: a.writePaths,
+        state,
+        currentRun: act ? { runId: act.runId, taskId: act.taskId, startedAt: act.startedAt } : null,
+        lastRun: last ? { runId: last.runId, finishedAt: last.finishedAt, stopReason: last.stopReason, task: last.task, filesChanged: last.filesChanged?.length ?? 0, testsPassed: last.testsPassed, testsFailed: last.testsFailed } : null,
+        runsTotal: last?.count ?? 0,
+      };
+    }),
+  };
+}
+
+app.get("/api/team", (req, res) => res.json(buildTeam()));
+
+// Que agente atenderia una tarea (sin ejecutarla).
+app.get("/api/jarvis/route/:taskId", (req, res) => {
+  const t = parseAgentTasks().find((x) => x.id === req.params.taskId);
+  if (!t) return res.status(404).json({ ok: false, error: "Tarea no encontrada" });
+  const a = routeByArea(t.area);
+  res.json({ ok: true, taskId: t.id, area: t.area, agent: a ? a.id : "harvey", rule: a ? "area de la tarea" : "sin especialista para el area: lo atiende Harvey" });
 });
+
+// --- Eventos en tiempo real (SSE) --------------------------------------------
+// Bus persistente (agent/data/office-events.jsonl): id monotono, tipo, ts, datos ya saneados.
+// El cliente recupera lo perdido con Last-Event-ID; ademas recibe un snapshot completo al conectar y
+// cuando el estado cambia, asi nunca depende de haber visto todos los eventos.
+const EVENTS_FILE = path.join(AGENT_DATA, "office-events.jsonl");
+const sseClients = new Set();
+let eventSeq = 0;
+try { eventSeq = fs.readFileSync(EVENTS_FILE, "utf8").split("\n").filter(Boolean).length; } catch { eventSeq = 0; }
+
+function publishEvent(type, data = {}) {
+  const ev = { id: ++eventSeq, type, ts: new Date().toISOString(), data };
+  try { fs.mkdirSync(AGENT_DATA, { recursive: true }); fs.appendFileSync(EVENTS_FILE, JSON.stringify(ev) + "\n"); } catch { /* no bloquear por el log */ }
+  for (const c of sseClients) c.write(`id: ${ev.id}\nevent: office\ndata: ${JSON.stringify(ev)}\n\n`);
+  return ev;
+}
+
+function eventsAfter(afterId, limit = 200) {
+  try {
+    return fs.readFileSync(EVENTS_FILE, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)).filter((e) => e.id > afterId).slice(-limit);
+  } catch { return []; }
+}
+
+app.get("/api/events", (req, res) => res.json({ events: eventsAfter(parseInt(req.query.after, 10) || 0, Math.min(parseInt(req.query.limit, 10) || 100, 500)) }));
+
+app.get("/api/oficina/stream", (req, res) => {
+  res.set({ "Content-Type": "text/event-stream", "Cache-Control": "no-cache, no-transform", Connection: "keep-alive" });
+  res.flushHeaders();
+  res.write("retry: 2000\n\n");
+  const last = parseInt(req.get("Last-Event-ID") || req.query.after, 10);
+  for (const ev of eventsAfter(Number.isFinite(last) ? last : eventSeq - 30, 200)) res.write(`id: ${ev.id}\nevent: office\ndata: ${JSON.stringify(ev)}\n\n`);
+  res.write(`event: snapshot\ndata: ${JSON.stringify(buildOficina())}\n\n`);
+  sseClients.add(res);
+  req.on("close", () => sseClients.delete(res));
+});
+
+// Un unico vigilante: detecta cambios reales de estado (aprobaciones, status del agente, git) y los difunde.
+let lastDigest = "";
+let lastPending = new Set();
+let lastHead = "";
+setInterval(() => {
+  if (!sseClients.size) return;
+  try {
+    const snap = buildOficina();
+    const pend = new Set(snap.pendingApprovals.map((x) => x.id));
+    for (const x of snap.pendingApprovals) if (!lastPending.has(x.id)) publishEvent("approval.pending", { id: x.id, tool: x.tool, reason: String(x.reason ?? "").slice(0, 200) });
+    for (const id of lastPending) if (!pend.has(id)) publishEvent("approval.resolved", { id });
+    lastPending = pend;
+    const { readAt, ...stable } = snap;
+    const digest = JSON.stringify(stable);
+    if (digest !== lastDigest) {
+      lastDigest = digest;
+      for (const c of sseClients) c.write(`event: snapshot\ndata: ${JSON.stringify(snap)}\n\n`);
+    } else for (const c of sseClients) c.write(": ping\n\n");
+  } catch (e) { /* un tick fallido no tumba el servidor */ }
+}, 1500);
 
 app.get("/api/accounts", async (req, res) => {
   try {
