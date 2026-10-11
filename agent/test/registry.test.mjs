@@ -88,6 +88,36 @@ test("aprobacion humana de extremo a extremo con run_command", async () => {
   void args;
 });
 
+test("approval_required incluye `tool` con el nombre de la herramienta invocada y conserva el resto del payload", async () => {
+  const r = await call("run_command", { command: "ls /opt" });
+  assert.equal(r.tool, "run_command");
+  assert.equal(r.ok, false);
+  assert.equal(r.status, "approval_required");
+  assert.match(r.approval_id, /^apr_[0-9a-f]{10}$/);
+  assert.equal(typeof r.reason, "string");
+  assert.ok(r.reason.length > 0);
+  assert.ok("detail" in r, "detail (motivo por el que la aprobacion previa no valio) se conserva");
+  assert.ok(r.how_to_approve.includes(r.approval_id), "las instrucciones nombran el approval_id");
+  assert.deepEqual(Object.keys(r).sort(), ["approval_id", "detail", "how_to_approve", "ok", "reason", "status", "tool"]);
+
+  // El nombre es el de cada herramienta, no un valor fijo.
+  const db = await call("execute_database_statement", { sql: "DELETE FROM usuarios", reason: "limpieza de prueba de tests", backup_confirmed: true });
+  assert.equal(db.status, "approval_required");
+  assert.equal(db.tool, "execute_database_statement");
+
+  // La solicitud persistida corresponde a la misma herramienta.
+  assert.equal(A.listRequests().find((x) => x.id === r.approval_id).tool, "run_command");
+});
+
+test("los resultados denied y ok no llevan campos de aprobacion (comportamiento previo)", async () => {
+  const denied = await call("run_command", { command: "sudo ls" });
+  assert.equal(denied.status, "denied");
+  assert.ok(!("tool" in denied) && !("approval_id" in denied));
+  const ok = await call("run_command", { command: "git status --short" });
+  assert.equal(ok.ok, true);
+  assert.ok(!("tool" in ok) && !("approval_id" in ok));
+});
+
 test("comandos peligrosos no se ejecutan", async () => {
   assert.equal((await call("run_command", { command: "git push origin main" })).status, "approval_required");
   assert.equal((await call("run_command", { command: "sudo ls" })).status, "denied");

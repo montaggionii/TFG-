@@ -32,10 +32,6 @@ export const restaurantRoutes: Routes = [
         loadComponent: () => import('./mis-promociones/mis-promociones.component').then(m => m.MisPromocionesComponent)
       },
       {
-        path: 'gestion-promos',
-        loadComponent: () => import('./gestion-promos/gestion-promos.component').then(m => m.GestionPromosComponent)
-      },
-      {
         path: 'actividad',
         loadComponent: () => import('./activity-history/activity-history.component').then(m => m.ActivityHistoryComponent)
       },

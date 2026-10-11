@@ -7,7 +7,7 @@ import path from 'path';
 // falsos: el cliente se crea de verdad vía la API pública de registro
 // (ver global-setup.ts); el restaurante usa una cuenta sembrada real
 // (contraseña desde APP_SEED_RESTAURANT_PASSWORD, nunca hardcodeada);
-// el admin usa el valor por defecto ya público en AuthController.java.
+// el admin usa FIDELYFOOD_ADMIN_PASSWORD (el backend ya no tiene valor por defecto).
 
 async function fillLogin(page: import('@playwright/test').Page, email: string, password: string) {
   await page.locator('ion-input[formcontrolname="email"] input').fill(email);
@@ -15,14 +15,18 @@ async function fillLogin(page: import('@playwright/test').Page, email: string, p
 }
 
 test('login ADMIN redirige a /admin/dashboard', async ({ page }) => {
+  // El backend ya no tiene contraseña de admin por defecto: se usa la misma
+  // variable que el backend y, sin ella, el test se omite.
+  const adminPassword = process.env['FIDELYFOOD_ADMIN_PASSWORD'];
+  test.skip(!adminPassword, 'FIDELYFOOD_ADMIN_PASSWORD no está definida en el entorno de este proceso.');
   await page.goto('/admin/login');
-  await fillLogin(page, 'admin@fidelyfood.local', 'admin123');
+  await fillLogin(page, 'admin@fidelyfood.local', adminPassword!);
   await page.locator('button[type="submit"], ion-button[type="submit"]').first().click();
   await expect(page).toHaveURL(/\/admin\/dashboard/, { timeout: 10000 });
 });
 
 test('login RESTAURANTE redirige a /r/dashboard', async ({ page }) => {
-  const seedPassword = process.env.APP_SEED_RESTAURANT_PASSWORD;
+  const seedPassword = process.env['APP_SEED_RESTAURANT_PASSWORD'];
   test.skip(!seedPassword, 'APP_SEED_RESTAURANT_PASSWORD no está definida en el entorno de este proceso.');
 
   await page.goto('/login');

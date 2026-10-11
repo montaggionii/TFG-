@@ -3,7 +3,8 @@ import path from "node:path";
 import http from "node:http";
 import { DATA_DIR, ensureDir } from "./paths.mjs";
 
-const FILE = () => path.join(ensureDir(DATA_DIR), "status.json");
+// AGENT_STATUS_FILE lo usa el servidor MCP lanzado por Claude Code desde el runner, para no pisar status.json.
+const FILE = () => (process.env.AGENT_STATUS_FILE ? path.resolve(process.env.AGENT_STATUS_FILE) : path.join(ensureDir(DATA_DIR), "status.json"));
 
 const state = {
   agentStatus: "IDLE",
