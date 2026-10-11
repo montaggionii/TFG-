@@ -1,0 +1,1094 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>Oficina de Agentes</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  /* Layout: mapa 3D central; al elegir un departamento se abren el resumen (izquierda) y las tareas (derecha). */
+  :root { color-scheme:dark; --bg:#14151f; --panel:#262838; --panel2:#1d1f2d; --line:#3b3e55; --ink:#eceaf3; --muted:#9a9db5; --gold:#e3b84a; --ok:#6fd49a; --bad:#f2788a; --info:#7cb2ff; --serif:Georgia, "Times New Roman", serif; --sans:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  * { box-sizing:border-box; }
+  html, body { height:100%; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:13px/1.4 var(--sans); display:flex; flex-direction:column; overflow:hidden; }
+  header { display:flex; align-items:center; gap:10px 14px; padding:10px 16px; border-bottom:1px solid var(--line); background:var(--panel2); flex-wrap:wrap; }
+  h1 { margin:0; font:700 19px var(--serif); letter-spacing:.3px; }
+  h1 small { font:600 12px var(--serif); color:var(--muted); margin-left:6px; }
+  .tag { font-size:10.5px; letter-spacing:1px; text-transform:uppercase; font-weight:700; color:var(--muted); }
+  .dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--muted); margin-right:6px; }
+  .dot.on { background:var(--ok); box-shadow:0 0 8px var(--ok); }
+  .badge { border:1px solid var(--gold); color:var(--gold); border-radius:999px; padding:2px 10px; font-weight:700; font-size:12px; }
+  .spacer { margin-left:auto; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  a { color:var(--info); text-decoration:none; }
+  button { font:inherit; color:var(--ink); background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:5px 11px; cursor:pointer; }
+  button:hover { border-color:var(--muted); }
+  button:focus-visible, a:focus-visible { outline:2px solid var(--info); outline-offset:2px; }
+  #stage { flex:1; min-height:0; display:grid; grid-template-columns:0 1fr 0; transition:grid-template-columns .35s; }
+  #stage.sel { grid-template-columns:310px 1fr 340px; }
+  aside { background:var(--panel2); overflow:auto; min-width:0; }
+  #left { border-right:1px solid var(--line); } #right { border-left:1px solid var(--line); }
+  #stage:not(.sel) aside { visibility:hidden; }
+  .box { margin:12px; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 14px; }
+  .box h2 { margin:0 0 6px; font:700 17px var(--serif); }
+  .box h3 { margin:0 0 8px; font:700 15px var(--serif); }
+  .kv { display:flex; justify-content:space-between; gap:12px; padding:3px 0; border-top:1px solid var(--line); }
+  .kv:first-of-type { border-top:0; } .kv b { font-variant-numeric:tabular-nums; text-align:right; min-width:0; overflow-wrap:anywhere; }
+  .trio { display:flex; justify-content:space-between; gap:6px; margin-top:8px; padding-top:8px; border-top:1px solid var(--line); font-size:11px; letter-spacing:.5px; text-transform:uppercase; color:var(--muted); }
+  .trio b { color:var(--ink); font-size:14px; margin-left:4px; }
+  .wait { margin-top:8px; text-align:center; border:1px solid var(--gold); color:var(--gold); border-radius:8px; padding:5px; font-weight:700; letter-spacing:.5px; }
+  .mono { font:11.5px ui-monospace, Menlo, monospace; color:var(--muted); }
+  .row { display:flex; gap:8px; align-items:center; padding:5px 0; border-top:1px solid var(--line); }
+  .row:first-child { border-top:0; }
+  .row .grow { flex:1; min-width:0; overflow-wrap:anywhere; }
+  .pill { font-size:10.5px; font-weight:700; letter-spacing:.5px; border:1px solid currentColor; border-radius:999px; padding:1px 8px; white-space:nowrap; }
+  .p-work { color:var(--ok); } .p-idle { color:var(--muted); } .p-wait { color:var(--gold); }
+  .s-TODO { color:var(--muted); } .s-IN_PROGRESS { color:var(--info); } .s-REVIEW { color:var(--gold); } .s-DONE { color:var(--ok); } .s-BLOCKED { color:var(--bad); }
+  .tabs { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0; }
+  .tabs button { font-size:11px; padding:3px 9px; border-radius:999px; }
+  .tabs button.on { background:var(--ink); color:#15161f; border-color:var(--ink); font-weight:700; }
+  .empty { color:var(--muted); padding:6px 0; }
+  .task { border-top:1px solid var(--line); padding:6px 0; }
+  .task:first-of-type { border-top:0; }
+  .task .head { display:flex; gap:8px; align-items:center; cursor:pointer; border-radius:6px; }
+  .task .head:focus-visible { outline:2px solid var(--info); outline-offset:2px; }
+  .task .more { margin:6px 0 2px; display:grid; gap:6px; font-size:12px; }
+  .task .more dt { font-size:10px; letter-spacing:.8px; text-transform:uppercase; color:var(--muted); font-weight:700; }
+  .task .more dd { margin:0; overflow-wrap:anywhere; }
+  .cmd { display:flex; gap:8px; align-items:center; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:6px 8px; }
+  .cmd code { flex:1; min-width:0; font:11px ui-monospace, Menlo, monospace; overflow-wrap:anywhere; user-select:all; }
+  .cmd button { padding:2px 8px; font-size:11px; }
+  .link-row { cursor:pointer; } .link-row:hover { background:rgba(255,255,255,.04); }
+  #view { position:relative; min-width:0; min-height:0; overflow:hidden; background:radial-gradient(900px 600px at 50% 45%, #25283d, var(--bg)); }
+  #gl { position:absolute; inset:0; width:100%; height:100%; display:block; cursor:grab; touch-action:none; }
+  #gl.drag { cursor:grabbing; }
+  #overlay { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+  .card { position:absolute; left:0; top:0; width:158px; background:rgba(42,44,64,.94); border:1px solid #4a4d6a; border-radius:12px; padding:8px 10px; pointer-events:auto; cursor:pointer; will-change:transform; }
+  .card:hover { border-color:var(--ink); }
+  .card .t { display:flex; align-items:center; gap:6px; font-size:10.5px; font-weight:800; letter-spacing:.6px; text-transform:uppercase; }
+  .card .t i { width:9px; height:9px; border-radius:50%; flex:none; }
+  .card .n { text-align:center; font:700 26px var(--serif); line-height:1.1; margin-top:2px; }
+  .card .l { text-align:center; font-size:8.5px; letter-spacing:1px; color:var(--muted); text-transform:uppercase; }
+  .card .s { display:flex; justify-content:space-between; font-size:9.5px; color:var(--muted); margin-top:5px; }
+  .card .s b { color:var(--ink); }
+  .card .w { margin-top:6px; text-align:center; border:1px solid var(--gold); color:var(--gold); border-radius:7px; font-size:9px; font-weight:800; letter-spacing:.4px; padding:2px; }
+  .lbl { position:absolute; left:0; top:0; padding:1px 8px; font-size:10px; font-weight:700; background:#3c3f58; border:1px solid #575a78; border-radius:999px; white-space:nowrap; will-change:transform; }
+  .lbl.hot { border-color:var(--ok); } .lbl.warn { border-color:var(--gold); color:var(--gold); }
+  .brain { position:absolute; left:0; top:0; padding:3px 11px; font-size:10.5px; font-weight:800; letter-spacing:.5px; background:#2f3148; border:1px solid #575a78; border-radius:999px; white-space:nowrap; will-change:transform; }
+  #zoom { position:absolute; right:14px; bottom:14px; display:flex; flex-direction:column; gap:8px; z-index:2; }
+  #zoom button { width:38px; height:38px; border-radius:50%; font-size:18px; padding:0; }
+  #notice { position:absolute; left:50%; bottom:14px; transform:translateX(-50%); background:rgba(38,40,56,.95); border:1px solid var(--line); border-radius:10px; padding:8px 14px; color:var(--muted); max-width:min(640px,calc(100% - 100px)); text-align:center; z-index:2; }
+  #sim { border-color:var(--gold); color:var(--gold); }
+  #sim.on { background:var(--gold); color:#15161f; font-weight:700; }
+  button.badge { background:transparent; color:var(--gold); cursor:pointer; }
+  button.badge:hover { background:rgba(227,184,74,.12); }
+  .appr-modal { position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:16px; background:rgba(8,9,15,.72); }
+  .appr-modal[hidden] { display:none; }
+  .appr-modal-backdrop { position:absolute; inset:0; }
+  .appr-modal-box { position:relative; width:min(760px,100%); max-height:min(88vh,760px); display:flex; flex-direction:column; background:var(--panel2); border:1px solid var(--line); border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,.55); }
+  .appr-modal-head { display:flex; align-items:center; gap:10px; padding:12px 16px; border-bottom:1px solid var(--line); }
+  .appr-modal-head h2 { margin:0; flex:1; font:700 18px var(--serif); }
+  .appr-list { overflow:auto; padding:10px 14px; display:grid; gap:10px; }
+  .appr-msg { margin:10px 14px 0; padding:7px 10px; border:1px solid var(--line); border-radius:8px; }
+  .appr-msg.ok { color:var(--ok); border-color:var(--ok); }
+  .appr-msg.bad { color:var(--bad); border-color:var(--bad); }
+  .appr-lock { margin:10px 14px 0; padding:10px 12px; border:1px solid var(--line); border-radius:10px; display:grid; gap:8px; }
+  .appr-lock[hidden] { display:none; }
+  .appr-lock p { margin:0; color:var(--muted); }
+  .appr-lock form { display:flex; gap:8px; flex-wrap:wrap; }
+  .appr-lock input { flex:1; min-width:200px; font-family:var(--mono, monospace); letter-spacing:1px; }
+  .appr-card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:10px 12px; }
+  .appr-card-head { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .appr-card-head .grow { min-width:0; overflow-wrap:anywhere; }
+  .appr-fields { margin:8px 0; display:grid; gap:5px; }
+  .appr-fields dt { color:var(--muted); font-size:10px; letter-spacing:.8px; text-transform:uppercase; font-weight:700; }
+  .appr-fields dd { margin:0; overflow-wrap:anywhere; }
+  .appr-actions { display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap; }
+  .appr-actions .ok { border-color:var(--ok); color:var(--ok); }
+  .appr-actions .no { border-color:var(--bad); color:var(--bad); }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  .r-approval { color:var(--bad); } .r-exec { color:var(--gold); } .r-write { color:var(--info); } .r-read { color:var(--ok); } .r-desconocido { color:var(--muted); }
+
+  /* --- Harvey Command Center -------------------------------- */
+  #harveyBar {
+    position:absolute;
+    left:50%;
+    bottom:18px;
+    transform:translateX(-50%);
+    width:min(760px,calc(100% - 40px));
+    z-index:5;
+    background:rgba(29,31,45,.96);
+    border:1px solid #4a4d6a;
+    border-radius:14px;
+    box-shadow:0 18px 50px rgba(0,0,0,.45);
+    backdrop-filter:blur(12px);
+    padding:10px;
+  }
+
+  #harveyHead {
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin:0 4px 7px;
+  }
+
+  #harveyHead strong {
+    font:700 13px var(--serif);
+    letter-spacing:.4px;
+  }
+
+  #harveyState {
+    font-size:9px;
+    letter-spacing:.8px;
+    text-transform:uppercase;
+    font-weight:800;
+    color:var(--muted);
+  }
+
+  #harveyState.work {
+    color:var(--ok);
+  }
+
+  #harveyState.wait {
+    color:var(--gold);
+  }
+
+  #harveyState.bad {
+    color:var(--bad);
+  }
+
+  #harveyRun {
+    margin-left:auto;
+    color:var(--muted);
+    font:9.5px ui-monospace,Menlo,monospace;
+  }
+
+  #harveyResponse {
+    display:none;
+    margin:0 2px 8px;
+    padding:8px 10px;
+    max-height:130px;
+    overflow:auto;
+    background:rgba(20,21,31,.85);
+    border:1px solid var(--line);
+    border-radius:9px;
+    white-space:pre-wrap;
+    overflow-wrap:anywhere;
+    font-size:11.5px;
+    line-height:1.45;
+  }
+
+  #harveyResponse.show {
+    display:block;
+  }
+
+  #harveyForm {
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+
+  #harveyInput {
+    flex:1;
+    min-width:0;
+    color:var(--ink);
+    background:#14151f;
+    border:1px solid var(--line);
+    border-radius:9px;
+    padding:9px 11px;
+    font:12px var(--sans);
+    outline:none;
+  }
+
+  #harveyInput:focus {
+    border-color:var(--info);
+    box-shadow:0 0 0 2px rgba(124,178,255,.12);
+  }
+
+  #harveyInput::placeholder {
+    color:#777b96;
+  }
+
+  #harveySend {
+    flex:none;
+    border-color:var(--ok);
+    color:var(--ok);
+    font-weight:700;
+    padding:8px 14px;
+  }
+
+  #harveySend:hover {
+    background:rgba(111,212,154,.1);
+  }
+
+  #harveySend:disabled {
+    opacity:.45;
+  }
+
+  #harveyHint {
+    margin:6px 4px 0;
+    color:var(--muted);
+    font-size:9.5px;
+  }
+
+  @media (max-width:900px) {
+    #stage, #stage.sel { grid-template-columns:1fr; grid-template-rows:1fr; }
+    #stage.sel { grid-template-rows:46% 27% 27%; }
+    #stage.sel #view { order:-1; } #stage.sel #left { border-right:0; border-top:1px solid var(--line); } #stage.sel #right { border-left:0; border-top:1px solid var(--line); }
+    #stage:not(.sel) aside { display:none; }
+    #stage.sel { grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Oficina de Agentes<small>· FidelyFood</small></h1>
+  <span class="tag"><span id="dot" class="dot"></span><span id="agent">Sin datos</span></span>
+  <button type="button" class="badge" id="appr" aria-haspopup="dialog" aria-controls="apprModal" title="Abrir Centro de Aprobaciones" hidden></button>
+  <div class="spacer">
+    <button id="sim" hidden>Simular actividad</button>
+    <button id="home" hidden>← Resumen</button>
+    <a id="jarvis" href="/jarvis.html">Jarvis</a>
+    <span class="tag" id="clock"></span>
+  </div>
+</header>
+
+<div id="harveyBar">
+  <div id="harveyHead">
+    <span class="dot on"></span>
+    <strong>HARVEY</strong>
+    <span id="harveyState">EN ESPERA</span>
+    <span id="harveyRun"></span>
+  </div>
+
+  <div id="harveyResponse"></div>
+
+  <form id="harveyForm">
+    <input
+      id="harveyInput"
+      type="text"
+      autocomplete="off"
+      maxlength="12000"
+      placeholder="Escribe una orden para Harvey…"
+      aria-label="Orden para Harvey"
+    >
+    <button id="harveySend" type="submit">Ejecutar</button>
+  </form>
+
+  <div id="harveyHint">
+    Harvey usa la suscripción de Claude y el Agent Layer. Las operaciones que requieran aprobación seguirán pasando por el Centro de Aprobaciones.
+  </div>
+</div>
+
+<div id="stage">
+  <aside id="left"></aside>
+  <div id="view">
+    <canvas id="gl" role="img" aria-label="Oficina 3D con los departamentos del agente"></canvas>
+    <div id="overlay"></div>
+    <div id="zoom"><button id="zin" aria-label="Acercar">+</button><button id="zout" aria-label="Alejar">−</button><button id="zhome" aria-label="Vista general">⌂</button></div>
+    <div id="notice" hidden></div>
+  </div>
+  <aside id="right"></aside>
+</div>
+
+<div id="apprModal" class="appr-modal" hidden aria-labelledby="apprTitle">
+  <div class="appr-modal-backdrop" data-appr-close></div>
+  <section class="appr-modal-box" role="dialog" aria-modal="true" aria-labelledby="apprTitle" tabindex="-1">
+    <div class="appr-modal-head">
+      <h2 id="apprTitle">Centro de Aprobaciones</h2>
+      <button type="button" id="apprClose" aria-label="Cerrar">✕</button>
+    </div>
+    <div id="apprMsg" class="appr-msg" role="status" aria-live="polite" hidden></div>
+    <div id="apprLock" class="appr-lock" hidden>
+      <p>Para aprobar o rechazar desde aquí hay que desbloquear el Centro con un código de un solo uso. Genéralo tú, en una terminal: <code>npm --prefix agent run approve -- ui-code</code></p>
+      <form id="apprUnlockForm" autocomplete="off">
+        <input id="apprCode" type="password" inputmode="text" autocomplete="off" spellcheck="false" maxlength="32" placeholder="XXXX-XXXX-XXXX-XXXX" aria-label="Código de desbloqueo" required>
+        <button type="submit" id="apprUnlock">Desbloquear</button>
+      </form>
+    </div>
+    <div id="apprSession" class="appr-lock" hidden>
+      <p>Sesión de aprobaciones desbloqueada. <button type="button" id="apprRelock">Bloquear</button></p>
+    </div>
+    <div id="apprList" class="appr-list"></div>
+  </section>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const h = (tag, text, cls) => { const e = document.createElement(tag); if (text !== undefined) e.textContent = text; if (cls) e.className = cls; return e; };
+const ACTIVE_MS = 90_000;
+// Instantánea del repositorio (solo la inyecta la vista previa publicada); en el access-center real es undefined.
+const SNAP = window.OFICINA_SNAPSHOT || null;
+
+// Departamentos = áreas de trabajo del Agent Layer. Cada puesto agrupa herramientas reales
+// (MCP de FidelyFood y herramientas nativas de Claude Code).
+const DEPTS = [
+  { id: "codigo", name: "Código", color: 0x3f9f86, desc: "Lee, busca y modifica el repositorio y ejecuta comandos de la lista segura.", areas: ["frontend", "architecture", "documentation"],
+    desks: [
+      { name: "Lectura", tools: ["read_file", "list_files", "Read", "Glob"] },
+      { name: "Búsqueda", tools: ["search_code", "Grep"] },
+      { name: "Edición", tools: ["write_file", "Edit", "Write", "NotebookEdit"] },
+      { name: "Proyecto", tools: ["inspect_project", "inspect_architecture"] },
+      { name: "Terminal", tools: ["run_command", "Bash"] } ] },
+  { id: "backend", name: "Backend y API", color: 0x4f7fd0, desc: "Inspecciona y llama a la API, revisa logs, levanta servicios y compila con Maven.", areas: ["backend", "api", "security", "deployment"],
+    desks: [
+      { name: "API", tools: ["inspect_api", "inspect_endpoint", "call_api"] },
+      { name: "Logs", tools: ["inspect_logs"] },
+      { name: "Servicios", tools: ["service_status", "service_start", "service_stop"] },
+      { name: "Maven", tools: ["run_maven"] } ] },
+  { id: "datos", name: "Base de datos", color: 0x7b57c9, desc: "Esquema y consultas de solo lectura; las escrituras exigen aprobación humana.", areas: ["database"],
+    desks: [
+      { name: "Esquema", tools: ["inspect_database", "inspect_schema"] },
+      { name: "Consultas", tools: ["query_database", "explain_query"] },
+      { name: "Escrituras", tools: ["execute_database_statement"] } ] },
+  { id: "qa", name: "QA y tests", color: 0xc15a6e, desc: "Tests unitarios, de integración y E2E con Playwright.", areas: ["testing", "qa"],
+    desks: [
+      { name: "Unitarios", tools: ["run_unit_tests", "run_integration_tests"] },
+      { name: "E2E", tools: ["run_playwright"] },
+      { name: "npm", tools: ["run_npm"] } ] },
+  { id: "git", name: "Git y GitHub", color: 0xb2a04a, desc: "Estado, ramas y commits en ramas agent/*; consulta de GitHub.", areas: ["git"],
+    desks: [
+      { name: "Estado y diff", tools: ["git_status", "git_diff", "git_log", "git_branch"] },
+      { name: "Ramas y commits", tools: ["git_create_branch", "git_commit"] },
+      { name: "GitHub", tools: ["github_*"] } ] },
+  { id: "memoria", name: "Tareas y memoria", color: 0xd08a3a, desc: "Cola de tareas AGT-xxx, memoria persistente y skills por área.", areas: ["memory", "agent"],
+    desks: [
+      { name: "Tareas", tools: ["task_*", "TaskCreate", "TaskUpdate", "TaskList"] },
+      { name: "Memoria", tools: ["memory_*"] },
+      { name: "Skills", tools: ["list_skills", "read_skill", "Skill"] },
+      { name: "Estado", tools: ["agent_status"] } ] },
+];
+const STATES = [["ALL", "Todas"], ["IN_PROGRESS", "En curso"], ["TODO", "Pendientes"], ["REVIEW", "En revisión"], ["BLOCKED", "Bloqueadas"], ["DONE", "Hechas"]];
+const STATE_LABEL = { TODO: "PENDIENTE", IN_PROGRESS: "EN CURSO", REVIEW: "REVISIÓN", DONE: "HECHA", BLOCKED: "BLOQUEADA" };
+const hex = (n) => "#" + n.toString(16).padStart(6, "0");
+
+const normTool = (t) => String(t || "").replace(/^mcp__fidelyfood__/, "");
+const toolMatches = (tool, p) => (p.endsWith("*") ? tool.startsWith(p.slice(0, -1)) : tool === p);
+const deptOfTool = (tool) => DEPTS.findIndex((d) => d.desks.some((k) => k.tools.some((p) => toolMatches(tool, p))));
+const deptOfArea = (area) => { const i = DEPTS.findIndex((d) => d.areas.includes(area)); return i < 0 ? 0 : i; };
+
+let data = null, selected = null, filter = "ALL", stats = [];
+
+function ago(ts) {
+  const s = Math.max(0, Math.round((Date.now() - new Date(ts)) / 1000));
+  if (s < 60) return `hace ${s} s`;
+  if (s < 3600) return `hace ${Math.round(s / 60)} min`;
+  return `hace ${Math.round(s / 3600)} h`;
+}
+
+// Estadísticas derivadas SOLO de los datos recibidos.
+function compute() {
+  const now = Date.now();
+  const out = DEPTS.map((d) => ({ dept: d, calls: 0, active: 0, pending: 0, denied: 0, feed: [], tasks: [], desks: d.desks.map((k) => ({ ...k, calls: 0, last: 0, waiting: false, working: false })) }));
+  const today = data ? data.today : "";
+  for (const a of data ? data.activity : []) {
+    const tool = normTool(a.tool); const di = deptOfTool(tool); if (di < 0) continue;
+    const st = out[di]; const t = new Date(a.ts).getTime();
+    const k = st.desks.find((x) => x.tools.some((p) => toolMatches(tool, p)));
+    st.feed.push({ ts: a.ts, tool, file: a.file, decision: a.decision });
+    if (String(a.ts).startsWith(today)) { st.calls++; k.calls++; }
+    if (a.decision === "deny") st.denied++;
+    if (t > k.last) k.last = t;
+  }
+  for (const p of data ? data.pendingApprovals : []) {
+    const tool = normTool(p.tool); const di = deptOfTool(tool); if (di < 0) continue;
+    out[di].pending++; const k = out[di].desks.find((x) => x.tools.some((q) => toolMatches(tool, q))); if (k) k.waiting = true;
+  }
+  for (const t of data ? data.tasks : []) out[deptOfArea(t.area)].tasks.push(t);
+  for (const st of out) { st.desks.forEach((k) => { k.working = now - k.last < ACTIVE_MS; if (k.working) st.active++; }); st.feed.sort((a, b) => String(b.ts).localeCompare(String(a.ts))); }
+  return out;
+}
+
+// --- Escena 3D ----------------------------------------------------------
+const canvas = $("gl"), overlay = $("overlay");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene(); scene.fog = new THREE.Fog(0x14151f, 60, 120);
+const camera = new THREE.PerspectiveCamera(28, 1, 1, 300);
+scene.add(new THREE.HemisphereLight(0xdfe3ff, 0x2a2a3a, 0.5));
+const sun = new THREE.DirectionalLight(0xffffff, 0.7); sun.position.set(-18, 34, 22); sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -34, right: 34, top: 34, bottom: -34, near: 1, far: 100 }); sun.shadow.bias = -0.0004;
+scene.add(sun);
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(260, 260), new THREE.MeshStandardMaterial({ color: 0x1b1c2a, roughness: 1 }));
+floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+
+const box = (w, hh, d, color, parent, x = 0, y = 0, z = 0, shadow = true) => {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, hh, d), new THREE.MeshStandardMaterial({ color, roughness: 0.85 }));
+  m.position.set(x, y, z); m.castShadow = shadow; m.receiveShadow = true; parent.add(m); return m;
+};
+
+const R = 15.5, PS = 9, PH = 0.7;
+const platforms = [], pickables = [], deskRefs = [];
+const warnTex = (() => { const c = document.createElement("canvas"); c.width = c.height = 128; const g = c.getContext("2d");
+  g.fillStyle = "#e3b84a"; g.beginPath(); g.moveTo(64, 8); g.lineTo(120, 116); g.lineTo(8, 116); g.closePath(); g.fill();
+  g.fillStyle = "#14151f"; g.fillRect(58, 44, 12, 40); g.fillRect(58, 92, 12, 12); return new THREE.CanvasTexture(c); })();
+
+function buildDesk(parent, color, lx, lz) {
+  const g = new THREE.Group(); g.position.set(lx, PH, lz); parent.add(g);
+  box(1.9, 0.09, 0.95, 0xd9c9a3, g, 0, 0.78, 0);
+  [[-0.85, -0.4], [0.85, -0.4], [-0.85, 0.4], [0.85, 0.4]].forEach(([x, z]) => box(0.08, 0.78, 0.08, 0x2b2c3c, g, x, 0.39, z));
+  box(0.9, 0.55, 0.06, 0x0f1019, g, 0, 1.3, -0.28);
+  box(0.12, 0.3, 0.1, 0x0f1019, g, 0, 0.98, -0.28);
+  const screenMat = new THREE.MeshBasicMaterial({ color: 0x2a2d44 });
+  const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.45), screenMat); screen.position.set(0, 1.3, -0.245); g.add(screen);
+  const chair = new THREE.Group(); chair.position.set(0, 0, 0.95); g.add(chair);
+  box(0.7, 0.08, 0.7, 0x4b4e63, chair, 0, 0.5, 0); box(0.7, 0.6, 0.08, 0x4b4e63, chair, 0, 0.88, 0.34); box(0.08, 0.5, 0.08, 0x2b2c3c, chair, 0, 0.25, 0);
+  const worker = new THREE.Group(); worker.position.set(0, 0, 0.85); g.add(worker);
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.3, 0.62, 16), new THREE.MeshStandardMaterial({ color: 0x7d8096, roughness: 0.8 })); body.position.y = 0.95; body.castShadow = true; worker.add(body);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.23, 20, 16), new THREE.MeshStandardMaterial({ color: 0x6a4331, roughness: 0.8 })); head.position.y = 1.5; head.castShadow = true; worker.add(head);
+  const arms = [-1, 1].map((s) => { const a = box(0.12, 0.12, 0.55, 0x5f6176, worker, s * 0.3, 1.02, -0.3); return a; });
+  const warn = new THREE.Sprite(new THREE.SpriteMaterial({ map: warnTex, transparent: true })); warn.scale.set(0.8, 0.8, 1); warn.position.set(0, 2.2, 0); warn.visible = false; g.add(warn);
+  return { group: g, screenMat, body, head, arms, warn, color, phase: Math.random() * 6 };
+}
+
+DEPTS.forEach((d, i) => {
+  const ang = (Math.PI * 2 * i) / DEPTS.length + Math.PI / 6;
+  const g = new THREE.Group(); g.position.set(Math.cos(ang) * R, 0, Math.sin(ang) * R); scene.add(g);
+  const base = box(PS, PH, PS, d.color, g, 0, PH / 2); base.userData.i = i; pickables.push(base);
+  box(PS + 0.5, 0.18, PS + 0.5, 0x0e0f17, g, 0, 0.09);
+  const n = d.desks.length, cols = Math.ceil(n / 2), rows = Math.ceil(n / cols);
+  deskRefs[i] = d.desks.map((k, idx) => buildDesk(g, d.color, ((idx % cols) - (cols - 1) / 2) * 2.9, (Math.floor(idx / cols) - (rows - 1) / 2) * 3.1 - (rows > 1 ? 0 : 0.2)));
+  platforms.push({ g, ang, pos: g.position.clone() });
+  // pasillo hacia el cerebro
+  const len = R - 2.6 - PS / 2 + 0.5; const mid = (R - 2.6 + PS / 2 - 0.5) / 2 + 0;
+  const c = box(len, 0.12, 1.1, 0x2a2c3d, scene, Math.cos(ang) * (2.4 + len / 2), 0.06, Math.sin(ang) * (2.4 + len / 2), false); c.rotation.y = -ang; c.castShadow = false;
+});
+
+// el cerebro
+const brain = new THREE.Group(); scene.add(brain);
+const brainBase = box(4.6, 0.5, 4.6, 0x464a5e, brain, 0, 0.25); brainBase.userData.i = "jarvis"; pickables.push(brainBase);
+const net = new THREE.Group(); net.position.y = 2.1; brain.add(net);
+const ico = new THREE.Mesh(new THREE.IcosahedronGeometry(1.25, 1), new THREE.MeshBasicMaterial({ color: 0xbfc3de, wireframe: true, transparent: true, opacity: 0.55 })); net.add(ico); ico.userData.i = "jarvis"; pickables.push(ico);
+const nodes = new THREE.Points(new THREE.IcosahedronGeometry(1.25, 1), new THREE.PointsMaterial({ color: 0xe9ebff, size: 0.12 })); net.add(nodes);
+brain.add(new THREE.PointLight(0xaab4ff, 0.6, 12).translateY(2.4));
+
+// paquetes de datos que viajan al departamento activo
+const packets = DEPTS.map((d, i) => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 10), new THREE.MeshBasicMaterial({ color: d.color })); m.visible = false; scene.add(m); return { m, t: Math.random() }; });
+
+// --- Cámara orbital ------------------------------------------------------
+const cam = { theta: 0.78, phi: 0.95, dist: 70, tx: 0, ty: 0, tz: 0 };
+const goal = { ...cam };
+const HOME = { theta: 0.78, phi: 0.95, dist: 70, tx: 0, ty: 0, tz: 0 };
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+function placeCamera() {
+  const sp = Math.sin(cam.phi);
+  camera.position.set(cam.tx + cam.dist * sp * Math.cos(cam.theta), cam.ty + cam.dist * Math.cos(cam.phi), cam.tz + cam.dist * sp * Math.sin(cam.theta));
+  camera.lookAt(cam.tx, cam.ty, cam.tz);
+}
+function resize() {
+  const r = $("view").getBoundingClientRect(); const w = Math.max(1, r.width), hh = Math.max(1, r.height);
+  renderer.setSize(w, hh, false); camera.aspect = w / hh;
+  // en pantallas estrechas se aleja la cámara para que quepa toda la oficina
+  HOME.dist = camera.aspect < 1.3 ? 70 * 1.3 / Math.max(0.5, camera.aspect) : 70; if (selected === null) goal.dist = HOME.dist;
+  camera.updateProjectionMatrix();
+}
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// --- Etiquetas HTML proyectadas -------------------------------------------
+const cards = DEPTS.map((d, i) => {
+  const c = h("div", undefined, "card"); c.setAttribute("role", "button"); c.tabIndex = 0;
+  const t = h("div", undefined, "t"); const dot = h("i"); dot.style.background = hex(d.color); t.append(dot, h("span", d.name));
+  const n = h("div", "0", "n"), l = h("div", "puestos activos", "l"), s = h("div", undefined, "s"), w = h("div", undefined, "w"); w.hidden = true;
+  c.append(t, n, l, s, w); overlay.append(c);
+  c.onclick = () => select(i); c.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(i); } };
+  return { c, n, s, w };
+});
+const lbls = deskRefs.map((arr, i) => arr.map((r, ki) => { const e = h("div", DEPTS[i].desks[ki].name, "lbl"); e.hidden = true; overlay.append(e); return e; }));
+const brainLbl = h("div", "JARVIS · SIN CONECTAR", "brain"); brainLbl.style.pointerEvents = "auto"; brainLbl.style.cursor = "pointer"; brainLbl.onclick = () => select("jarvis"); overlay.append(brainLbl);
+const JARVIS_STATE = { RUNNING: ["TRABAJANDO", 0x6fd49a, 2.2], CONNECTED: ["CONECTADO", 0x7cb2ff, 0.8], IDLE: ["EN ESPERA", 0xbfc3de, 0.8], BLOCKED_ON_APPROVAL: ["ESPERANDO APROBACIÓN", 0xe3b84a, 0.5], STOPPED: ["DETENIDO", 0xf2788a, 0.1] };
+const jarvisState = () => { const st = data && data.jarvis && data.jarvis.status ? data.jarvis.status.agentStatus : null; return JARVIS_STATE[st] || ["SIN CONECTAR", 0x6a6d82, 0.3]; };
+const v3 = new THREE.Vector3();
+function project(x, y, z, el, dx = 0, dy = 0) {
+  v3.set(x, y, z).project(camera);
+  const r = $("view").getBoundingClientRect();
+  const vis = v3.z < 1 && Math.abs(v3.x) < 1.15 && Math.abs(v3.y) < 1.15;
+  el.style.visibility = vis ? "visible" : "hidden";
+  el.style.transform = `translate(${(v3.x * 0.5 + 0.5) * r.width + dx}px, ${(-v3.y * 0.5 + 0.5) * r.height + dy}px) translate(-50%,-100%)`;
+}
+
+let lastT = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now; const time = now / 1000;
+  const k = reduce ? 1 : 1 - Math.pow(0.0012, dt);
+  for (const key of ["theta", "phi", "dist", "tx", "ty", "tz"]) cam[key] += (goal[key] - cam[key]) * k;
+  placeCamera();
+  { const js = jarvisState(); ico.material.color.setHex(js[1]); nodes.material.color.setHex(js[1]); net.rotation.y += dt * js[2]; } net.position.y = 2.1 + Math.sin(time) * 0.08;
+  stats.forEach((st, i) => st.desks.forEach((kd, ki) => {
+    const r = deskRefs[i][ki]; const w = kd.working;
+    r.screenMat.color.setHex(w ? DEPTS[i].color : 0x2a2d44);
+    if (w) { const p = 0.7 + 0.3 * Math.sin(time * 5 + r.phase); r.screenMat.color.multiplyScalar(p + 0.2); }
+    if (!reduce && w) {
+      r.body.position.y = 0.95 + Math.sin(time * 9 + r.phase) * 0.012; r.head.position.y = 1.5 + Math.sin(time * 9 + r.phase) * 0.018;
+      r.arms[0].rotation.x = Math.sin(time * 14 + r.phase) * 0.18; r.arms[1].rotation.x = Math.sin(time * 14 + r.phase + 2) * 0.18;
+    } else { r.body.position.y = 0.95; r.head.position.y = 1.5; r.arms.forEach((a) => (a.rotation.x = 0)); }
+    r.warn.visible = kd.waiting; if (kd.waiting) r.warn.position.y = 2.2 + Math.sin(time * 3) * 0.08;
+  }));
+  packets.forEach((p, i) => {
+    const on = stats[i] && stats[i].active > 0 && !reduce; p.m.visible = on; if (!on) return;
+    p.t = (p.t + dt * 0.35) % 1; const pl = platforms[i]; const d0 = 2.4, d1 = R - PS / 2;
+    const d = d0 + (d1 - d0) * p.t; p.m.position.set(Math.cos(pl.ang) * d, 0.5, Math.sin(pl.ang) * d);
+  });
+  // HTML overlays
+  platforms.forEach((pl, i) => {
+    const showCard = selected === null; cards[i].c.style.display = showCard ? "" : "none";
+    if (showCard) { const out = 1 + (PS / 2 + 2.6) / R; project(pl.pos.x * out, 2.6, pl.pos.z * out, cards[i].c, 0, 0); }
+    deskRefs[i].forEach((r, ki) => { const l = lbls[i][ki]; const show = selected === i; l.hidden = !show; if (show) { r.group.getWorldPosition(v3); project(v3.x, 2.55, v3.z, l); } });
+  });
+  project(0, 4.6, 0, brainLbl);
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+
+// --- Interacción -------------------------------------------------------------
+const ray = new THREE.Raycaster(), mouse = new THREE.Vector2();
+let drag = null;
+canvas.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, y: e.clientY, moved: false }; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener("pointermove", (e) => {
+  if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+  if (Math.abs(dx) + Math.abs(dy) > 4) { drag.moved = true; canvas.classList.add("drag"); }
+  if (drag.moved) { goal.theta -= dx * 0.006; goal.phi = clamp(goal.phi - dy * 0.005, 0.35, 1.35); cam.theta = goal.theta; cam.phi = goal.phi; drag.x = e.clientX; drag.y = e.clientY; }
+});
+canvas.addEventListener("pointerup", (e) => {
+  canvas.classList.remove("drag"); const was = drag; drag = null; if (!was || was.moved) return;
+  const r = canvas.getBoundingClientRect(); mouse.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  ray.setFromCamera(mouse, camera); const hit = ray.intersectObjects(pickables)[0]; if (hit) select(hit.object.userData.i);
+});
+canvas.addEventListener("wheel", (e) => { e.preventDefault(); goal.dist = clamp(goal.dist * (e.deltaY < 0 ? 0.9 : 1.1), 9, 110); }, { passive: false });
+$("zin").onclick = () => (goal.dist = clamp(goal.dist * 0.78, 9, 110)); $("zout").onclick = () => (goal.dist = clamp(goal.dist * 1.28, 9, 110));
+$("home").onclick = () => select(null); $("zhome").onclick = () => select(null);
+function select(i) {
+  selected = i; filter = "ALL"; $("stage").classList.toggle("sel", i !== null); $("home").hidden = i === null;
+  if (i === null) Object.assign(goal, HOME);
+  else if (i === "jarvis") Object.assign(goal, { tx: 0, ty: 1.5, tz: 0, dist: camera.aspect < 1 ? 26 : 17, phi: 0.95 });
+  else { const p = platforms[i].pos; Object.assign(goal, { tx: p.x, ty: 0.8, tz: p.z, dist: camera.aspect < 1 ? 36 : 26, phi: 0.95 }); }
+  setTimeout(resize, 400); refresh();
+}
+
+// --- Datos y paneles ---------------------------------------------------------
+function refresh() {
+  stats = compute();
+  stats.forEach((st, i) => {
+    const c = cards[i]; const cnt = (s) => st.tasks.filter((t) => t.state === s).length;
+    c.n.textContent = st.active;
+    c.s.replaceChildren(); const a = h("span", "Llamadas hoy"); a.append(" ", h("b", String(st.calls))); const b = h("span", "Tareas"); b.append(" ", h("b", String(st.tasks.length)));
+    c.s.append(a, b);
+    c.w.hidden = !st.pending; c.w.textContent = `⚠ ${st.pending} esperando aprobación`;
+    c.c.title = `${DEPTS[i].name}: en curso ${cnt("IN_PROGRESS")}, pendientes ${cnt("TODO")}, hechas ${cnt("DONE") + cnt("REVIEW")}`;
+    st.desks.forEach((kd, ki) => { lbls[i][ki].classList.toggle("hot", kd.working); lbls[i][ki].classList.toggle("warn", kd.waiting); });
+  });
+  brainLbl.textContent = `JARVIS · ${jarvisState()[0]} · ${data ? data.brainNotes : 0} NOTAS`;
+  const a = data && data.jarvis && data.jarvis.status ? data.jarvis.status.agentStatus : null;
+  $("agent").textContent = SNAP ? "Vista previa del repositorio" : "Jarvis · " + jarvisState()[0].toLowerCase();
+  $("dot").className = "dot" + (a && a !== "STOPPED" ? " on" : "");
+  const pend = data ? data.pendingApprovals.length : 0;
+  $("appr").hidden = !pend; $("appr").textContent = `⚠ ${pend} esperando aprobación`;
+  $("appr").onclick = () => openApprovals();
+  const nt = $("notice"); nt.hidden = !data || data.activity.length > 0 || selected !== null;
+  nt.textContent = SNAP ? "Instantánea del repositorio: las tareas y las notas son reales; no hay agente conectado. Pulsa «Simular actividad» para ver las animaciones." : "Sin actividad todavía. Los puestos se encienden cuando el agente usa herramientas (Claude Code con los hooks o el runner del Agent Layer).";
+  renderPanels();
+}
+
+const openTasks = new Set();
+function copyBtn(text) {
+  const b = h("button", "Copiar");
+  b.onclick = async (e) => { e.stopPropagation(); try { await navigator.clipboard.writeText(text); b.textContent = "Copiado"; } catch { b.textContent = "Selecciónalo"; } setTimeout(() => (b.textContent = "Copiar"), 1500); };
+  return b;
+}
+function cmdBox(text) { const c = h("div", undefined, "cmd"); c.append(h("code", text), copyBtn(text)); return c; }
+const kvRow = (l, v) => { const r = h("div", undefined, "kv"); r.append(h("span", l), h("b", v === null || v === undefined || v === "" ? "—" : String(v))); return r; };
+
+function taskRow(t) {
+  const wrap = h("div", undefined, "task"); const isOpen = openTasks.has(t.id);
+  const head = h("div", undefined, "head"); head.tabIndex = 0; head.setAttribute("role", "button"); head.setAttribute("aria-expanded", String(isOpen));
+  const g = h("div", undefined, "grow"); g.append(h("div", t.title), h("div", `${t.id} · ${t.priority || "—"}`, "mono"));
+  head.append(g, h("span", STATE_LABEL[t.state] || t.state, "pill s-" + t.state));
+  const toggle = () => { if (openTasks.has(t.id)) openTasks.delete(t.id); else openTasks.add(t.id); renderPanels(); };
+  head.onclick = toggle; head.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } };
+  wrap.append(head);
+  if (isOpen) {
+    const dl = h("dl", undefined, "more");
+    [["Descripción", t.description], ["Archivos", t.files], ["Dependencias", t.deps], ["Criterios de aceptación", t.acceptance], ["Pruebas", t.tests], ["Resultado", t.result]].forEach(([k, v]) => { if (!v) return; const d = h("div"); d.append(h("dt", k), h("dd", v)); dl.append(d); });
+    if (t.state === "TODO" || t.state === "IN_PROGRESS" || t.state === "BLOCKED") {
+      const d = h("div"); d.append(h("dt", "Que lo haga Jarvis (en tu terminal)"), cmdBox(`npm --prefix agent run run -- --task ${t.id}`), h("dd", "Jarvis deja la tarea en REVISIÓN y solo una persona la cierra.", "mono")); dl.append(d);
+    }
+    wrap.append(dl);
+  }
+  return wrap;
+}
+
+function renderJarvis() {
+  const left = $("left"), right = $("right");
+  const jv = data && data.jarvis ? data.jarvis : null; const s = jv && jv.status ? jv.status : null; const js = jarvisState();
+  const b1 = h("div", undefined, "box"); b1.append(h("h2", "Jarvis"), h("div", "Cerebro de la oficina: el Agent Layer decide, usa las herramientas con política de permisos y recuerda en .agent/memory.jsonl.", "mono"));
+  const cost = s && s.estimatedCostUsd != null ? "$" + s.estimatedCostUsd.toFixed(4) : null;
+  const tokens = s && s.tokens && (s.tokens.input || s.tokens.output) ? `${s.tokens.input} entrada / ${s.tokens.output} salida` : null;
+  const run = h("div", undefined, "kv"); run.append(h("span", "Estado")); const pill = h("span", js[0], "pill " + ((js[0] === "TRABAJANDO" || js[0] === "CONECTADO") ? "p-work" : js[0] === "ESPERANDO APROBACIÓN" ? "p-wait" : "p-idle")); run.append(pill);
+  b1.append(run, kvRow("Notas en la memoria", data ? data.brainNotes : 0));
+  if (s) [["Entorno", s.environment], ["Modelo", s.provider && s.model ? `${s.provider}/${s.model}` : null], ["Rama", s.branch], ["Tarea actual", s.currentTask], ["Operación", s.currentOperation], ["Pasos del modelo", s.steps], ["Tokens", tokens], ["Coste estimado", cost], ["Tests ok / fallidos", `${s.testsPassed} / ${s.testsFailed}`]].forEach(([l, v]) => b1.append(kvRow(l, v)));
+  else b1.append(h("div", SNAP ? "Vista previa del repositorio: no hay agente conectado." : "Jarvis todavía no ha escrito ningún estado. Arranca Claude Code con el servidor MCP «fidelyfood» o el runner: npm --prefix agent run run -- --help", "empty"));
+  left.append(b1);
+
+  const pend = jv ? jv.pendingApprovals : [];
+  const b2 = h("div", undefined, "box"); b2.append(h("h3", "Aprobaciones pendientes"));
+  const openApprovalCenter = h("button", pend.length ? `Abrir Centro de Aprobaciones (${pend.length})` : "Abrir Centro de Aprobaciones");
+  openApprovalCenter.type = "button"; openApprovalCenter.onclick = () => openApprovals();
+  b2.append(openApprovalCenter);
+  if (!pend.length) b2.append(h("div", "Nada esperando a una persona.", "empty"));
+  pend.forEach((a) => { const d = h("div", undefined, "task"); d.append(h("div", `${a.tool} · ${a.reason || ""}`), h("div", a.summary || "", "mono"), cmdBox(`npm --prefix agent run approve -- approve ${a.id}`)); b2.append(d); });
+  left.append(b2);
+
+  const b3 = h("div", undefined, "box"); b3.append(h("h3", "Hoy"));
+  const t = jv ? jv.today : null;
+  b3.append(kvRow("Llamadas a herramientas", t ? t.calls : 0));
+  const dec = t ? Object.entries(t.byDecision).map(([k, v]) => `${k}: ${v}`).join(" · ") : ""; b3.append(kvRow("Por decisión", dec));
+  const top = t ? t.topTools.map(([k, v]) => `${k} ×${v}`).join(" · ") : ""; b3.append(kvRow("Más usadas", top));
+  left.append(b3);
+
+  const b4 = h("div", undefined, "box"); b4.append(h("h3", "Cola de tareas por departamento"));
+  stats.forEach((st, i) => {
+    const open = st.tasks.filter((x) => x.state !== "DONE").length;
+    const r = h("div", undefined, "row link-row"); r.tabIndex = 0; r.setAttribute("role", "button");
+    const dot = h("span"); dot.style.cssText = `width:9px;height:9px;border-radius:50%;background:${hex(st.dept.color)};flex:none`;
+    const g = h("div", st.dept.name, "grow"); r.append(dot, g, h("span", `${open} abiertas`, "pill p-idle"));
+    r.onclick = () => select(i); r.onkeydown = (e) => { if (e.key === "Enter") select(i); }; b4.append(r);
+  });
+  right.append(b4);
+
+  const b5 = h("div", undefined, "box"); b5.append(h("h3", "Ejecuciones recientes"));
+  const runs = jv ? jv.recentRuns : [];
+  if (!runs.length) b5.append(h("div", "Aún no hay ejecuciones del runner.", "empty"));
+  runs.forEach((r) => { const row = h("div", undefined, "row"); const g = h("div", undefined, "grow");
+    g.append(h("div", `${r.task || "—"} · ${r.stopReason || ""}`), h("div", [ago(r.finishedAt), r.model, `${r.steps} pasos`, `${r.testsPassed} ok / ${r.testsFailed} fallos`].join(" · "), "mono")); row.append(g); b5.append(row); });
+  right.append(b5);
+
+  const b6 = h("div", undefined, "box"); b6.append(h("h3", "Últimas llamadas"));
+  const calls = data ? data.activity.slice().sort((a, b) => String(b.ts).localeCompare(String(a.ts))) : [];
+  if (!calls.length) b6.append(h("div", "Sin llamadas registradas.", "empty"));
+  calls.slice(0, 10).forEach((c) => { const row = h("div", undefined, "row"); const g = h("div", undefined, "grow"); g.append(h("div", c.tool), h("div", [ago(c.ts), c.decision, c.file ? c.file.split("/").slice(-2).join("/") : null].filter(Boolean).join(" · "), "mono")); row.append(g); b6.append(row); });
+  right.append(b6);
+}
+
+function renderPanels() {
+  const left = $("left"), right = $("right"); left.replaceChildren(); right.replaceChildren();
+  if (selected === null) return;
+  if (selected === "jarvis") return renderJarvis();
+  const st = stats[selected], d = st.dept; const cnt = (s) => st.tasks.filter((t) => t.state === s).length;
+  const b1 = h("div", undefined, "box"); b1.append(h("h2", d.name), h("div", d.desc, "mono"));
+  b1.append(kvRow("Puestos activos", `${st.active} / ${st.desks.length}`), kvRow("Llamadas hoy", st.calls), kvRow("Denegadas", st.denied));
+  const trio = h("div", undefined, "trio");
+  [["En curso", cnt("IN_PROGRESS")], ["Pendientes", cnt("TODO")], ["Hechas", cnt("DONE") + cnt("REVIEW")]].forEach(([l, v]) => { const sp = h("span", l); sp.append(h("b", String(v))); trio.append(sp); });
+  b1.append(trio);
+  if (st.pending) {
+    const w = h("button", `⚠ ${st.pending} esperando aprobación humana`, "wait");
+    w.type = "button"; w.onclick = () => openApprovals();
+    w.title = "Abrir el Centro de Aprobaciones";
+    b1.append(w);
+  }
+  left.append(b1);
+
+  const b2 = h("div", undefined, "box"); b2.append(h("h3", "Puestos"));
+  st.desks.forEach((kd) => {
+    const r = h("div", undefined, "row"); const g = h("div", undefined, "grow"); g.append(h("div", kd.name), h("div", kd.tools.join(", "), "mono"));
+    const state = kd.waiting ? ["APROBACIÓN", "p-wait"] : kd.working ? ["TRABAJANDO", "p-work"] : ["LIBRE", "p-idle"];
+    r.append(g, h("span", state[0], "pill " + state[1])); b2.append(r);
+  });
+  left.append(b2);
+
+  const b3 = h("div", undefined, "box"); b3.append(h("h3", "Actividad reciente"));
+  if (!st.feed.length) b3.append(h("div", "Sin actividad registrada de este departamento.", "empty"));
+  st.feed.slice(0, 12).forEach((f) => {
+    const r = h("div", undefined, "row"); const g = h("div", undefined, "grow");
+    g.append(h("div", f.tool), h("div", [ago(f.ts), f.file ? f.file.split("/").slice(-2).join("/") : null, f.decision].filter(Boolean).join(" · "), "mono")); r.append(g); b3.append(r);
+  });
+  left.append(b3);
+
+  const b4 = h("div", undefined, "box"); b4.append(h("h3", `Tareas · ${d.name}`));
+  const tabs = h("div", undefined, "tabs");
+  STATES.forEach(([key, label]) => { const n = key === "ALL" ? st.tasks.length : cnt(key); const bt = h("button", `${label} ${n}`); if (key === filter) bt.className = "on"; bt.onclick = () => { filter = key; renderPanels(); }; tabs.append(bt); });
+  b4.append(tabs);
+  const list = st.tasks.filter((t) => filter === "ALL" || t.state === filter);
+  if (!list.length) b4.append(h("div", st.tasks.length ? "Ninguna tarea en este estado." : "Sin tareas para este departamento en AGENT_TASKS.md.", "empty"));
+  list.forEach((t) => b4.append(taskRow(t)));
+  right.append(b4);
+}
+
+
+// --- Harvey Command Center ------------------------------------
+const harveyUi = {
+  runId: null,
+  polling: null,
+  busy: false
+};
+
+function setHarveyState(label, kind = "") {
+  const el = $("harveyState");
+  el.textContent = label;
+  el.className = kind;
+}
+
+function showHarveyResponse(text) {
+  const el = $("harveyResponse");
+  el.textContent = text || "";
+  el.classList.toggle("show", Boolean(text));
+}
+
+function setHarveyBusy(busy) {
+  harveyUi.busy = busy;
+  $("harveySend").disabled = busy;
+  $("harveyInput").disabled = busy;
+  $("harveySend").textContent = busy ? "Trabajando…" : "Ejecutar";
+}
+
+function stopHarveyPolling() {
+  if (harveyUi.polling) {
+    clearInterval(harveyUi.polling);
+    harveyUi.polling = null;
+  }
+}
+
+async function pollHarveyRun(runId) {
+  try {
+    const r = await fetch(`/api/jarvis/run/${encodeURIComponent(runId)}`, {
+      cache: "no-store"
+    });
+
+    const j = await r.json().catch(() => ({}));
+
+    if (!r.ok) {
+      throw new Error(j.error || `HTTP ${r.status}`);
+    }
+
+    $("harveyRun").textContent = runId;
+
+    if (j.status === "RUNNING") {
+      setHarveyState("TRABAJANDO", "work");
+      showHarveyResponse("Harvey está ejecutando la orden…");
+      return;
+    }
+
+    stopHarveyPolling();
+    setHarveyBusy(false);
+
+    if (j.status === "COMPLETED") {
+      setHarveyState("COMPLETADO", "work");
+      showHarveyResponse(j.result?.summary || "Harvey terminó la ejecución.");
+    } else if (j.status === "BLOCKED_ON_APPROVAL") {
+      setHarveyState("ESPERANDO APROBACIÓN", "wait");
+      showHarveyResponse(
+        j.result?.summary ||
+        "Harvey necesita una aprobación humana para continuar."
+      );
+    } else {
+      setHarveyState(j.status || "DETENIDO", "bad");
+      showHarveyResponse(
+        j.result?.summary ||
+        j.result?.error ||
+        `Harvey terminó con estado ${j.status || "desconocido"}.`
+      );
+    }
+  } catch (e) {
+    stopHarveyPolling();
+    setHarveyBusy(false);
+    setHarveyState("ERROR", "bad");
+    showHarveyResponse(`No se pudo consultar a Harvey: ${e.message}`);
+  }
+}
+
+async function runHarvey(prompt) {
+  const clean = String(prompt || "").trim();
+  if (!clean || harveyUi.busy) return;
+
+  setHarveyBusy(true);
+  setHarveyState("ENVIANDO…", "work");
+  showHarveyResponse("Enviando la orden a Harvey…");
+  $("harveyRun").textContent = "";
+
+  try {
+    const r = await fetch("/api/jarvis/run", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        prompt: clean
+      })
+    });
+
+    const j = await r.json().catch(() => ({}));
+
+    if (!r.ok || !j.ok) {
+      throw new Error(j.error || `HTTP ${r.status}`);
+    }
+
+    harveyUi.runId = j.runId;
+
+    $("harveyRun").textContent = j.runId;
+    setHarveyState("TRABAJANDO", "work");
+    showHarveyResponse("Harvey ha recibido la orden y está trabajando…");
+
+    await pollHarveyRun(j.runId);
+
+    if (j.status === "RUNNING") {
+      stopHarveyPolling();
+      harveyUi.polling = setInterval(
+        () => pollHarveyRun(j.runId),
+        1500
+      );
+    }
+  } catch (e) {
+    setHarveyBusy(false);
+    setHarveyState("ERROR", "bad");
+    showHarveyResponse(`No se pudo iniciar Harvey: ${e.message}`);
+  }
+}
+
+$("harveyForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+
+  const input = $("harveyInput");
+  const prompt = input.value.trim();
+
+  if (!prompt || harveyUi.busy) return;
+
+  input.value = "";
+  runHarvey(prompt);
+});
+
+$("harveyInput").addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !harveyUi.busy) {
+    e.currentTarget.value = "";
+  }
+});
+
+async function load() {
+  if (SNAP) { if (!data) data = JSON.parse(JSON.stringify(SNAP)); refresh(); return; }
+  try { const r = await fetch("/api/oficina", { cache: "no-store" }); data = await r.json(); } catch { data = null; }
+  refresh();
+  loadApprovals();
+}
+
+// --- Centro de Aprobaciones --------------------------------------------------
+const escapeHtml = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({
+  "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+}[c]));
+
+const APPROVAL_ERRORS = {
+  400: "Identificador de aprobación inválido.",
+  401: "Centro de Aprobaciones bloqueado: desbloquéalo con un código nuevo.",
+  403: "Petición rechazada: solo se acepta desde esta interfaz.",
+  404: "La solicitud ya no existe.",
+  409: "La solicitud ya no está pendiente.",
+  429: "Demasiados intentos: genera un código nuevo.",
+  500: "Error interno del servidor."
+};
+
+const approvalUi = {
+  list: [],
+  busy: false,
+  opener: null,
+  // El token CSRF vive solo en memoria de esta página (nunca en storage ni en la URL).
+  session: { unlocked: false, csrf: null }
+};
+
+function setApprovalSession(j) {
+  approvalUi.session = j && j.unlocked && j.csrfToken ? { unlocked: true, csrf: j.csrfToken } : { unlocked: false, csrf: null };
+  $("apprLock").hidden = approvalUi.session.unlocked;
+  $("apprSession").hidden = !approvalUi.session.unlocked;
+  if (!$("apprModal").hidden) renderApprovals();
+}
+
+async function loadApprovalSession() {
+  try {
+    const r = await fetch("/api/jarvis/approvals/session", { cache: "no-store" });
+    setApprovalSession(r.ok ? await r.json().catch(() => ({})) : {});
+  } catch {
+    setApprovalSession({});
+  }
+}
+
+async function unlockApprovals(code) {
+  try {
+    const r = await fetch("/api/jarvis/approvals/session", {
+      method: "POST",
+      headers: { "x-jarvis-ui": "approvals", "Content-Type": "application/json" },
+      body: JSON.stringify({ code })
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || APPROVAL_ERRORS[r.status] || `HTTP ${r.status}`);
+    setApprovalSession(j);
+    setApprovalMessage("Centro de Aprobaciones desbloqueado.", "ok");
+  } catch (e) {
+    setApprovalSession({});
+    setApprovalMessage(e.message, "bad");
+  }
+}
+
+async function lockApprovals() {
+  try {
+    await fetch("/api/jarvis/approvals/session/lock", {
+      method: "POST",
+      headers: { "x-jarvis-ui": "approvals", "x-csrf-token": approvalUi.session.csrf || "" },
+      body: "{}"
+    });
+  } finally {
+    setApprovalSession({});
+  }
+}
+
+function approvalRiskClass(risk) {
+  const key = String(risk || "desconocido").toLowerCase().replace(/[^a-z]/g, "");
+  return ["approval", "exec", "write", "read"].includes(key) ? `r-${key}` : "r-desconocido";
+}
+
+function approvalDate(ts) {
+  const d = new Date(ts);
+  return Number.isNaN(d.getTime()) ? String(ts || "—") : d.toLocaleString("es-ES");
+}
+
+function setApprovalMessage(text, kind = "") {
+  const el = $("apprMsg");
+  el.textContent = text || "";
+  el.className = "appr-msg" + (kind ? ` ${kind}` : "");
+  el.hidden = !text;
+}
+
+function renderApprovals() {
+  const list = $("apprList");
+  if (!approvalUi.list.length) {
+    list.innerHTML = '<div class="empty">No hay aprobaciones pendientes.</div>';
+    return;
+  }
+
+  list.innerHTML = approvalUi.list.map((a) => {
+    const id = escapeHtml(a.id);
+    const risk = escapeHtml(a.risk || "desconocido");
+    return `<article class="appr-card">
+      <div class="appr-card-head">
+        <strong class="grow">${escapeHtml(a.tool || "herramienta desconocida")}</strong>
+        <span class="pill ${approvalRiskClass(a.risk)}">${risk}</span>
+      </div>
+      <dl class="appr-fields">
+        <div><dt>ID</dt><dd class="mono">${id}</dd></div>
+        <div><dt>Operación</dt><dd>${escapeHtml(a.operation || "—")}</dd></div>
+        <div><dt>Motivo</dt><dd>${escapeHtml(a.reason || "—")}</dd></div>
+        <div><dt>Solicitada</dt><dd class="mono">${escapeHtml(approvalDate(a.requestedAt))}</dd></div>
+      </dl>
+      <div class="appr-actions">
+        <button type="button" class="ok" data-approval-action="approve" data-approval-id="${id}" ${approvalUi.busy || !approvalUi.session.unlocked ? "disabled" : ""}>Aprobar</button>
+        <button type="button" class="no" data-approval-action="deny" data-approval-id="${id}" ${approvalUi.busy || !approvalUi.session.unlocked ? "disabled" : ""}>Rechazar</button>
+      </div>
+    </article>`;
+  }).join("");
+}
+
+async function loadApprovals() {
+  try {
+    const r = await fetch("/api/jarvis/approvals", { cache: "no-store" });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || APPROVAL_ERRORS[r.status] || `HTTP ${r.status}`);
+    approvalUi.list = Array.isArray(j.pending) ? j.pending : [];
+    if (!approvalUi.busy && !$("apprModal").hidden) renderApprovals();
+    if (!approvalUi.list.length) setApprovalMessage("");
+  } catch (e) {
+    setApprovalMessage(`No se pudieron cargar las aprobaciones: ${e.message}`, "bad");
+  }
+}
+
+function openApprovals() {
+  approvalUi.opener = document.activeElement;
+  $("apprModal").hidden = false;
+  setApprovalMessage("");
+  renderApprovals();
+  $("apprClose").focus();
+  loadApprovalSession();
+  loadApprovals();
+}
+
+function closeApprovals() {
+  const modal = $("apprModal");
+  if (modal.hidden) return;
+  modal.hidden = true;
+  const target = approvalUi.opener;
+  approvalUi.opener = null;
+  if (target && target.isConnected && typeof target.focus === "function") target.focus();
+}
+
+async function decideApproval(id, action) {
+  if (approvalUi.busy || !["approve", "deny"].includes(action)) return;
+
+  const label = action === "approve" ? "APROBAR" : "RECHAZAR";
+  if (!window.confirm(`¿Seguro que quieres ${label} la solicitud ${id}?`)) return;
+
+  approvalUi.busy = true;
+  setApprovalMessage(`Enviando decisión: ${label}…`);
+  renderApprovals();
+
+  try {
+    const r = await fetch(`/api/jarvis/approvals/${encodeURIComponent(id)}/${action}`, {
+      method: "POST",
+      headers: { "x-jarvis-ui": "approvals", "x-csrf-token": approvalUi.session.csrf || "" },
+      body: "{}"
+    });
+    const j = await r.json().catch(() => ({}));
+
+    if (r.status === 401) setApprovalSession({});
+    if (!r.ok) {
+      throw new Error(j.error || APPROVAL_ERRORS[r.status] || `HTTP ${r.status}`);
+    }
+
+    setApprovalMessage(`Solicitud ${id}: ${j.status}.`, "ok");
+    await load();
+    await loadApprovals();
+  } catch (e) {
+    setApprovalMessage(`No se pudo registrar la decisión: ${e.message}`, "bad");
+  } finally {
+    approvalUi.busy = false;
+    renderApprovals();
+  }
+}
+
+$("apprClose").onclick = closeApprovals;
+$("apprUnlockForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const input = $("apprCode");
+  const code = input.value;
+  input.value = ""; // el codigo no se conserva en el DOM
+  if (code) await unlockApprovals(code);
+});
+$("apprRelock").onclick = () => lockApprovals();
+$("apprModal").addEventListener("click", (e) => {
+  if (e.target === $("apprModal") || e.target.matches("[data-appr-close]")) closeApprovals();
+});
+$("apprList").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-approval-action]");
+  if (!btn || approvalUi.busy) return;
+  decideApproval(btn.dataset.approvalId, btn.dataset.approvalAction);
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !$("apprModal").hidden) closeApprovals();
+});
+
+// Solo en la vista previa sin agente: genera llamadas ficticias para ver las animaciones.
+let simTimer = null;
+if (SNAP) {
+  $("jarvis").hidden = true; $("sim").hidden = false;
+  const pool = DEPTS.flatMap((d) => d.desks.map((k) => k.tools[0].replace("*", "status")));
+  $("sim").onclick = () => {
+    const on = $("sim").classList.toggle("on"); $("sim").textContent = on ? "Simulando…" : "Simular actividad";
+    clearInterval(simTimer); if (!on) { data.activity = []; data.pendingApprovals = []; data.jarvis = null; refresh(); return; }
+    const tick = () => { const tool = pool[Math.floor(Math.random() * pool.length)]; data.activity.push({ ts: new Date().toISOString(), tool, decision: "allow" });
+      if (Math.random() < 0.12) data.pendingApprovals = [{ id: "sim", tool: "execute_database_statement" }]; else if (Math.random() < 0.2) data.pendingApprovals = [];
+      const pend = data.pendingApprovals;
+      data.jarvis = { hasData: true, status: { agentStatus: pend.length ? "BLOCKED_ON_APPROVAL" : "RUNNING", steps: data.activity.length, testsPassed: 0, testsFailed: 0 }, pendingApprovals: pend.map((x) => ({ ...x, id: "sim", reason: "simulado", summary: "" })), today: { calls: data.activity.length, byDecision: { allow: data.activity.length }, topTools: [] }, recentRuns: [], recentToolCalls: data.activity.slice(-10).reverse() };
+      refresh(); };
+    tick(); tick(); tick(); simTimer = setInterval(tick, 1800);
+  };
+}
+setInterval(() => { $("clock").textContent = new Date().toLocaleTimeString("es-ES"); }, 1000);
+if (!SNAP) setInterval(load, 3000); else setInterval(refresh, 5000);
+new ResizeObserver(resize).observe($("view"));
+resize(); Object.assign(cam, HOME); Object.assign(goal, HOME); placeCamera(); requestAnimationFrame(frame); load();
+</script>
+</body>
+</html>

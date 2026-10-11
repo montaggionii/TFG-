@@ -5,6 +5,10 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { execFile } from "child_process";
 import fs from "fs";
+import { registerApprovalRoutes } from "./approvals-routes.mjs";
+import { runAgent } from "../agent/src/runner/run.mjs";
+import { createProvider } from "../agent/src/llm/providers.mjs";
+import { createContext } from "../agent/src/tools/registry.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_PATH = path.join(__dirname, "..");
@@ -156,6 +160,7 @@ async function fetchAccounts() {
 }
 
 const app = express();
+registerApprovalRoutes(app, { port: PORT });
 app.use(express.json());
 
 // CORS solo para el frontend local de FidelyFood (necesario para que
@@ -346,7 +351,7 @@ function readJsonl(file) {
   }
 }
 
-app.get("/api/jarvis", (req, res) => {
+function buildJarvis() {
   const status = readJsonSafe(path.join(AGENT_DATA, "status.json"), null);
 
   const approvalLines = readJsonl(path.join(AGENT_DATA, "approvals.jsonl"));
@@ -388,13 +393,208 @@ app.get("/api/jarvis", (req, res) => {
     runs = [];
   }
 
-  res.json({
+  return {
     hasData: Boolean(status),
     status,
     pendingApprovals,
     recentToolCalls: audit.slice(0, 25).map((a) => ({ ts: a.ts, tool: a.tool, decision: a.decision, ok: a.ok, durationMs: a.durationMs, error: a.error || null })),
     today: { calls: todays.length, byDecision, topTools },
     recentRuns: runs,
+    readAt: new Date().toISOString(),
+  };
+}
+
+app.get("/api/jarvis", (req, res) => res.json(buildJarvis()));
+
+// --- Harvey: ejecucion bajo demanda desde la Oficina de Agentes ---
+// Una sola ejecucion simultanea. La politica, aprobaciones y auditoria
+// siguen siendo responsabilidad del Agent Layer.
+const activeHarveyRuns = new Map();
+
+function normalizeHarveyPrompt(value) {
+  if (typeof value !== "string") return "";
+  return value.trim().slice(0, 12000);
+}
+
+app.post("/api/jarvis/run", async (req, res) => {
+  const prompt = normalizeHarveyPrompt(req.body?.prompt);
+  const taskId =
+    typeof req.body?.taskId === "string" && req.body.taskId.trim()
+      ? req.body.taskId.trim()
+      : null;
+
+  if (!prompt) {
+    return res.status(400).json({
+      ok: false,
+      error: "Harvey necesita una orden en 'prompt'.",
+    });
+  }
+
+  if (activeHarveyRuns.size > 0) {
+    const [runId] = activeHarveyRuns.keys();
+    return res.status(409).json({
+      ok: false,
+      error: "Harvey ya esta ejecutando una tarea.",
+      runId,
+    });
+  }
+
+  const runId = `run_${Date.now().toString(36)}`;
+
+  activeHarveyRuns.set(runId, {
+    runId,
+    status: "RUNNING",
+    startedAt: new Date().toISOString(),
+    taskId,
+    prompt,
+  });
+
+  res.status(202).json({
+    ok: true,
+    runId,
+    status: "RUNNING",
+    message: "Harvey ha recibido la orden.",
+  });
+
+  void (async () => {
+    try {
+      const provider = createProvider({
+        provider: "claude-code",
+      });
+
+      const ctx = createContext({
+        agent: "harvey",
+        model: provider.model,
+        provider: provider.name,
+        runId,
+      });
+
+      const result = await runAgent({
+        provider,
+        ctx,
+        taskId,
+        prompt,
+        budgets: {
+          maxSteps: 12,
+          maxMinutes: 10,
+          maxTokens: 16000,
+        },
+      });
+
+      activeHarveyRuns.delete(runId);
+    } catch (error) {
+      activeHarveyRuns.delete(runId);
+    }
+  })();
+});
+
+app.get("/api/jarvis/run/:runId", (req, res) => {
+  const { runId } = req.params;
+  const active = activeHarveyRuns.get(runId);
+
+  if (active) {
+    return res.json({
+      ok: true,
+      ...active,
+    });
+  }
+
+  const runFile = path.join(AGENT_DATA, "runs", `${runId}.json`);
+  const stored = readJsonSafe(runFile, null);
+
+  if (!stored) {
+    return res.status(404).json({
+      ok: false,
+      error: "No se encontro esa ejecucion.",
+      runId,
+    });
+  }
+
+  return res.json({
+    ok: true,
+    runId,
+    status: stored.stopReason === "completed" ? "COMPLETED" : "STOPPED",
+    result: stored,
+  });
+});
+
+
+// --- Oficina de Agentes: datos REALES para la vista isometrica ---
+// Mezcla el audit del Agent Layer, los eventos de hooks de Claude Code y
+// las tareas de AGENT_TASKS.md. Nada simulado: sin actividad, listas vacias.
+function parseAgentTasks() {
+  try {
+    const text = fs.readFileSync(path.join(REPO_PATH, "AGENT_TASKS.md"), "utf8");
+    const s = text.indexOf("<!-- TASKS:START -->");
+    const e = text.indexOf("<!-- TASKS:END -->");
+    if (s < 0 || e < s) return [];
+    return text
+      .slice(s, e)
+      .split(/^### (?=AGT-\d+)/m)
+      .slice(1)
+      .map((part) => {
+        const [titleLine, ...rest] = part.split("\n");
+        const body = rest.join("\n");
+        const field = (name) => {
+          const m = body.match(new RegExp("^- \\*\\*" + name + ":\\*\\*\\s?(.*)$", "m"));
+          return m ? m[1].trim() : "";
+        };
+        const dash = (v) => (v === "—" ? "" : v);
+        return {
+          id: (titleLine.match(/^AGT-\d+/) || [""])[0],
+          title: titleLine.replace(/^AGT-\d+\s*[·-]\s*/, "").trim(),
+          area: field("Área").toLowerCase(),
+          priority: field("Prioridad"),
+          state: field("Estado"),
+          description: field("Descripción"),
+          files: dash(field("Archivos afectados")),
+          deps: dash(field("Dependencias")),
+          acceptance: field("Criterios de aceptación"),
+          tests: field("Tests necesarios"),
+          result: dash(field("Resultado")),
+        };
+      });
+  } catch {
+    return [];
+  }
+}
+
+app.get("/api/oficina", (req, res) => {
+  const today = new Date().toISOString().slice(0, 10);
+  let audit = [];
+  try {
+    const dir = path.join(AGENT_DATA, "audit");
+    const files = fs.readdirSync(dir).filter((f) => f.endsWith(".jsonl")).sort().reverse().slice(0, 2);
+    for (const f of files) audit = audit.concat(readJsonl(path.join(dir, f)));
+  } catch {
+    audit = [];
+  }
+  const activity = [
+    ...audit.slice(-400).map((a) => ({ ts: a.ts, tool: a.tool, decision: a.decision, ok: a.ok, source: "agent-layer" })),
+    ...agentEvents.map((ev) => ({ ts: ev.ts, tool: ev.tool, file: ev.file, type: ev.type, source: "claude-code" })),
+  ].filter((a) => a.tool);
+
+  const approvalLines = readJsonl(path.join(AGENT_DATA, "approvals.jsonl"));
+  const decided = new Set(approvalLines.filter((l) => l.type === "decision").map((l) => l.id));
+  const pendingApprovals = approvalLines
+    .filter((l) => l.type === "request" && !decided.has(l.id))
+    .map((l) => ({ id: l.id, tool: l.tool, reason: l.reason }));
+
+  let brainNotes = 0;
+  try {
+    brainNotes = fs.readFileSync(path.join(REPO_PATH, ".agent", "memory.jsonl"), "utf8").split("\n").filter(Boolean).length;
+  } catch {
+    brainNotes = 0;
+  }
+
+  res.json({
+    today,
+    activity,
+    pendingApprovals,
+    tasks: parseAgentTasks(),
+    brainNotes,
+    agentStatus: readJsonSafe(path.join(AGENT_DATA, "status.json"), null),
+    jarvis: buildJarvis(),
     readAt: new Date().toISOString(),
   });
 });

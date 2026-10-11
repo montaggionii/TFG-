@@ -56,6 +56,22 @@ npm --prefix agent run run -- --prompt "Explica cómo se calculan los puntos" --
 ```
 Termina con un resumen, deja la tarea en `REVIEW`, escribe `CHANGELOG_AGENT.md` y `agent/data/runs/<run>.json`. Códigos de salida: 0 completada · 2 presupuesto agotado · 3 esperando aprobación humana · 4 bucle detectado.
 
+### Runner con tu suscripción de Claude (`--provider claude-code`)
+
+Sin API key de ningún proveedor: el runner lanza `claude -p` (Claude Code en modo no interactivo) con la sesión de tu cuenta de Claude y le conecta **este mismo servidor MCP**. Claude razona y decide; las 49 herramientas, la política, las aprobaciones, el audit y la memoria siguen siendo las de siempre.
+
+```bash
+npm --prefix agent run claude:check          # comprueba comando, sesión y origen de la credencial (nunca muestra claves)
+npm --prefix agent run run -- --provider claude-code --prompt "Responde únicamente con: JARVIS_OK" --max-steps 3
+npm --prefix agent run run -- --provider claude-code --task AGT-008   # igual que con cualquier otro proveedor
+```
+
+- **Autenticación**: la sesión de `claude` (`/login` con tu cuenta Pro/Max/Team). El runner quita `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN` y las variables de Bedrock/Vertex/Foundry del proceso hijo para que no se facture a la API, y aborta si el `system/init` de Claude Code indica otro origen que no sea la suscripción (`apiKeySource`). `AGENT_CLAUDE_ALLOW_API_KEY=1` lo permite. No usa `--bare`: ese modo no lee la suscripción. Para entornos sin navegador: `claude setup-token` y `CLAUDE_CODE_OAUTH_TOKEN`.
+- **Qué hace el runner**: Claude Code ejecuta el bucle; el runner solo prepara el contexto (el mismo prompt de sistema), vigila los presupuestos (`--max-steps` → turnos, `--max-minutes`, `--max-tokens` y `--max-cost-usd`), detecta `approval_required` y detiene el run, y escribe `status.json`, `runs/` y `CHANGELOG_AGENT.md`. El servidor MCP del hijo escribe el audit con el mismo `runId` y un fichero de estado propio (`AGENT_STATUS_FILE`) que el runner fusiona, así que ya no se pisan.
+- **Aislamiento**: se desactivan las herramientas nativas de Claude Code (`--tools ""`), solo carga el MCP de FidelyFood (`--strict-mcp-config`), modo `dontAsk` (todo lo que no esté permitido se deniega), sin sesión persistente y sin settings de proyecto (evita duplicar eventos de los hooks).
+- **Coste**: `estimatedCostUsd` es la equivalencia en precio de API que calcula Claude Code; con suscripción no se cobra, pero cada run consume el cupo de tu plan (límites compartidos con Claude y Claude Code). `tokens.input` suma los tokens no servidos de caché; los leídos de caché van aparte (`cacheReadTokens`). El informe del run lleva `billing: "suscripcion-claude"`.
+- **Condiciones de uso**: es tu uso personal y local de Claude Code. La documentación del Agent SDK indica que un tercero no puede ofrecer el login de claude.ai ni los límites de la suscripción en su propio producto; si Jarvis se usara por otras personas o como servicio, hay que usar una API key de Console.
+
 ### Eventos → tareas
 ```bash
 npm --prefix agent run event -- issue 12            # issue de GitHub → tarea AGT-xxx (texto del issue marcado como dato no confiable)
@@ -72,6 +88,12 @@ npm --prefix agent run approve -- approve apr_xxxxxxxxxx     # pide confirmació
 ```
 La aprobación es de un solo uso, caduca a los 30 min y solo vale para esa acción exacta (huella SHA-256 de herramienta+argumentos). Va firmada con HMAC usando una clave en `~/.fidelyfood-agent/approval.key` (fuera del repo, modo 600).
 
+**Desde la Oficina de Agentes (web):** el Centro de Aprobaciones arranca bloqueado. Para decidir desde el navegador, la persona genera en su terminal un código de un solo uso y lo teclea en la Oficina:
+```bash
+npm --prefix agent run approve -- ui-code     # exige terminal interactiva; caduca a los 5 min; se invalida tras 5 fallos
+```
+Del código solo queda su hash en `~/.fidelyfood-agent/ui-unlock.json` (modo 600). Tecleado, abre una sesión (cookie `HttpOnly; SameSite=Strict` + token CSRF en memoria de la página, 15 min de inactividad) y las decisiones exigen además `Origin`/`Host` exactos. Una solicitud solo puede decidirse mientras está `pending`: una aprobación caducada, usada o denegada no se puede aprobar ni renovar, ni por la API ni por el CLI. **Alcance:** frena páginas web, otros usuarios del Mac y procesos que no pueden leer `~/.fidelyfood-agent`; no frena a un proceso con tu mismo usuario (puede leer `approval.key` y firmar él mismo, ver «La política es una capa de control» más abajo).
+
 ### Tareas, memoria, documentación, monitor
 ```bash
 npm --prefix agent run task -- list                 # tareas (AGENT_TASKS.md)
@@ -79,6 +101,7 @@ npm --prefix agent run task -- done AGT-001         # cierre humano (el agente s
 npm --prefix agent run docs                         # regenera API.md y DATABASE.md desde el código y la BD
 npm --prefix agent test                             # tests del Agent Layer
 # Monitor: arranca el access-center (node access-center/server.js) → http://localhost:5757/jarvis.html
+# Oficina 3D (departamentos, tareas AGT-xxx y Jarvis como cerebro): http://localhost:5757/oficina.html
 ```
 
 ## Modelo de seguridad (mínimo privilegio)

@@ -81,6 +81,7 @@ export async function invokeTool(name, rawArgs, ctx) {
       result = {
         ok: false,
         status: "approval_required",
+        tool: name,
         approval_id: err.approvalId,
         reason: err.message,
         detail: err.detail,

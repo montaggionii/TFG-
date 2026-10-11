@@ -6,7 +6,7 @@ import { updateStatus } from "../lib/status.mjs";
 
 // IMPORTANTE: en un servidor MCP stdio, stdout es el canal del protocolo.
 // Todo diagnostico va a stderr.
-const ctx = createContext({ agent: process.env.AGENT_NAME || "claude-code", model: process.env.AGENT_MODEL || null, provider: process.env.AGENT_PROVIDER || null });
+const ctx = createContext({ agent: process.env.AGENT_NAME || "claude-code", model: process.env.AGENT_MODEL || null, provider: process.env.AGENT_PROVIDER || null, runId: process.env.AGENT_RUN_ID || null });
 
 const server = new McpServer({ name: "fidelyfood", version: "0.1.0" });
 

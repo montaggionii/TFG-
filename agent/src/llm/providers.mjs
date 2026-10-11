@@ -1,6 +1,7 @@
 import path from "node:path";
 import { AGENT_ROOT, readJson } from "../lib/paths.mjs";
 import { geminiSchema } from "./schema.mjs";
+import { claudeCode } from "./claude-code.mjs";
 
 export const modelsConfig = () => readJson(path.join(AGENT_ROOT, "config", "models.json"), null);
 
@@ -131,14 +132,19 @@ function safeParse(s) {
   }
 }
 
-const FACTORIES = { anthropic, openai, gemini };
+const FACTORIES = { anthropic, openai, gemini, "claude-code": claudeCode };
+
+// Proveedores que no necesitan entrada en models.json (agent/config esta protegido para el agente):
+// "claude-code" usa la suscripcion de Claude vía `claude -p`, sin API key.
+const BUILTIN_PROVIDERS = { "claude-code": { delegated: true, defaultModel: null, pricePerMTok: null } };
 
 export function createProvider({ provider, model, fetchImpl = fetch, env = process.env, maxOutputTokens = 8192 } = {}) {
   const cfg = modelsConfig();
   const name = (provider || env.AGENT_PROVIDER || cfg.defaultProvider).toLowerCase();
-  const p = cfg.providers[name];
+  const p = cfg.providers[name] ?? BUILTIN_PROVIDERS[name];
   if (!p || !FACTORIES[name]) throw new Error(`Proveedor desconocido: "${name}" (disponibles: ${Object.keys(FACTORIES).join(", ")})`);
   const chosenModel = model || env.AGENT_MODEL || p.defaultModel;
+  if (p.delegated) return { ...FACTORIES[name]({ model: chosenModel || null, env }), pricePerMTok: p.pricePerMTok };
   if (!chosenModel) throw new Error(`Falta el modelo para ${name}: usa --model o AGENT_MODEL (no hay modelo por defecto configurado para este proveedor).`);
   const apiKey = env[p.apiKeyVar];
   if (!apiKey) throw new Error(`Falta la variable de entorno ${p.apiKeyVar} para usar ${name}. Las claves solo se leen del entorno, nunca del repositorio.`);
