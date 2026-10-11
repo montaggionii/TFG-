@@ -16,6 +16,7 @@ Rama de trabajo actual: `consolidacion/fidelyfood-unificado` (desde `origin/main
 - Oficina web: `cd access-center && node server.js` → http://localhost:5757/oficina.html
 - Tests del Agent Layer: `cd agent && npm test` (105 deben pasar)
 - Backend: `./mvnw test` y `./mvnw spring-boot:run`; frontend: `cd frontend && npm test`
+- Todas las pruebas, aisladas: `scripts/test-isolated.sh` (BD Docker desechable; nunca uses la BD real ni `ddl-auto=update` contra ella)
 - Una tarea solo está hecha si se ejecutó y verificó; no marques DONE sin evidencia.
 
 ## Límites

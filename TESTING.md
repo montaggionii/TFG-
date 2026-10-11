@@ -70,3 +70,5 @@ Tras actualizar `@playwright/test` hay que reinstalar el navegador (`npx playwri
 - E2E sin spec todavía (tarea AGT-003): detalle de restaurante y promociones/recompensas del cliente, registro de compras desde el restaurante, historial de actividad del restaurante y funciones del panel admin (solo hay login).
 - Funcionalidad sin implementar y sin test: canje de promociones CANJEAR (`POST /api/canjes`, tarea AGT-002).
 - Ver `AGENT_TASKS.md` para el estado de cada tarea.
+
+> Para ejecutar todo con servicios y BD aislados: `scripts/test-isolated.sh` (ver [docs/TESTING_ISOLATED.md](docs/TESTING_ISOLATED.md)).
