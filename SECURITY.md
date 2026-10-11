@@ -65,6 +65,15 @@ Auditoría real del código (no una checklist genérica). Cada hallazgo indica s
 - **Verificación real**: reproducido el fallo contra el código anterior (`SELECT password AS foo FROM restaurante` devolvía el hash en claro) y confirmado que con el fix queda `[MASKED]`. 8 tests unitarios nuevos (`agent/test/database.test.mjs`, sin necesitar MySQL real) cubren el bypass con y sin `AS`, columna calificada, columna envuelta en función, y que las columnas no sensibles con alias siguen sin enmascararse. Suite completa del Agent Layer: 50/50 passed (42 previos + 8 nuevos).
 - **Estado**: ✅ corregido en `agent/fidelyfood-autonomous`, pendiente de PR/revisión humana. Ver `AGENT_TASKS.md` (FID-022).
 
+### 14. Contraseña de administrador por defecto (`admin123`) en el código fuente — ✅ CORREGIDO
+
+- **Riesgo**: Alto si la variable de entorno faltaba (la contraseña era pública en el repositorio).
+- **Ubicación**: `AuthController` (`POST /api/auth/login-admin`), propiedad `fidelyfood.admin.password`.
+- **Problema**: el constructor inyectaba `@Value("${fidelyfood.admin.password:admin123}")`. En producción se sobrescribía con `FIDELYFOOD_ADMIN_PASSWORD`, pero si esa variable se perdía o no se definía, el login de administrador aceptaba la contraseña conocida.
+- **Corregido**: ya **no existe una contraseña de administrador predeterminada**. `FIDELYFOOD_ADMIN_PASSWORD` debe configurarse explícitamente (en `.env` local o en las variables del servicio). Si está vacía o no definida, el backend arranca igualmente, registra un aviso y `login-admin` responde siempre 401 (no hay cuenta de administrador utilizable). La comparación se hace en tiempo constante (`MessageDigest.isEqual`). Cobertura: `AuthControllerAdminLoginTest`.
+- **Pruebas E2E**: el test de login de admin lee `FIDELYFOOD_ADMIN_PASSWORD` y se omite si no está definida; `scripts/test-isolated.sh` genera una aleatoria por ejecución.
+- **Efecto conocido**: sin esa variable no hay acceso al panel de administración. `access-center` ya no muestra ninguna contraseña de admin si no está configurada.
+
 ## Pendientes (no corregidos todavía)
 
 ### 6. Sin revocación de JWT

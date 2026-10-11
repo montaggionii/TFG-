@@ -34,7 +34,7 @@ const FRONTEND_URL = "http://localhost:8100";
 // Para cualquier otra cuenta, la contraseña real está hasheada con BCrypt en
 // la base de datos y NO es recuperable — se marca explícitamente como tal.
 const ADMIN_EMAIL = process.env.FIDELYFOOD_ADMIN_EMAIL || "admin@fidelyfood.local";
-const ADMIN_PASSWORD = process.env.FIDELYFOOD_ADMIN_PASSWORD || "admin123"; // default real en AuthController.java
+const ADMIN_PASSWORD = process.env.FIDELYFOOD_ADMIN_PASSWORD || null; // el backend ya no tiene contraseña por defecto
 const SEED_RESTAURANT_PASSWORD = process.env.APP_SEED_RESTAURANT_PASSWORD || null;
 
 const SEEDED_RESTAURANT_EMAILS = new Set([
@@ -45,7 +45,9 @@ const SEEDED_RESTAURANT_EMAILS = new Set([
 
 function knownPasswordFor(email, role) {
   if (role === "ADMIN" && email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-    return { password: ADMIN_PASSWORD, origen: "Valor por defecto en AuthController.java (fidelyfood.admin.password)" };
+    return ADMIN_PASSWORD
+      ? { password: ADMIN_PASSWORD, origen: "Variable de entorno FIDELYFOOD_ADMIN_PASSWORD (.env local)" }
+      : { password: null, origen: "Sin contraseña de admin configurada: el login de administrador está deshabilitado en el backend" };
   }
   if (role === "RESTAURANTE" && SEEDED_RESTAURANT_EMAILS.has(email.toLowerCase()) && SEED_RESTAURANT_PASSWORD) {
     return { password: SEED_RESTAURANT_PASSWORD, origen: "Variable de entorno APP_SEED_RESTAURANT_PASSWORD (.env local)" };
@@ -143,7 +145,7 @@ async function fetchAccounts() {
         nombre: "Administrador FidelyFood",
         email: ADMIN_EMAIL,
         password: ADMIN_PASSWORD,
-        origenPassword: "Valor por defecto en AuthController.java (fidelyfood.admin.password)",
+        origenPassword: ADMIN_PASSWORD ? "Variable de entorno FIDELYFOOD_ADMIN_PASSWORD (.env local)" : "Sin contraseña de admin configurada: login deshabilitado en el backend",
         rol: "ROLE_ADMIN",
         estado: "ACTIVO",
         entorno: "Local (proyectoTFG)",
