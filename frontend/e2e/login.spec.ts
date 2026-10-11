@@ -22,7 +22,7 @@ test('login ADMIN redirige a /admin/dashboard', async ({ page }) => {
 });
 
 test('login RESTAURANTE redirige a /r/dashboard', async ({ page }) => {
-  const seedPassword = process.env.APP_SEED_RESTAURANT_PASSWORD;
+  const seedPassword = process.env['APP_SEED_RESTAURANT_PASSWORD'];
   test.skip(!seedPassword, 'APP_SEED_RESTAURANT_PASSWORD no está definida en el entorno de este proceso.');
 
   await page.goto('/login');

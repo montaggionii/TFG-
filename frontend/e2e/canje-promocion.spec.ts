@@ -17,12 +17,12 @@ import { apiLoginClient, apiLoginRestaurant } from './helpers/auth';
 // completo y usar siempre el email autenticado — nunca sería posible que
 // un cliente canjeara puntos "a nombre de" otro usuario.
 
-const API_URL = `${process.env.E2E_API_URL || 'http://localhost:8081'}/api`;
+const API_URL = `${process.env['E2E_API_URL'] || 'http://localhost:8081'}/api`;
 const RESTAURANT_EMAIL = 'venezuelafood@gmail.com';
 
 test.describe('Canje de promociones (AGT-002)', () => {
   test('un cliente gana puntos con una compra y canjea una promoción CANJEAR con ellos', async ({ request }) => {
-    const seedPassword = process.env.APP_SEED_RESTAURANT_PASSWORD;
+    const seedPassword = process.env['APP_SEED_RESTAURANT_PASSWORD'];
     test.skip(!seedPassword, 'APP_SEED_RESTAURANT_PASSWORD no está definida en el entorno de este proceso.');
 
     const creds = JSON.parse(readFileSync(path.join(__dirname, '.e2e-client.json'), 'utf-8'));
@@ -82,7 +82,7 @@ test.describe('Canje de promociones (AGT-002)', () => {
   });
 
   test('un cliente sin puntos suficientes no puede canjear (400) y no se le descuenta nada', async ({ request }) => {
-    const seedPassword = process.env.APP_SEED_RESTAURANT_PASSWORD;
+    const seedPassword = process.env['APP_SEED_RESTAURANT_PASSWORD'];
     test.skip(!seedPassword, 'APP_SEED_RESTAURANT_PASSWORD no está definida en el entorno de este proceso.');
 
     const creds = JSON.parse(readFileSync(path.join(__dirname, '.e2e-client.json'), 'utf-8'));
