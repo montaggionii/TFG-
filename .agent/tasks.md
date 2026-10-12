@@ -45,53 +45,54 @@
 - [x] **Modal "Crear Promoción" corta el texto a 320px (AGT-004)** — 2026-10-09, corregida por **dos ejecuciones concurrentes de esta rutina** (sin verse entre sí, integradas con `git merge`, mismo criterio que FID-020/FID-021): la única tarea `TODO` sin bloqueo real que quedaba en `AGT-xxx` (el resto solo esperaba a una persona), así que ambas la eligieron de forma independiente. Causa raíz nº1 (primera sesión): `.main-content` usaba `grid-template-columns: 1fr`; sin `min-width` explícito un grid item usa `min-width: auto` (el ancho de su contenido), y el `<ion-select>` de "Tipo de Promoción" no puede partir su texto (`white-space: nowrap` de Ionic) — esa columna crecía para caber la opción completa y **todo** el formulario se desbordaba (20-46px en casi todos los campos, no solo el select), recortado por el `overflow: hidden` del modal. Fix: `1fr` → `minmax(0, 1fr)`, igual que ya hacía el breakpoint de escritorio del mismo fichero. Causa raíz nº2 (segunda sesión, con el formulario ya bien encajado): aun así el propio `ion-select` seguía elipsando su texto más largo ("Ganar puntos...", 283px) porque no cabe ni a 320px (~239px útiles) ni a 375px (~287px) — el bug afectaba también a 375px, no solo a 320px como decía la descripción. Fix, dentro del `@media (max-width: 390px)` ya existente: `ion-select.saas-input::part(text) { white-space: normal; overflow: visible; text-overflow: unset; }` — el texto pasa a 2 líneas en vez de elipsarse, sin tocar nada por encima de 390px. Ambos cambios conviven sin conflicto (tocan bloques CSS distintos del mismo fichero). **Verificación real en ambas sesiones, de forma independiente**: sin backend/MySQL en este sandbox, cada una montó un arnés HTML con los Web Components reales de `@ionic/core` (Shadow DOM real) en Chromium headless vía Playwright, con el SCSS del componente compilado a CSS real y el `max-width`/`overflow:hidden` reales del modal — capturas de pantalla antes/después confirmando 0 desbordamientos tras el fix nº1 y el texto completo en 2 líneas tras el fix nº2, en 320px y 375px (la segunda sesión añadió 414/520px de control, sin regresión). `ng build --configuration production` limpio, `npx tsc --noEmit` sin errores nuevos, `npx playwright test --list` → 22/22. **No se pudo verificar en este entorno**: abrir `/r/promociones` real, autenticado como restaurante, y ver el modal completo en contexto. Detalle completo en `AGENT_TASKS.md` (AGT-004, estado `REVIEW`).
 - [x] **`npx tsc --noEmit` falla con TS4111 en toda la suite E2E (AGT-008)** — 2026-10-10: el backlog `AGT-xxx` no tenía ninguna tarea `TODO` real (AGT-003/004/005/006/007 ya en `REVIEW`, solo esperaban cierre humano o servicios reales no disponibles aquí), así que se retomó un hallazgo ya señalado y acotado por la propia sesión de AGT-003 (2026-10-08) pero no accionado entonces para no mezclar temas — mismo criterio que FID-021 (cerrar un hueco ya identificado por nombre en vez de buscar uno nuevo). Las 17 ocurrencias de `process.env.VARIABLE` en 11 ficheros de `frontend/e2e/` (`E2E_API_URL`, `APP_SEED_RESTAURANT_PASSWORD`, `FIDELYFOOD_ADMIN_PASSWORD`) violaban `noPropertyAccessFromIndexSignature: true` del `tsconfig.json` del proyecto — invisible en `ng build` (no incluye `e2e/`) y en `npx playwright test --list` (transform propio, no pasa por `tsc`), solo visible ejecutando `tsc` directamente. Cambio puramente mecánico: `process.env.VARIABLE` → `process.env['VARIABLE']` en las 17 líneas, mismo valor en runtime. **Verificado en este entorno**: `npx tsc --noEmit` → 17 errores `TS4111` antes, 0 después; `npx playwright test --list` → 22/22 en 10 ficheros, idéntico antes/después; `ng build --configuration production` limpio, mismos warnings preexistentes; `npm ci` → 15 vulnerabilidades (0 críticas), sin cambios desde AGT-007. **No se pudo verificar en este entorno**: ejecutar los 22 specs contra un backend real. Detalle completo en `AGENT_TASKS.md` (AGT-008, estado `REVIEW`).
 - [x] **Ruta `/r/gestion-promos` del restaurante: formulario muerto que siempre fallaría con 403 (AGT-009)** — 2026-10-11: sin ninguna tarea `TODO` en `AGT-xxx` (AGT-003/004/005/006/007/008 ya en `REVIEW`) y sin hallazgo nuevo en `npm audit`/`mvn test` (mismos 15/0 y 73/74 de siempre), se retomó el mismo criterio que FID-021/AGT-008: un hueco ya señalado por el propio código. El comentario de `dashboard.component.ts` (`cargarPromocionesDashboard`) documentaba que `RestaurantService` apunta por error a `/api/recompensas` (que exige `ROLE_USER`/`ROLE_ADMIN` en `SecurityConfig`, nunca `ROLE_RESTAURANT`) y que ya se había migrado ese punto al endpoint correcto — pero quedó sin tocar el único consumidor que seguía usando `RestaurantService`: `GestionPromosComponent`, enrutado en `restaurant.routes.ts` como `/r/gestion-promos` pero sin ningún `routerLink`/navegación real hacia él en toda la app (confirmado por `grep`). Es decir: ni alcanzable desde la UI, ni funcional si se alcanzara a mano (403 garantizado). Quitada la entrada de la ruta (cambio permitido automáticamente). **Bloqueo**: borrar los ficheros ya huérfanos (`gestion-promos/*`, `restaurant.service.ts`) lo bloqueó el clasificador de modo automático de esta sesión ("Irreversible Local Destruction"), coincidiendo con la regla de `AGENTS.md` de que borrar archivos necesita aprobación humana — queda ese `git rm` para una persona, ya confirmado sin otros usos. **Verificado en este entorno**: `npx tsc --noEmit` sin errores; `ng build --configuration production` limpio, mismos warnings preexistentes; `npx playwright test --list` → 22/22 en 10 ficheros, idéntico antes/después (ningún spec tocaba esta ruta). **No se pudo verificar en este entorno**: abrir `/r/gestion-promos` en un navegador real antes/después para confirmar en vivo que el 403 desaparece junto con la ruta. Detalle completo en `AGENT_TASKS.md` (AGT-009, estado `REVIEW`).
+- [x] **Sincronizar `.agent/tasks.md` con `AGENT_TASKS.md` (AGT-010)** — 2026-10-12: al llegar a `agent/fidelyfood-autonomous`, `main` llevaba un commit nuevo sin auditar (#52, "oficina de agentes, seguridad y pruebas": `access-center/approvals-routes.mjs`, `agent/src/lib/ui-unlock.mjs` y `agent/src/llm/claude-code.mjs` nuevos, más un cambio real de `AuthController.java`) — `git merge origin/main` antes de nada. El merge chocó en `AGENT_TASKS.md`/`SECURITY.md`: `main` ya había asignado AGT-007/008/009/010 (Aiven, quitar la contraseña de admin por defecto, fusión del PR #43, y esta misma sincronización) a trabajo distinto del que esta rama venía numerando con los mismos IDs (Capacitor, `TS4111`, `gestion-promos`) en sesiones que partieron de un `main` más antiguo. Resuelto renumerando las tres tareas de esta rama a AGT-011/012/013 (mismo criterio que FID-020/FID-021), sin perder ninguna — ver la nota de renumeración en `AGENT_TASKS.md`. Auditado primero el código nuevo más sensible de ese commit (igual que FID-022/AGT-011 con el Agent Layer): `approvals-routes.mjs` (autorización de aprobar/denegar: sesión por cookie HttpOnly+SameSite=Strict solo obtenible con un código de un solo uso generado en terminal, CSRF por sesión, Host/Origin exactos) y `ui-unlock.mjs` (código de 16 caracteres/~79 bits, solo se guarda su hash, un solo uso, bloqueo tras 5 fallos) — ambos ya con comparaciones en tiempo constante (`crypto.timingSafeEqual` sobre hashes de longitud fija) y cobertura de test propia (`approvals-routes.test.mjs`); `claude-code.mjs` (proveedor que delega el bucle en `claude -p`) ya quita las variables de entorno que harían facturar a la API salvo opt-in explícito y aborta si detecta que Claude Code no usa la suscripción. Nada nuevo que corregir. Repetido también el primer paso habitual (`npm audit`/`mvn test`/`npm --prefix agent test`): sin hallazgo nuevo, mismo estado que las últimas sesiones. Con eso, se pasó a la única tarea `TODO` real del backlog, AGT-010: reescrita la sección "Pendiente" de este archivo para que solo resuma y remita a los `AGT-xxx` de `AGENT_TASKS.md` (antes repetía el detalle completo de cada tarea, con tres IDs ya desfasados por la renumeración de arriba) y para que recoja las cuatro tareas nuevas que `main` ya tenía (AGT-007 TODO, AGT-008/009 REVIEW). **Verificado en este entorno**: `mvn test` → 78/79 (solo falla `contextLoads`, necesita MySQL real, mismo fallo de siempre); `npm --prefix agent test` → 87 passed/18 skipped/0 failed (105 tests, igual que documenta `CLAUDE.md`); `npm ci` (frontend) → 15 vulnerabilidades (0 críticas, sin cambios); `npx tsc --noEmit` sin errores; `ng build --configuration production` limpio, mismos warnings preexistentes; `npx playwright test --list` → 22/22 en 10 ficheros. **No se pudo verificar en este entorno**: ejecutar `npm --prefix agent run approve -- ui-code` de verdad (exige una terminal interactiva humana) para probar el flujo de desbloqueo end-to-end; el audit de `approvals-routes.mjs`/`ui-unlock.mjs` se apoya en lectura de código + su propia suite de tests, no en una sesión real de la Oficina de Agentes. Detalle completo en `AGENT_TASKS.md` (AGT-010, estado `REVIEW`).
 
-## Pendiente (por prioridad) — actualizado 2026-10-11
+## Pendiente (por prioridad) — actualizado 2026-10-12
 
-Hecho desde la última versión de esta lista: la ruta muerta `/r/gestion-promos` (formulario huérfano que
-siempre habría fallado con 403 por apuntar a `/api/recompensas` en vez de `/api/promociones`) ya no está
-registrada en el router (AGT-009) — ver cierre arriba y en `AGENT_TASKS.md`. **Pendiente de una persona**:
-`git rm -r frontend/src/app/features/restaurant-app/gestion-promos frontend/src/app/core/services/restaurant.service.ts`
-(ambos ficheros ya confirmados sin otro uso; el borrado en sí lo bloqueó el modo automático de esta sesión).
-Con esto, el backlog `AGT-xxx` sigue sin ninguna tarea `TODO` pendiente de trabajo nuevo: todo lo que queda
-espera solo a que una persona revise y cierre, borre esos dos ficheros, o a un entorno con
-backend/MySQL/navegador reales.
+**Fuente de verdad del backlog técnico: el bloque `AGT-xxx` de `AGENT_TASKS.md`** (estado, dependencias,
+criterios de aceptación, verificación real y lo que falta por verificar de cada tarea). Esta lista solo
+resume y apunta — no repite el detalle para no desincronizarse (AGT-010). Comprobar siempre el ID y el
+estado en `AGENT_TASKS.md`, nunca aquí.
 
-1. **Producción se cayó ~45h (27→29 sep) por el plan free de Aiven**, que apaga la base de datos sola por
-   inactividad (no era un fallo de Render) — ver `discoveries.md`. Pendiente decidir si merece la pena
-   pagar el plan mínimo de Aiven para que no vuelva a pasar antes de una demo o entrega del TFG.
-2. **AGT-007** (P1, maintenance) · `REVIEW` desde 2026-10-08: 2 vulnerabilidades críticas de producción en
-   `@capacitor/android`/`@capacitor/ios` corregidas (actualización de dependencia, sin salto de versión
-   mayor). Falta que una persona la pase a `DONE`.
-3. **AGT-005** (P1, deployment) · `REVIEW`: fotos repuestas. Falta que una persona compruebe que siguen
-   tras un redeploy de Render y revise las portadas de Alabroster y Venezuela Food.
-4. **AGT-006** (P1, testing) · `REVIEW` desde 2026-10-02 (16/16 E2E); solo falta que una persona la pase a `DONE`.
-5. **AGT-003** (P2, testing) · `REVIEW` desde 2026-10-08: specs nuevos de detalle de restaurante
-   (cliente), actividad (restaurante) y listado de negocios (admin) — listados y con build limpio, sin
-   ejecutar contra un backend real (sin MySQL en este sandbox). Falta revisión humana y, si hay un entorno
-   con servicios reales, ejecutarlos de verdad.
-6. **AGT-004** (P3, frontend) · `REVIEW` desde 2026-10-09: dos fixes de CSS complementarios (grid blowout
-   del formulario + ellipsis del select), de dos sesiones concurrentes, verificados con Chromium real
-   (Playwright) contra un arnés aislado con los Web Components reales de Ionic (0 desbordamientos y texto
-   completo en 2 líneas a 320/375px). Falta revisión humana y, si hay un entorno con backend real,
-   confirmar en la pantalla completa de la app (login + "+").
-7. **AGT-008** (P3, testing) · `REVIEW` desde 2026-10-10: `npx tsc --noEmit` limpio en todo el proyecto
-   (antes 17 errores `TS4111` en `frontend/e2e/`), cambio puramente sintáctico sin tocar runtime. Falta
-   que una persona la pase a `DONE`.
-8. **AGT-009** (P3, frontend) · `REVIEW` desde 2026-10-11: ruta muerta `/r/gestion-promos` quitada del
-   router (formulario huérfano, sin ningún enlace real en la app, que además siempre habría fallado con
-   403 por apuntar al endpoint equivocado). Falta que una persona borre los dos ficheros ya huérfanos
-   (`git rm -r frontend/src/app/features/restaurant-app/gestion-promos
-   frontend/src/app/core/services/restaurant.service.ts` — el borrado en sí lo bloqueó el modo automático
-   de esta sesión) y la pase a `DONE`.
-9. **Inestabilidad del alias de dominio de Vercel**: fusionar a `main` no siempre promueve el nuevo
-   despliegue a "Production" en `fidelyfoodapp.vercel.app` — comprobar la pestaña "Deployments" tras cada
-   fusión que toque frontend.
-10. Secretos de producción (`APP_JWT_SECRET`, `DB_PASSWORD`) vistos en capturas de la consola de Render:
-    rotarlos si alguna captura salió del equipo.
-11. **`npm ci` en el frontend sigue con 15 vulnerabilidades (0 críticas)** tras AGT-007 (bajó de las 22, 3
-    críticas, detectadas al preparar AGT-003) — las restantes son las mismas de la cadena de build ya
-    diferidas en FID-019/FID-020 (requieren Angular 21). Sin decisión nueva.
+**Único trabajo nuevo pendiente** (ninguna otra tarea `AGT-xxx` está en `TODO`):
+- **AGT-007** (P1, database) · `TODO` — decidir si pagar el plan mínimo de Aiven o aceptar que la BD
+  gratuita se apague por inactividad (causó ~45h de caída 27→29 sep, ver `discoveries.md`); requiere una
+  decisión humana, no una sesión autónoma.
+- **AGT-010** (P2, memory) · `REVIEW` desde 2026-10-12 — esta misma sincronización.
+
+**Todo lo demás espera solo a que una persona revise y cierre a `DONE`** (o, donde se indica, una acción
+humana puntual), sin ningún trabajo nuevo que hacer en el código:
+- **AGT-001** (P2, frontend) · `REVIEW` — dashboard del restaurante pedía los datos dos veces.
+- **AGT-002** (P1, backend) · `REVIEW` — `POST /api/canjes` (canje de promociones CANJEAR).
+- **AGT-003** (P2, testing) · `REVIEW` — 3 specs E2E nuevos (detalle de restaurante, actividad, admin).
+- **AGT-004** (P3, frontend) · `REVIEW` — modal "Crear Promoción" cortaba texto a 320/375px.
+- **AGT-005** (P1, deployment) · `REVIEW` — fotos repuestas; falta comprobar que siguen tras un redeploy
+  de Render y revisar las portadas de Alabroster/Venezuela Food.
+- **AGT-006** (P1, testing) · `REVIEW` — navegador de Playwright instalado (16/16 E2E en verde).
+- **AGT-008** (P1, security) · `REVIEW` — sin contraseña de admin por defecto en `AuthController`
+  (commit `3b912c6`); el fallback que quedaba en `access-center/server.js` ya no existe (verificado en
+  esta sesión, `ADMIN_PASSWORD = process.env.FIDELYFOOD_ADMIN_PASSWORD || null`).
+- **AGT-009** (P1, git) · `REVIEW` — PR #43 (AGT-001/AGT-002) ya fusionado a `main`; falta comprobar en
+  Vercel → Deployments que el despliegue nuevo está en "Production".
+- **AGT-011** (P1, maintenance) · `REVIEW` — vulnerabilidad crítica de `@capacitor/*` corregida
+  (renumerada desde AGT-007 al fusionar con este trabajo — ver nota en `AGENT_TASKS.md`).
+- **AGT-012** (P3, testing) · `REVIEW` — `TS4111` de `tsc` en `frontend/e2e/` corregido (renumerada desde
+  AGT-008).
+- **AGT-013** (P3, frontend) · `REVIEW` — ruta muerta `/r/gestion-promos` quitada del router (renumerada
+  desde AGT-009). **Pendiente de una persona**: `git rm -r
+  frontend/src/app/features/restaurant-app/gestion-promos
+  frontend/src/app/core/services/restaurant.service.ts` (ambos ficheros confirmados sin otro uso; el
+  borrado en sí lo bloqueó el modo automático de la sesión que encontró esto).
+
+**Pendientes sin tarea `AGT-xxx` propia** (no son trabajo de código, o ya se decidió no abrirlas como tal):
+- Inestabilidad del alias de dominio de Vercel: fusionar a `main` no siempre promueve el nuevo despliegue
+  a "Production" en `fidelyfoodapp.vercel.app` — comprobar la pestaña "Deployments" tras cada fusión que
+  toque frontend.
+- Secretos de producción (`APP_JWT_SECRET`, `DB_PASSWORD`) vistos en capturas de la consola de Render:
+  rotarlos si alguna captura salió del equipo.
+- `npm ci` en el frontend sigue con 15 vulnerabilidades (0 críticas) tras AGT-011/AGT-012 — las restantes
+  son la misma cadena de build ya diferida en FID-019/FID-020 (requieren Angular 21). Sin decisión nueva;
+  confirmado sin cambios en esta sesión (2026-10-12).
 
 ## Agente autónomo (Fase 7) — ACTIVADO
 2026-09-24: rutina en la nube "FidelyFood - Backlog técnico diario" creada vía `/schedule` (routine `trig_014dcQmXWEEMPUshiQqN5XVU`), diaria a las 09:00 hora de Zurich (07:00 UTC). Corre en un sandbox aislado en la nube (no en el worktree local), trabaja siempre en su propia rama `agent/fidelyfood-autonomous` sobre `montaggionii/TFG-`, sigue las reglas de `.claude/agents/fidelyfood-qa-security.md`, y tiene prohibido explícitamente fusionar a `main` por sí sola — solo deja Pull Requests listos para revisión humana. Panel: https://claude.ai/code/routines/trig_014dcQmXWEEMPUshiQqN5XVU
