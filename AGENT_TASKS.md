@@ -45,15 +45,10 @@ Eventos que crean tareas: `npm --prefix agent run event -- issue <n>` (issue de 
 - **Criterios de aceptación:** Un cliente autenticado puede canjear una promocion CANJEAR de un restaurante: se valida saldo suficiente, se descuentan los puntos, se registra el MovimientoPuntos (tipo CANJEADOS) y el Canje; saldo insuficiente → 400; un cliente no puede canjear a nombre de otro (ownership por JWT); documentado en API.md.
 - **Tests necesarios:** Tests unitarios Mockito del servicio (saldo suficiente/insuficiente, ownership) + E2E del flujo de canje + prueba manual con call_api
 - **Resultado:** Resuelta 2026-10-04 (rutina en la nube). Investigación previa (agente de exploración) confirmó los dos hechos clave de la descripción: `PromocionService.canjearPromocion` (frontend) ya llama a `POST /api/canjes {usuarioId, promocionId}` desde al menos dos pantallas (`restaurante-detalle-page`, `recompensas.component.ts`, que a pesar de su nombre usa este servicio y no `RecompensaService`), y `Canje.java` ya existía pero como placeholder vacío sin anotaciones JPA ni DAO/Service/Controller.
-
   **Decisión de diseño que se desvía del literal de la descripción** ("saldo suficiente en ese restaurante"): existe una tabla/entidad `UsuarioRestaurantePuntos` que sugeriría saldo por restaurante, pero auditado el código real (`grep` de sus usos) solo la leen dos clases de depuración (`scratch/DataIntegrityChecker.java`, `scratch/PointsDebugger.java`) — ningún flujo de producción escribe en ella. Tanto `CompraService.registrarCompra` como `PromocionService.aplicarPromocion` y `RecompensaService.canjearRecompensa` (el único mecanismo de canje que ya funciona hoy) usan un saldo **global** en `Usuario.puntos`. Implementar el canje de promociones con saldo por restaurante habría sido inconsistente con el resto de la app y un cambio de arquitectura no pedido por esta tarea, así que `canjearPromocion` sigue el mismo patrón global ya usado por `canjearRecompensa`, solo que sobre una `Promocion` de tipo `CANJEAR` en vez de una `Recompensa`. Señalado aquí explícitamente para que el usuario lo revise: si el proyecto sí quiere puntos por restaurante, haría falta una tarea aparte que migre los tres flujos (compra/aplicar/canjear) a la vez, no solo este.
-
   **Backend**: `Canje` ahora es una entidad JPA real (`usuario`, `promocion`, `puntosGastados`, `fecha`) con `CanjeDAO`. `PromocionService.canjearPromocion(Long promocionId, String emailUsuario)` — nunca recibe un `usuarioId` del body, solo el email del JWT (como `RecompensaController.canjear`): busca el usuario por email, la promoción por id, exige `tipo == "CANJEAR"` (`BadRequestException` si no), exige saldo suficiente (`BadRequestException` si no), resta los puntos, registra `MovimientoPuntos` (`tipo=CANJEADOS`, con el restaurante de la promoción) y guarda el `Canje`. Nuevo `CanjeController` en `POST /api/canjes`, acepta `{usuarioId, promocionId}` (el campo `usuarioId` se documenta como ignorado, se mantiene solo para no romper la deserialización del payload que ya manda el frontend). `SecurityConfig` restringe `POST /api/canjes` a `ROLE_USER` (mismo criterio que `POST /api/recompensas/*/canjear`).
-
   **Frontend**: el mismatch `puntosNecesarios` vs `puntosOtorgados` (ya resuelto a mano con un comentario explicativo en `mis-promociones.component.ts`, pero no en `home.component.ts`, `recompensas.component.ts` ni `restaurante-detalle-page.component.ts`) se corrigió una sola vez en `PromocionService.getPromociones()`/`getPromocionesByRestaurante()`: ambos métodos ahora mapean la respuesta añadiendo `puntosNecesarios: p.puntosNecesarios ?? p.puntosOtorgados` antes de devolverla, así que ningún componente que lea `promo.puntosNecesarios` recibe `undefined`. No se tocó el mapeo manual ya existente en `mis-promociones.component.ts` (queda redundante pero inocuo).
-
   **Tests unitarios (Mockito, sin BD)**: 6 tests nuevos en `PromocionServiceTest` — usuario inexistente → `ResourceNotFoundException` sin tocar nada; promoción inexistente → igual; promoción de tipo `GANAR` (no `CANJEAR`) → `BadRequestException`; puntos insuficientes → `BadRequestException` sin restar ni guardar; canje con saldo exacto → resta los puntos correctos, registra el `MovimientoPuntos` y el `Canje` esperados; y un test de regresión de seguridad explícito que prueba que un `usuarioId` distinto del autenticado en el body nunca se usa (el saldo que baja es siempre el del email del JWT).
-
   **Verificación real en este entorno** (sin MySQL/backend/frontend real disponibles, igual que en sesiones anteriores de esta rutina):
   - `mvn compile` → éxito.
   - `mvn test -Dtest=PromocionServiceTest` → **19/19 passed** (13 ya existentes + 6 nuevos).
@@ -63,7 +58,6 @@ Eventos que crean tareas: `npm --prefix agent run event -- issue <n>` (issue de 
   - `npm audit --omit=dev` (frontend) → 0 vulnerabilidades (sin cambios).
   - `npx playwright test --list` → 19/19 tests de toda la suite se registran sin errores de sintaxis/tipos, incluidos los 2 nuevos de `canje-promocion.spec.ts`.
   - `npm --prefix agent run docs` → `API.md` regenerado automáticamente (71 → 72 endpoints), documenta `POST /api/canjes` con acceso `ROLE_USER`.
-
   **No se pudo verificar en este entorno** (requeriría backend/frontend/MySQL reales, no disponibles en este sandbox en la nube): la ejecución real de `canje-promocion.spec.ts` contra un backend vivo (gana puntos con una compra real, canjea, comprueba el saldo) — el spec está escrito y listado, pero no ejecutado; tampoco la prueba manual con `call_api` que pedían los criterios de aceptación. Queda para una sesión con esos servicios disponibles o para revisión humana local. Nota para quien lo ejecute: el primer test de `canje-promocion.spec.ts` usa un delta de puntos (no un valor absoluto) precisamente porque la cuenta E2E del cliente se comparte con el resto de la suite — si Playwright corre los ficheros en paralelo (no forzado a `workers: 1` en `playwright.config.ts`), dos specs podrían mutar el saldo de la misma cuenta a la vez; no se ha tocado `playwright.config.ts` para no ampliar el alcance de esta tarea, pero es una fragilidad preexistente de toda la suite, no solo de este spec nuevo.
 
 ### AGT-003 · Cobertura E2E de flujos sin spec: cliente (restaurantes/promociones) y panel admin
@@ -146,8 +140,15 @@ Eventos que crean tareas: `npm --prefix agent run event -- issue <n>` (issue de 
 - **Tests necesarios:** run_e2e_tests suite all
 - **Resultado:** Navegador instalado el 2026-10-02 con aprobacion del usuario (npx playwright install chromium). run_e2e_tests suite all: 16/16 en verde. Pendiente de cierre humano.
 
-### AGT-007 · Vulnerabilidad crítica en `@capacitor/android`/`@capacitor/ios` (dependencia de producción)
-- **ID:** AGT-007
+**Nota de renumeración (2026-10-12, al fusionar `origin/main`)**: estas tres tareas (sobre Capacitor, `TS4111`
+de `tsc` y la ruta muerta `gestion-promos`) se identificaron en sesiones de esta rutina en la nube que
+partían de un `main` más antiguo y las numeraron AGT-007/008/009; mientras tanto, otro trabajo fusionado
+directamente a `main` ya había asignado esos mismos IDs a tres tareas distintas (Aiven, contraseña de admin
+por defecto, fusión del PR #43). Para no chocar, se renumeran aquí a AGT-011/012/013 (mismo criterio ya usado
+para FID-020/FID-021) — el contenido y las verificaciones ya hechas no cambian, solo el ID.
+
+### AGT-011 · Vulnerabilidad crítica en `@capacitor/android`/`@capacitor/ios` (dependencia de producción)
+- **ID:** AGT-011
 - **Descripción:** `npm audit --omit=dev` detectó 2 vulnerabilidades críticas nuevas ([GHSA-rvm3-566m-v7fv](https://github.com/advisories/GHSA-rvm3-566m-v7fv)) en `@capacitor/android`/`@capacitor/ios` 8.3.1 (rango afectado 8.0.0–8.3.4): contenido remoto puede cargarse con el origen interno de la app vía la ruta del proxy HTTP interno de Capacitor, usado por el empaquetado móvil nativo (`frontend/android/`, `frontend/ios/`). A diferencia de hallazgos previos de `npm audit` (FID-020, siempre dependencias de build), esta es la primera vulnerabilidad real en dependencias de **producción** encontrada por esta rutina.
 - **Prioridad:** P1
 - **Área:** maintenance
@@ -162,8 +163,8 @@ Eventos que crean tareas: `npm --prefix agent run event -- issue <n>` (issue de 
 
   **No se pudo verificar en este entorno** (requeriría compilar y ejecutar el APK/IPA real en un emulador/dispositivo, no disponible en este sandbox): el comportamiento del WebView nativo tras el parche — la actualización es la recomendada por el propio advisory de Capacitor, no un cambio de código de la app. Tampoco se pudo ejecutar la suite E2E contra un backend/frontend real (como en todas las sesiones anteriores de esta rutina).
 
-### AGT-008 · `npx tsc --noEmit` falla con TS4111 en toda la suite E2E (`process.env.X` sin notación de corchetes)
-- **ID:** AGT-008
+### AGT-012 · `npx tsc --noEmit` falla con TS4111 en toda la suite E2E (`process.env.X` sin notación de corchetes)
+- **ID:** AGT-012
 - **Descripción:** Ya señalado como hallazgo aparte, no accionado, al cerrar AGT-003 (2026-10-08): `npx tsc --noEmit` sobre `frontend/` reporta `TS4111` ("Property '...' comes from an index signature...") en los 11 ficheros de `frontend/e2e/` que leen una variable de `process.env` (`E2E_API_URL`, `APP_SEED_RESTAURANT_PASSWORD`, `FIDELYFOOD_ADMIN_PASSWORD`), por `noPropertyAccessFromIndexSignature: true` en `tsconfig.json`. No bloquea `ng build` (producción no incluye `e2e/`) ni `npx playwright test --list` (transform propio de Playwright, no pasa por `tsc` del proyecto), así que no se había detectado en las verificaciones de sesiones anteriores — solo aparece si se ejecuta `tsc` directamente sobre todo el proyecto.
 - **Prioridad:** P3
 - **Área:** testing
@@ -176,8 +177,8 @@ Eventos que crean tareas: `npm --prefix agent run event -- issue <n>` (issue de 
 - **Verificación real en este entorno** (sin MySQL/backend/frontend real disponibles, igual que todas las sesiones anteriores de esta rutina): `npm ci` limpio (15 vulnerabilidades, 0 críticas — mismo estado que dejó AGT-007, sin cambios nuevos); `npx tsc --noEmit` → **17 errores `TS4111` antes, 0 después**; `npx playwright test --list` → sigue en 22/22 tests en 10 ficheros, idéntico antes y después (cambio no afecta a qué tests se registran); `npx ng build --configuration production` → build limpio, mismos warnings preexistentes (Sass `@import`, presupuesto de 2 componentes, `qrcode` no-ESM) sin errores nuevos. Diff revisado a mano: 17 inserciones / 17 borrados, una línea por ocurrencia, sin ningún otro cambio.
 - **No se pudo verificar en este entorno** (requeriría backend/frontend/MySQL reales): ejecutar de verdad los 22 specs E2E contra un backend vivo para confirmar que leen la misma variable de entorno en runtime — el cambio es sintáctico sobre un acceso a `process.env` ya cubierto por los tests unitarios de TypeScript (`tsc`) sin necesitar ejecución real, y no cambia qué clave se lee ni su valor.
 
-### AGT-009 · Ruta `/r/gestion-promos` del restaurante: formulario muerto que siempre falla con 403
-- **ID:** AGT-009
+### AGT-013 · Ruta `/r/gestion-promos` del restaurante: formulario muerto que siempre falla con 403
+- **ID:** AGT-013
 - **Descripción:** `restaurant.routes.ts` seguía exponiendo la ruta `gestion-promos` (`GestionPromosComponent`), pero ningún `routerLink`/`router.navigate`/menú de la app enlaza a ella — solo era alcanzable escribiendo la URL a mano. Además, aunque se alcanzara, el formulario nunca podía funcionar: usa `RestaurantService.crearPromocion()`, que llama a `POST /api/recompensas` (el catch-all de `SecurityConfig` exige `ROLE_ADMIN` en esa ruta), mientras que quien navega a `/r/*` autentica como `ROLE_RESTAURANT` — la petición siempre habría devuelto 403. El propio comentario ya dejado en `dashboard.component.ts` (`cargarPromocionesDashboard`) documentaba el mismo problema de `RestaurantService` apuntando a `/api/recompensas` por error, y ya había migrado ese único otro punto de uso al endpoint correcto (`PromocionService` → `/api/promociones`, usado por `FormPromocionComponent`, el modal real de "Mis Promociones" que sí funciona) — pero nadie llegó a borrar ni la ruta ni el componente huérfano que quedó.
 - **Prioridad:** P3
 - **Área:** frontend
@@ -190,6 +191,53 @@ Eventos que crean tareas: `npm --prefix agent run event -- issue <n>` (issue de 
   - **Bloqueo de esta sesión**: el borrado de los ficheros huérfanos (`gestion-promos/*`, `restaurant.service.ts`) lo bloqueó el propio clasificador de modo automático de esta sesión ("Irreversible Local Destruction") — coincide además con la regla de `AGENTS.md` de que borrar archivos requiere aprobación humana. Se dejó solo el cambio permitido automáticamente: quitar la entrada de la ruta en `restaurant.routes.ts`, que ya hace inalcanzable el formulario roto (antes solo era inalcanzable desde la UI, pero seguía registrado en el router). **Queda para una persona**: borrar `frontend/src/app/features/restaurant-app/gestion-promos/` y `frontend/src/app/core/services/restaurant.service.ts` (`git rm` de ambos) — confirmado sin otros usos, el build y la suite ya pasan igual con la ruta quitada.
   - **Verificación real en este entorno**: `npx tsc --noEmit` → sin errores, igual que antes. `ng build --configuration production` → build limpio, mismos warnings preexistentes (Sass `@import`, presupuesto de `admin-clients`/`restaurante-detalle-page`, `qrcode` no-ESM), sin errores nuevos. `npx playwright test --list` → sigue en 22/22 tests en 10 ficheros, idéntico antes y después (ningún spec tocaba `gestion-promos`).
   - **No se pudo verificar en este entorno** (requeriría backend/frontend reales): navegar de verdad a `/r/gestion-promos` antes/después del cambio para confirmar en un navegador real que la petición 403 desaparece junto con la ruta — el razonamiento se apoya en la lectura directa de `SecurityConfig.java` (`GET`/catch-all de `/api/recompensas/**` exige `ROLE_USER`/`ROLE_ADMIN`, nunca `ROLE_RESTAURANT`) y en el comentario ya existente en `dashboard.component.ts`, no en una petición real contra un backend vivo.
+### AGT-007 · Evitar que Aiven apague la base de datos gratuita por inactividad
+- **ID:** AGT-007
+- **Descripción:** El plan gratuito de MySQL en Aiven se apaga solo por inactividad y retira el DNS del host: produccion estuvo caida ~45h (27-29 sep, ver .agent/discoveries.md). Hay que decidir entre pagar el plan minimo de Aiven o mantener la base activa, y dejar documentado el procedimiento de recuperacion.
+- **Prioridad:** P1
+- **Área:** database
+- **Estado:** TODO
+- **Dependencias:** —
+- **Archivos afectados:** DEPLOYMENT.md, DATABASE.md
+- **Criterios de aceptación:** Decision humana registrada en decisions.md (pagar el plan minimo o aceptar el riesgo); si se acepta el riesgo, DEPLOYMENT.md explica como comprobar en console.aiven.io el estado Powered off y como reencenderla. No se cambia ninguna credencial ni se toca produccion sin aprobacion.
+- **Tests necesarios:** Prueba manual: login real contra produccion con password incorrecta devuelve 'Credenciales incorrectas' (no error de conexion).
+- **Resultado:** —
+
+### AGT-008 · Quitar la contrasena de admin por defecto del codigo de AuthController
+- **ID:** AGT-008
+- **Descripción:** AuthController.java inyecta fidelyfood.admin.password con valor por defecto 'admin123'. En produccion ya se sobreescribe con FIDELYFOOD_ADMIN_PASSWORD, pero si la variable faltara el login de admin aceptaria la contrasena publica del repositorio.
+- **Prioridad:** P1
+- **Área:** security
+- **Estado:** REVIEW
+- **Dependencias:** —
+- **Archivos afectados:** src/main/java/progresa/springboot_tfg/controller/AuthController.java, SECURITY.md
+- **Criterios de aceptación:** Sin valor por defecto: si la variable no esta definida el backend arranca sin cuenta admin utilizable (o falla al arrancar en el perfil de produccion) y lo documenta SECURITY.md. El login de admin con la variable definida sigue funcionando; los tests existentes pasan.
+- **Tests necesarios:** Test unitario Mockito de AuthController (sin variable / con variable) + E2E de login admin.
+- **Resultado:** Commit 3b912c6. AuthController sin valor por defecto; si FIDELYFOOD_ADMIN_PASSWORD no esta definida el login admin queda deshabilitado (WARN en log) y la comparacion es en tiempo constante. Tests: AuthControllerAdminLoginTest (5) y suite backend 66/66 OK. E2E de login actualizado (sin contraseña hardcodeada) pero NO ejecutado en esta sesion. Docs: SECURITY.md y CREDENTIALS-CENTER.md. Pendiente: access-center/server.js aun tiene un fallback de contraseña admin.
+
+### AGT-009 · Revisar y fusionar el PR #43 del agente (AGT-001 y AGT-002)
+- **ID:** AGT-009
+- **Descripción:** El PR #43 (rama agent/fidelyfood-autonomous) lleva el arreglo del dashboard que cargaba datos dos veces (AGT-001) y el canje real de promociones CANJEAR (AGT-002), con el CI en verde. Falta la revision humana y la fusion a main; el agente no fusiona por si solo.
+- **Prioridad:** P1
+- **Área:** git
+- **Estado:** REVIEW
+- **Dependencias:** —
+- **Archivos afectados:** AGENT_TASKS.md
+- **Criterios de aceptación:** PR revisado por una persona, CI verde en el ultimo commit, fusionado a main sin conflictos; despues se comprueba en Vercel > Deployments que el despliegue nuevo esta en Production.
+- **Tests necesarios:** CI de GitHub Actions (backend con MySQL efimero + build del frontend).
+- **Resultado:** PR #43 fusionado a main (squash, 9e4cf7a) el 2026-10-07 por orden del usuario: CI en verde (backend y frontend), sin conflictos, base = main actual. Pendiente de comprobar en Vercel > Deployments que el despliegue nuevo esta en Production, y de cierre humano.
+
+### AGT-010 · Sincronizar .agent/tasks.md con AGENT_TASKS.md tras fusionar el PR #43
+- **ID:** AGT-010
+- **Descripción:** La lista 'Pendiente (por prioridad)' de .agent/tasks.md y el sistema AGT-xxx de AGENT_TASKS.md describen el mismo trabajo (canje de puntos, modal de 320 px, caida de Aiven) en dos sitios y pueden quedar desfasados.
+- **Prioridad:** P2
+- **Área:** memory
+- **Estado:** TODO
+- **Dependencias:** —
+- **Archivos afectados:** .agent/tasks.md, AGENT_TASKS.md
+- **Criterios de aceptación:** .agent/tasks.md solo resume lo pendiente y remite a los AGT-xxx; ningun pendiente aparece contradictorio entre ambos archivos; memory_add registra el cambio.
+- **Tests necesarios:** npm --prefix agent test (tasks-memory.test.mjs) sigue en verde.
+- **Resultado:** —
 
 <!-- TASKS:END -->
 

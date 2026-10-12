@@ -42,11 +42,11 @@ test.describe('Cliente', () => {
     await authenticateAs(page, session, '/u/historial');
 
     await expect(page).toHaveURL(/\/u\/historial/);
-    // Cuenta E2E recién creada: no tendrá movimientos, así que la carga
-    // correcta termina en el estado vacío real de la página (no en el
-    // ion-refresher, que siempre tiene su propio ion-spinner en el DOM
-    // independientemente del estado de carga).
-    await expect(page.locator('.empty-state')).toBeVisible({ timeout: 10000 });
+    // La cuenta E2E se comparte con otros specs (p. ej. canje-promocion), asi
+    // que puede tener o no movimientos segun el orden de ejecucion. La carga
+    // correcta es que aparezca la lista de movimientos o el estado vacio
+    // real (nunca el spinner indefinido).
+    await expect(page.locator('.empty-state, .history-ion-list').first()).toBeVisible({ timeout: 10000 });
   });
 
   test('perfil carga y logout devuelve a /login', async ({ page, request }) => {

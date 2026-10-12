@@ -5,6 +5,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +17,8 @@ import progresa.springboot_tfg.security.JwtUtil;
 import progresa.springboot_tfg.service.RestauranteService;
 import progresa.springboot_tfg.service.UsuarioService;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.Map;
 
 @RestController
@@ -23,19 +27,26 @@ import java.util.Map;
 @Tag(name = "Auth", description = "Operaciones de autenticación para usuarios y restaurantes")
 public class AuthController {
 
+    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
+
     private final UsuarioService usuarioService;
     private final RestauranteService restauranteService;
     private final JwtUtil jwtUtil;
     private final String adminPassword;
 
+    // Sin valor por defecto: si FIDELYFOOD_ADMIN_PASSWORD no esta definida no existe
+    // cuenta admin utilizable (login-admin devuelve siempre 401).
     public AuthController(UsuarioService usuarioService,
                           RestauranteService restauranteService,
                           JwtUtil jwtUtil,
-                          @Value("${fidelyfood.admin.password:admin123}") String adminPassword) {
+                          @Value("${fidelyfood.admin.password:}") String adminPassword) {
         this.usuarioService = usuarioService;
         this.restauranteService = restauranteService;
         this.jwtUtil = jwtUtil;
-        this.adminPassword = adminPassword;
+        this.adminPassword = adminPassword == null ? "" : adminPassword.trim();
+        if (this.adminPassword.isEmpty()) {
+            log.warn("FIDELYFOOD_ADMIN_PASSWORD no esta definida: el login de administrador queda deshabilitado.");
+        }
     }
 
     // Login del usuario
@@ -76,7 +87,9 @@ public class AuthController {
         String password = loginDTO.getPassword() == null ? "" : loginDTO.getPassword().trim();
         boolean validEmail = "admin@fidelyfood.local".equalsIgnoreCase(email)
                 || "admin@fidelyfood.com".equalsIgnoreCase(email);
-        boolean validPassword = adminPassword.equals(password);
+        boolean validPassword = !adminPassword.isEmpty() && MessageDigest.isEqual(
+                adminPassword.getBytes(StandardCharsets.UTF_8),
+                password.getBytes(StandardCharsets.UTF_8));
 
         if (!validEmail || !validPassword) {
             return ResponseEntity.status(401).body(Map.of("message", "Credenciales de administrador no válidas."));

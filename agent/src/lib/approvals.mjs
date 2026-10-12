@@ -48,7 +48,25 @@ function readLines(file) {
   }
 }
 
-export function listRequests() {
+// Ciclo de vida derivado de una solicitud. Un run con approval_required termina
+// siempre (el proceso del modelo se cierra), y la aprobacion no esta ligada al run
+// sino a la accion exacta: una aprobacion tardia sigue valiendo para un run NUEVO
+// que repita la llamada con approval_id, hasta que caduca. Estados:
+//   pending         esperando decision humana
+//   approved_unused aprobada, vigente y sin usar (relanzar con --approval <id>)
+//   expired         aprobada pero caducada sin usarse (hay que pedir otra)
+//   consumed        aprobada y ya utilizada
+//   denied          denegada
+export function lifecycleOf(r, now = Date.now()) {
+  if (r.status === "pending") return { lifecycle: "pending" };
+  if (r.status !== "approved") return { lifecycle: r.status };
+  const expiresAtMs = Date.parse(r.decidedAt) + policy.limits.approvalTtlMinutes * 60000;
+  const expiresAt = new Date(expiresAtMs).toISOString();
+  if (r.consumed) return { lifecycle: "consumed", expiresAt };
+  return { lifecycle: now > expiresAtMs ? "expired" : "approved_unused", expiresAt };
+}
+
+export function listRequests(now = Date.now()) {
   const lines = readLines(FILE());
   const requests = new Map();
   for (const l of lines) {
@@ -63,7 +81,10 @@ export function listRequests() {
     }
   }
   const consumed = new Set(readLines(CONSUMED()).map((c) => c.id));
-  for (const r of requests.values()) if (consumed.has(r.id)) r.consumed = true;
+  for (const r of requests.values()) {
+    if (consumed.has(r.id)) r.consumed = true;
+    Object.assign(r, lifecycleOf(r, now));
+  }
   return [...requests.values()];
 }
 
@@ -81,11 +102,20 @@ export function requestApproval({ tool, args, reason, runId }) {
 export function decide(id, decision) {
   const req = listRequests().find((r) => r.id === id);
   if (!req) throw new Error(`No existe la solicitud ${id}`);
+  if (decision !== "approved" && decision !== "denied") throw new Error(`Decision invalida: ${decision}`);
+  // Solo se decide una solicitud pendiente. Sin esto, re-aprobar una caducada renovaria
+  // su decidedAt (la ultima decision manda) y una denegada podria volver a aprobarse.
+  if (req.lifecycle !== "pending") {
+    const err = new Error(`La solicitud ${id} no esta pendiente (estado: ${req.lifecycle})`);
+    err.code = "NOT_PENDING";
+    err.lifecycle = req.lifecycle;
+    throw err;
+  }
   const key = loadKey({ create: true });
   const decidedAt = new Date().toISOString();
   const sig = sign(key, id, req.fingerprint, decision, decidedAt);
   fs.appendFileSync(FILE(), `${JSON.stringify({ type: "decision", id, fingerprint: req.fingerprint, decision, decidedAt, sig })}\n`);
-  return { ...req, status: decision, decidedAt };
+  return { ...req, status: decision, decidedAt, ...lifecycleOf({ ...req, status: decision, decidedAt }) };
 }
 
 // Verifica una aprobacion para (tool, args). Es de un solo uso y caduca.

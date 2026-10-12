@@ -5,6 +5,11 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { execFile } from "child_process";
 import fs from "fs";
+import { registerApprovalRoutes } from "./approvals-routes.mjs";
+import { runAgent } from "../agent/src/runner/run.mjs";
+import { createProvider } from "../agent/src/llm/providers.mjs";
+import { createContext } from "../agent/src/tools/registry.mjs";
+import { loadRoster, getAgent, routeByArea } from "../agent/src/lib/roster.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_PATH = path.join(__dirname, "..");
@@ -29,7 +34,7 @@ const FRONTEND_URL = "http://localhost:8100";
 // Para cualquier otra cuenta, la contraseña real está hasheada con BCrypt en
 // la base de datos y NO es recuperable — se marca explícitamente como tal.
 const ADMIN_EMAIL = process.env.FIDELYFOOD_ADMIN_EMAIL || "admin@fidelyfood.local";
-const ADMIN_PASSWORD = process.env.FIDELYFOOD_ADMIN_PASSWORD || "admin123"; // default real en AuthController.java
+const ADMIN_PASSWORD = process.env.FIDELYFOOD_ADMIN_PASSWORD || null; // el backend ya no tiene contraseña por defecto
 const SEED_RESTAURANT_PASSWORD = process.env.APP_SEED_RESTAURANT_PASSWORD || null;
 
 const SEEDED_RESTAURANT_EMAILS = new Set([
@@ -40,7 +45,9 @@ const SEEDED_RESTAURANT_EMAILS = new Set([
 
 function knownPasswordFor(email, role) {
   if (role === "ADMIN" && email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-    return { password: ADMIN_PASSWORD, origen: "Valor por defecto en AuthController.java (fidelyfood.admin.password)" };
+    return ADMIN_PASSWORD
+      ? { password: ADMIN_PASSWORD, origen: "Variable de entorno FIDELYFOOD_ADMIN_PASSWORD (.env local)" }
+      : { password: null, origen: "Sin contraseña de admin configurada: el login de administrador está deshabilitado en el backend" };
   }
   if (role === "RESTAURANTE" && SEEDED_RESTAURANT_EMAILS.has(email.toLowerCase()) && SEED_RESTAURANT_PASSWORD) {
     return { password: SEED_RESTAURANT_PASSWORD, origen: "Variable de entorno APP_SEED_RESTAURANT_PASSWORD (.env local)" };
@@ -138,7 +145,7 @@ async function fetchAccounts() {
         nombre: "Administrador FidelyFood",
         email: ADMIN_EMAIL,
         password: ADMIN_PASSWORD,
-        origenPassword: "Valor por defecto en AuthController.java (fidelyfood.admin.password)",
+        origenPassword: ADMIN_PASSWORD ? "Variable de entorno FIDELYFOOD_ADMIN_PASSWORD (.env local)" : "Sin contraseña de admin configurada: login deshabilitado en el backend",
         rol: "ROLE_ADMIN",
         estado: "ACTIVO",
         entorno: "Local (proyectoTFG)",
@@ -156,6 +163,7 @@ async function fetchAccounts() {
 }
 
 const app = express();
+registerApprovalRoutes(app, { port: PORT });
 app.use(express.json());
 
 // CORS solo para el frontend local de FidelyFood (necesario para que
@@ -346,7 +354,7 @@ function readJsonl(file) {
   }
 }
 
-app.get("/api/jarvis", (req, res) => {
+function buildJarvis() {
   const status = readJsonSafe(path.join(AGENT_DATA, "status.json"), null);
 
   const approvalLines = readJsonl(path.join(AGENT_DATA, "approvals.jsonl"));
@@ -388,7 +396,7 @@ app.get("/api/jarvis", (req, res) => {
     runs = [];
   }
 
-  res.json({
+  return {
     hasData: Boolean(status),
     status,
     pendingApprovals,
@@ -396,8 +404,346 @@ app.get("/api/jarvis", (req, res) => {
     today: { calls: todays.length, byDecision, topTools },
     recentRuns: runs,
     readAt: new Date().toISOString(),
+  };
+}
+
+app.get("/api/jarvis", (req, res) => res.json(buildJarvis()));
+
+// --- Harvey: ejecucion bajo demanda desde la Oficina de Agentes ---
+// Una sola ejecucion simultanea. La politica, aprobaciones y auditoria
+// siguen siendo responsabilidad del Agent Layer.
+const activeHarveyRuns = new Map();
+
+function normalizeHarveyPrompt(value) {
+  if (typeof value !== "string") return "";
+  return value.trim().slice(0, 12000);
+}
+
+app.post("/api/jarvis/run", async (req, res) => {
+  const prompt = normalizeHarveyPrompt(req.body?.prompt);
+  const taskId =
+    typeof req.body?.taskId === "string" && req.body.taskId.trim()
+      ? req.body.taskId.trim()
+      : null;
+
+  if (!prompt) {
+    return res.status(400).json({
+      ok: false,
+      error: "Harvey necesita una orden en 'prompt'.",
+    });
+  }
+
+  if (activeHarveyRuns.size > 0) {
+    const [runId] = activeHarveyRuns.keys();
+    return res.status(409).json({
+      ok: false,
+      error: "Harvey ya esta ejecutando una tarea.",
+      runId,
+    });
+  }
+
+  // Harvey asigna: agente explicito, o enrutado por el area de la tarea (reglas, no LLM).
+  const roster = loadRoster();
+  let agentId = typeof req.body?.agent === "string" && req.body.agent.trim() ? req.body.agent.trim() : null;
+  let routedBy = agentId ? "explicito" : null;
+  if (!agentId && taskId) {
+    const t = parseAgentTasks().find((x) => x.id === taskId);
+    const routed = t ? routeByArea(t.area, roster) : null;
+    if (routed) { agentId = routed.id; routedBy = `area de la tarea: ${t.area}`; }
+  }
+  agentId = agentId || "harvey";
+  if (!getAgent(agentId, roster)) {
+    return res.status(400).json({ ok: false, error: `Agente desconocido: ${agentId}`, agents: roster.agents.map((a) => a.id) });
+  }
+
+  const runId = `run_${Date.now().toString(36)}`;
+
+  activeHarveyRuns.set(runId, {
+    runId,
+    status: "RUNNING",
+    startedAt: new Date().toISOString(),
+    taskId,
+    prompt,
+    agent: agentId,
+  });
+  publishEvent("run.started", { runId, agent: agentId, taskId, routedBy });
+
+  res.status(202).json({
+    ok: true,
+    runId,
+    status: "RUNNING",
+    agent: agentId,
+    routedBy,
+    message: "Harvey ha recibido la orden.",
+  });
+
+  void (async () => {
+    try {
+      const provider = createProvider({
+        provider: "claude-code",
+      });
+
+      const ctx = createContext({
+        agent: "harvey",
+        role: agentId === "harvey" ? null : agentId,
+        model: provider.model,
+        provider: provider.name,
+        runId,
+      });
+
+      const result = await runAgent({
+        provider,
+        ctx,
+        taskId,
+        prompt,
+        budgets: {
+          maxSteps: 12,
+          maxMinutes: 10,
+          maxTokens: 16000,
+        },
+      });
+
+      activeHarveyRuns.delete(runId);
+      publishEvent("run.finished", { runId, agent: agentId, taskId, stopReason: result?.stopReason ?? null, filesChanged: result?.filesChanged ?? [], testsPassed: result?.testsPassed ?? 0, testsFailed: result?.testsFailed ?? 0 });
+    } catch (error) {
+      activeHarveyRuns.delete(runId);
+      publishEvent("run.failed", { runId, agent: agentId, taskId, error: String(error?.message ?? error).slice(0, 300) });
+    }
+  })();
+});
+
+app.get("/api/jarvis/run/:runId", (req, res) => {
+  const { runId } = req.params;
+  const active = activeHarveyRuns.get(runId);
+
+  if (active) {
+    return res.json({
+      ok: true,
+      ...active,
+    });
+  }
+
+  const runFile = path.join(AGENT_DATA, "runs", `${runId}.json`);
+  const stored = readJsonSafe(runFile, null);
+
+  if (!stored) {
+    return res.status(404).json({
+      ok: false,
+      error: "No se encontro esa ejecucion.",
+      runId,
+    });
+  }
+
+  return res.json({
+    ok: true,
+    runId,
+    status: stored.stopReason === "completed" ? "COMPLETED" : "STOPPED",
+    result: stored,
   });
 });
+
+
+// --- Oficina de Agentes: datos REALES para la vista isometrica ---
+// Mezcla el audit del Agent Layer, los eventos de hooks de Claude Code y
+// las tareas de AGENT_TASKS.md. Nada simulado: sin actividad, listas vacias.
+function parseAgentTasks() {
+  try {
+    const text = fs.readFileSync(path.join(REPO_PATH, "AGENT_TASKS.md"), "utf8");
+    const s = text.indexOf("<!-- TASKS:START -->");
+    const e = text.indexOf("<!-- TASKS:END -->");
+    if (s < 0 || e < s) return [];
+    return text
+      .slice(s, e)
+      .split(/^### (?=AGT-\d+)/m)
+      .slice(1)
+      .map((part) => {
+        const [titleLine, ...rest] = part.split("\n");
+        const body = rest.join("\n");
+        const field = (name) => {
+          const m = body.match(new RegExp("^- \\*\\*" + name + ":\\*\\*\\s?(.*)$", "m"));
+          return m ? m[1].trim() : "";
+        };
+        const dash = (v) => (v === "—" ? "" : v);
+        return {
+          id: (titleLine.match(/^AGT-\d+/) || [""])[0],
+          title: titleLine.replace(/^AGT-\d+\s*[·-]\s*/, "").trim(),
+          area: field("Área").toLowerCase(),
+          priority: field("Prioridad"),
+          state: field("Estado"),
+          description: field("Descripción"),
+          files: dash(field("Archivos afectados")),
+          deps: dash(field("Dependencias")),
+          acceptance: field("Criterios de aceptación"),
+          tests: field("Tests necesarios"),
+          result: dash(field("Resultado")),
+        };
+      });
+  } catch {
+    return [];
+  }
+}
+
+function buildOficina() {
+  const today = new Date().toISOString().slice(0, 10);
+  let audit = [];
+  try {
+    const dir = path.join(AGENT_DATA, "audit");
+    const files = fs.readdirSync(dir).filter((f) => f.endsWith(".jsonl")).sort().reverse().slice(0, 2);
+    for (const f of files) audit = audit.concat(readJsonl(path.join(dir, f)));
+  } catch {
+    audit = [];
+  }
+  const activity = [
+    ...audit.slice(-400).map((a) => ({ ts: a.ts, tool: a.tool, decision: a.decision, ok: a.ok, source: "agent-layer" })),
+    ...agentEvents.map((ev) => ({ ts: ev.ts, tool: ev.tool, file: ev.file, type: ev.type, source: "claude-code" })),
+  ].filter((a) => a.tool);
+
+  const approvalLines = readJsonl(path.join(AGENT_DATA, "approvals.jsonl"));
+  const decided = new Set(approvalLines.filter((l) => l.type === "decision").map((l) => l.id));
+  const pendingApprovals = approvalLines
+    .filter((l) => l.type === "request" && !decided.has(l.id))
+    .map((l) => ({ id: l.id, tool: l.tool, reason: l.reason }));
+
+  let brainNotes = 0;
+  try {
+    brainNotes = fs.readFileSync(path.join(REPO_PATH, ".agent", "memory.jsonl"), "utf8").split("\n").filter(Boolean).length;
+  } catch {
+    brainNotes = 0;
+  }
+
+  return {
+    today,
+    activity,
+    pendingApprovals,
+    tasks: parseAgentTasks(),
+    brainNotes,
+    agentStatus: readJsonSafe(path.join(AGENT_DATA, "status.json"), null),
+    jarvis: buildJarvis(),
+    team: buildTeam(),
+    readAt: new Date().toISOString(),
+  };
+}
+
+app.get("/api/oficina", (req, res) => res.json(buildOficina()));
+
+// --- Equipo de agentes: estado DERIVADO de ejecuciones reales -----------------
+// "ejecutando"/"bloqueado" solo si hay una ejecucion activa de ese agente; "en espera" = definido y
+// ejecutable bajo demanda; "desconectado" = el motor (Claude Code) no responde.
+let claudeCheck = { ok: null, at: 0, version: null };
+function checkClaude() {
+  if (Date.now() - claudeCheck.at < 60000) return;
+  claudeCheck.at = Date.now();
+  execFile(process.env.AGENT_CLAUDE_BIN || "claude", ["--version"], { timeout: 5000 }, (err, out) => {
+    claudeCheck = { ok: !err, at: Date.now(), version: err ? null : String(out).trim() };
+  });
+}
+
+function lastRunsByAgent() {
+  const by = {};
+  try {
+    const dir = path.join(AGENT_DATA, "runs");
+    for (const f of fs.readdirSync(dir).filter((x) => x.endsWith(".json"))) {
+      const r = readJsonSafe(path.join(dir, f), null);
+      if (!r) continue;
+      const id = r.agent || "harvey";
+      if (!by[id] || String(r.finishedAt) > String(by[id].finishedAt)) by[id] = r;
+      by[id].count = (by[id].count || 0) + 1;
+    }
+  } catch { /* sin ejecuciones aun */ }
+  return by;
+}
+
+function buildTeam() {
+  checkClaude();
+  const roster = loadRoster();
+  const runs = lastRunsByAgent();
+  const status = readJsonSafe(path.join(AGENT_DATA, "status.json"), null);
+  const active = [...activeHarveyRuns.values()];
+  return {
+    engine: { name: "Claude Code", connected: claudeCheck.ok, version: claudeCheck.version },
+    singleRunLock: true,
+    agents: roster.agents.map((a) => {
+      const act = active.find((r) => r.agent === a.id);
+      const last = runs[a.id] || null;
+      let state = claudeCheck.ok === false ? "desconectado" : "en espera";
+      if (act) state = status?.runId === act.runId && status?.agentStatus === "BLOCKED_ON_APPROVAL" ? "bloqueado" : "ejecutando";
+      return {
+        id: a.id, name: a.name, department: a.department, mode: a.mode, areas: a.areas,
+        tools: a.extraTools.length, writePaths: a.writePaths,
+        state,
+        currentRun: act ? { runId: act.runId, taskId: act.taskId, startedAt: act.startedAt } : null,
+        lastRun: last ? { runId: last.runId, finishedAt: last.finishedAt, stopReason: last.stopReason, task: last.task, filesChanged: last.filesChanged?.length ?? 0, testsPassed: last.testsPassed, testsFailed: last.testsFailed } : null,
+        runsTotal: last?.count ?? 0,
+      };
+    }),
+  };
+}
+
+app.get("/api/team", (req, res) => res.json(buildTeam()));
+
+// Que agente atenderia una tarea (sin ejecutarla).
+app.get("/api/jarvis/route/:taskId", (req, res) => {
+  const t = parseAgentTasks().find((x) => x.id === req.params.taskId);
+  if (!t) return res.status(404).json({ ok: false, error: "Tarea no encontrada" });
+  const a = routeByArea(t.area);
+  res.json({ ok: true, taskId: t.id, area: t.area, agent: a ? a.id : "harvey", rule: a ? "area de la tarea" : "sin especialista para el area: lo atiende Harvey" });
+});
+
+// --- Eventos en tiempo real (SSE) --------------------------------------------
+// Bus persistente (agent/data/office-events.jsonl): id monotono, tipo, ts, datos ya saneados.
+// El cliente recupera lo perdido con Last-Event-ID; ademas recibe un snapshot completo al conectar y
+// cuando el estado cambia, asi nunca depende de haber visto todos los eventos.
+const EVENTS_FILE = path.join(AGENT_DATA, "office-events.jsonl");
+const sseClients = new Set();
+let eventSeq = 0;
+try { eventSeq = fs.readFileSync(EVENTS_FILE, "utf8").split("\n").filter(Boolean).length; } catch { eventSeq = 0; }
+
+function publishEvent(type, data = {}) {
+  const ev = { id: ++eventSeq, type, ts: new Date().toISOString(), data };
+  try { fs.mkdirSync(AGENT_DATA, { recursive: true }); fs.appendFileSync(EVENTS_FILE, JSON.stringify(ev) + "\n"); } catch { /* no bloquear por el log */ }
+  for (const c of sseClients) c.write(`id: ${ev.id}\nevent: office\ndata: ${JSON.stringify(ev)}\n\n`);
+  return ev;
+}
+
+function eventsAfter(afterId, limit = 200) {
+  try {
+    return fs.readFileSync(EVENTS_FILE, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)).filter((e) => e.id > afterId).slice(-limit);
+  } catch { return []; }
+}
+
+app.get("/api/events", (req, res) => res.json({ events: eventsAfter(parseInt(req.query.after, 10) || 0, Math.min(parseInt(req.query.limit, 10) || 100, 500)) }));
+
+app.get("/api/oficina/stream", (req, res) => {
+  res.set({ "Content-Type": "text/event-stream", "Cache-Control": "no-cache, no-transform", Connection: "keep-alive" });
+  res.flushHeaders();
+  res.write("retry: 2000\n\n");
+  const last = parseInt(req.get("Last-Event-ID") || req.query.after, 10);
+  for (const ev of eventsAfter(Number.isFinite(last) ? last : eventSeq - 30, 200)) res.write(`id: ${ev.id}\nevent: office\ndata: ${JSON.stringify(ev)}\n\n`);
+  res.write(`event: snapshot\ndata: ${JSON.stringify(buildOficina())}\n\n`);
+  sseClients.add(res);
+  req.on("close", () => sseClients.delete(res));
+});
+
+// Un unico vigilante: detecta cambios reales de estado (aprobaciones, status del agente, git) y los difunde.
+let lastDigest = "";
+let lastPending = new Set();
+let lastHead = "";
+setInterval(() => {
+  if (!sseClients.size) return;
+  try {
+    const snap = buildOficina();
+    const pend = new Set(snap.pendingApprovals.map((x) => x.id));
+    for (const x of snap.pendingApprovals) if (!lastPending.has(x.id)) publishEvent("approval.pending", { id: x.id, tool: x.tool, reason: String(x.reason ?? "").slice(0, 200) });
+    for (const id of lastPending) if (!pend.has(id)) publishEvent("approval.resolved", { id });
+    lastPending = pend;
+    const { readAt, ...stable } = snap;
+    const digest = JSON.stringify(stable);
+    if (digest !== lastDigest) {
+      lastDigest = digest;
+      for (const c of sseClients) c.write(`event: snapshot\ndata: ${JSON.stringify(snap)}\n\n`);
+    } else for (const c of sseClients) c.write(": ping\n\n");
+  } catch (e) { /* un tick fallido no tumba el servidor */ }
+}, 1500);
 
 app.get("/api/accounts", async (req, res) => {
   try {
