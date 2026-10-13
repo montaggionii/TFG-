@@ -84,6 +84,21 @@ Auditoría real del código (no una checklist genérica). Cada hallazgo indica s
 - **Pruebas E2E**: el test de login de admin lee `FIDELYFOOD_ADMIN_PASSWORD` y se omite si no está definida; `scripts/test-isolated.sh` genera una aleatoria por ejecución.
 - **Efecto conocido**: sin esa variable no hay acceso al panel de administración. `access-center` ya no muestra ninguna contraseña de admin si no está configurada.
 
+### 16. `spring-boot-starter-parent` 3.2.1 arrastraba Spring Framework/Spring Security con CVEs conocidos — ✅ CORREGIDO
+
+- **Riesgo**: Medio (3 CVEs públicos en dependencias de producción del backend; sin evidencia de que el código de la app use las APIs concretas que cada CVE explota, pero la librería vulnerable estaba en el classpath de producción).
+- **Ubicación**: `pom.xml` (`spring-boot-starter-parent` 3.2.1), que fijaba de forma transitiva `spring-web`/`spring-webmvc`/`spring-core` 6.1.2 y `spring-security-core` 6.2.1.
+- **Problema**: tres CVEs publicados tras la salida de esas versiones, ninguno corregido todavía en 3.2.1:
+  - [CVE-2024-22243](https://spring.io/security/cve-2024-22243) (Spring Framework, open redirect/SSRF vía `UriComponentsBuilder` al parsear una URL externa y validar su host) — afecta a 6.1.0–6.1.3, corregido en 6.1.4.
+  - [CVE-2024-22234](https://spring.io/security/cve-2024-22234) (Spring Security, broken access control si la app llama a `AuthenticationTrustResolver.isFullyAuthenticated(Authentication)` con una `Authentication` nula) — afecta a 6.2.0–6.2.1, corregido en 6.2.2.
+  - CVE-2024-22257 (Spring Security, `AuthenticatedVoter#vote` con `Authentication` nula) — afecta a 6.2.0–6.2.2, corregido en 6.2.3.
+- **Impacto**: `grep` confirma que el código de la app (`SecurityConfig`, controladores) no llama directamente a `isFullyAuthenticated`/`AuthenticatedVoter`/`UriComponentsBuilder` sobre una URL externa, así que no hay una ruta de explotación directa conocida desde el código propio — pero una librería vulnerable en producción es una exposición real si cambia el código o si algún autoconfigurado interno de Spring sí usa esas rutas internamente, y dejar sin parchear CVEs públicos y de fácil arreglo no está justificado.
+- **Solución**: subir `spring-boot-starter-parent` de `3.2.1` a `3.2.12` (última versión de código abierto de la propia serie 3.2.x — Spring Boot anunció el fin del soporte open-source de 3.2.x con esa release el 2024-11-21, sin publicar más parches 3.2.x gratuitos desde entonces; no se saltó a 3.3.x/3.4.x para no arriesgar un cambio de minor no pedido por este hallazgo). Esto sube de forma transitiva `spring-core`/`spring-web`/`spring-webmvc` a `6.1.15` y `spring-security-core` a `6.2.8`, ambos muy por encima de las versiones que corrigen los 3 CVEs.
+- **Verificación real en este entorno**: `mvn dependency:tree` confirma las versiones antes (6.1.2/6.2.1) y después (6.1.15/6.2.8) del cambio. `mvn test` → mismos **78/79** antes y después (el único fallo, `contextLoads`, es preexistente y requiere MySQL real, no relacionado con este cambio). `mvn clean package -DskipTests` → `BUILD SUCCESS`, jar generado sin errores. `mvn compile` → sin warnings de deprecación nuevos. Diff de `pom.xml`: una sola línea (versión del parent), sin tocar ninguna otra dependencia ni código de la app.
+- **No se pudo verificar en este entorno** (requeriría backend/frontend/MySQL reales): arrancar la app real contra una base de datos viva y ejercitar manualmente los endpoints de autenticación/autorización tras el cambio — la suite de tests unitarios/Mockito ya cubre `SecurityConfig`/`AuthController`/ownership sin necesitar esa conexión, y ninguno cambió de comportamiento.
+- **Nota aparte, no accionada en este hallazgo**: la serie 3.2.x de Spring Boot ya no recibe parches open-source desde 2024-11-21 (solo mantenimiento comercial de terceros). Subir a una serie con soporte activo (3.3.x o 3.4.x) es un cambio de mayor alcance — con `application.properties`/`SecurityConfig` a revisar por posibles cambios de comportamiento entre minors — que requiere decisión humana y queda fuera de este hallazgo acotado.
+- **Estado**: ✅ corregido en `agent/fidelyfood-autonomous`, pendiente de PR/revisión humana. Ver `AGENT_TASKS.md` (AGT-014).
+
 ## Pendientes (no corregidos todavía)
 
 ### 6. Sin revocación de JWT
