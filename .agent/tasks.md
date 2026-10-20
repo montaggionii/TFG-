@@ -90,6 +90,10 @@ estado en `AGENT_TASKS.md`, nunca aquí.
 - **AGT-020** (P2, testing) · `REVIEW` desde 2026-10-20 — `PuntosController` no tenía ningún test propio;
   añadido `PuntosControllerTest` (14 tests) centrado en su autorización de ownership (escrita en el propio
   controlador, no delegada a un servicio) y en que un restaurante no puede asignar puntos a nombre de otro.
+- **AGT-021** (P2, testing) · `REVIEW` desde 2026-10-20 — `CanjeController` no tenía ningún test propio;
+  añadido `CanjeControllerTest` (4 tests) que fija que el usuario que canjea se identifica siempre por el
+  email del JWT, nunca por el `usuarioId` del body (aunque el body mande uno distinto o nulo). Renumerada
+  desde AGT-020 al chocar con la sesión concurrente que resolvió AGT-020 (`PuntosController`) casi a la vez.
 
 **Todo lo demás espera solo a que una persona revise y cierre a `DONE`** (o, donde se indica, una acción
 humana puntual), sin ningún trabajo nuevo que hacer en el código:
