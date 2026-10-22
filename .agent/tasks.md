@@ -50,8 +50,9 @@
 - [x] **`AdminController` sin ningún test propio (AGT-017, renumerada desde AGT-016 al chocar con una sesión concurrente)** — 2026-10-17: sin tarea `TODO` real (AGT-007 sigue exigiendo una decisión humana) y sin hallazgo nuevo en `npm audit`/`mvn dependency:tree` (sin cambios desde AGT-011/012/014), se intentó primero retomar el `git rm` de los ficheros ya huérfanos que pedía AGT-013 (`gestion-promos/`, `restaurant.service.ts`, reconfirmados sin otro uso) — bloqueado de nuevo por el clasificador de modo automático ("Irreversible Local Destruction"), sin ningún intento de rodearlo; sigue pendiente para una persona. Se pasó entonces a auditar el único controlador grande del backend sin revisar línea a línea desde que se fusionó: `AdminController.java` (907 líneas, gestión de negocios/clientes/reservas y ajuste manual de puntos) no tenía ningún test propio, a pesar de que `applyPointChange` (los endpoints `points/add|subtract|set`) es la única lógica del backend que muta directamente el saldo de fidelidad de un cliente desde el panel admin. Confirmado sin hallazgo de autorización nuevo (`/api/admin/**` sigue restringido a `ROLE_ADMIN` en `SecurityConfig`, sin cambios). `AdminControllerPointsTest` nuevo (12 tests unitarios puros, sin Spring ni BD, mismo patrón que `AuthControllerAdminLoginTest`): suma/resta/set correctos con el `MovimientoPuntos` esperado, saldo insuficiente nunca deja al cliente en negativo y no persiste nada, cantidad/tipo inválidos lanzan `BadRequestException` sin guardar, `restaurantId` inexistente lanza `ResourceNotFoundException` antes de mutar el saldo (no a medias), y no se puede ajustar una cuenta `ROLE_ADMIN` ni un cliente ya eliminado. Al ir a hacer `git push` se descubrió que una sesión concurrente de esta misma rutina, partiendo del mismo commit base, ya había numerado AGT-016 su propio hallazgo (CVEs de Spring Framework); renumerada esta tarea a AGT-017 al fusionar (mismo criterio que FID-020/FID-021). **Verificado en este entorno**: `mvn test -Dtest=AdminControllerPointsTest` → 12/12 passed; `mvn test` completo → **90/91 passed** (antes 78/79 — mismo único fallo preexistente de siempre, `contextLoads`, por falta de MySQL real; cero tests rotos). No se tocó ningún archivo de producción. **No se pudo verificar en este entorno**: ejercitar los mismos endpoints con una petición HTTP real contra un backend vivo. Detalle completo en `AGENT_TASKS.md` (AGT-017, estado `REVIEW`).
 - [x] **`UploadController` sin ningún test propio (AGT-019)** — 2026-10-19: PR #51 ya al día con `main` y CI en verde; sin tarea `TODO` con código pendiente (AGT-007/AGT-016 exigen decisión humana) y AGT-018 reconfirmado sin novedad (`braces` sigue en `3.0.3` en el registro de npm, sin parche). Se retomó la línea que dejó abierta AGT-017 ("resto de controladores grandes sin test propio"): `UploadController` (`GET /uploads/**`, único endpoint que lee un archivo del disco por nombre tomado de la URL, con su propia protección manual anti path-traversal) no tenía ningún test. `UploadControllerTest` nuevo (7 tests unitarios puros, sin Spring ni MySQL): archivo real servido con su content-type correcto (raíz y subdirectorio), placeholder de perfil/restaurante cuando no existe, y dos intentos activos de escapar de `uploads/` (`../` literal y `%2e%2e%2f` codificada) contra un archivo real que sí existe fuera del directorio — confirmando que la respuesta sigue siendo siempre el placeholder, nunca el archivo real. **Verificado en este entorno**: `mvn test -Dtest=UploadControllerTest` → 7/7 passed; `mvn test` completo → **97/98 passed** (antes 90/91 — mismo único fallo preexistente, `contextLoads`, por falta de MySQL real). No se tocó ningún archivo de producción. **No se pudo verificar en este entorno**: una petición HTTP real contra un backend en marcha. Detalle completo en `AGENT_TASKS.md` (AGT-019, estado `REVIEW`).
 - [x] **`PuntosController` sin ningún test propio (AGT-020)** — 2026-10-20: PR #51 ya al día con `main` y CI en verde; sin tarea `TODO` con código pendiente (AGT-007/AGT-016 siguen exigiendo decisión humana) y AGT-018 reconfirmado sin novedad (`braces` sigue en `3.0.3`). Se retomó otra vez la línea de AGT-017/AGT-019: de los controladores grandes sin test propio, `PuntosController` se eligió por ser el único con autorización de ownership escrita directamente en el controlador (no delegada a un servicio ya cubierto por un test de servicio) — `getOwnedUsuario` compara el email autenticado contra el dueño del recurso, y `sumarPuntos` compara el `restauranteId` del body contra el restaurante autenticado antes de dar puntos. Auditoría previa: ambas comprobaciones ya usaban siempre `SecurityUtils.email(authentication)`, nunca un id del body — sin vulnerabilidad nueva. `PuntosControllerTest` nuevo (14 tests unitarios puros, sin Spring ni MySQL, usando un `UsernamePasswordAuthenticationToken` real en vez de mockear `Authentication`): ownership de `totalUsuario`/`puntosPorRestaurante` (incluida la suma correcta solo de los movimientos de un restaurante concreto), rol incorrecto sin tocar el DAO, usuario inexistente, y en `sumarPuntos` el caso clave: un `restauranteId` del body de otro restaurante nunca persiste nada (`AccessDeniedException`), además de las validaciones de monto/puntos/usuario y dos casos de éxito que confirman el saldo y el `MovimientoPuntos` persistidos. **Verificado en este entorno**: `mvn test -Dtest=PuntosControllerTest` → 14/14 passed; `mvn test` completo → **111/112 passed** (antes 97/98 — mismo único fallo preexistente, `contextLoads`, por falta de MySQL real). No se tocó ningún archivo de producción. **No se pudo verificar en este entorno**: una petición HTTP real contra un backend en marcha. Detalle completo en `AGENT_TASKS.md` (AGT-020, estado `REVIEW`).
+- [x] **Vulnerabilidad real de producción en `@angular/common` — fuga del token XSRF (AGT-023)** — 2026-10-22: PR #51 ya al día con `main`, CI en verde, sin conflictos. Reconfirmado sin novedad en AGT-007/016/018 (decisiones humanas pendientes, `braces` sigue en `3.0.3`). Se intentó retomar el `git rm` de `gestion-promos/`/`restaurant.service.ts` (AGT-013/AGT-017) — bloqueado una tercera vez por el clasificador de modo automático, esta vez en el paso de `git commit`; revertido sin dejar cambios a medias. `npm audit --omit=dev` ya no daba 0 por primera vez desde AGT-011: 5 vulnerabilidades moderadas en `@angular/common`/`forms`/`platform-browser`/`platform-browser-dynamic`/`router` 20.3.33 ([GHSA-jfgx-762w-99vr](https://github.com/advisories/GHSA-jfgx-762w-99vr), parche incompleto de CVE-2025-66035 — fuga del token XSRF por discrepancia de parseo de URL en `HttpClient`). Corregido con `ng update @angular/core@20 @angular/cli@20` → 20.3.34 (parche real dentro de la serie 20.3.x, sin major); de paso `npm audit fix` corrigió también `follow-redirects` (build-only). **Verificado en este entorno**: `npm audit --omit=dev` 5→0; `npm audit` completo 24→18 (el resto exige ya Angular 21, no aplicado); `npx tsc --noEmit` sin errores; `ng build --configuration production` limpio; `npx playwright test --list` → 22/22; `mvn test` (backend sin tocar, `agent/`/`access-center/node_modules` instalados por primera vez en este sandbox) → 115/116; `npm --prefix agent test` → 105/105. Detalle completo en `AGENT_TASKS.md` (AGT-023, estado `REVIEW`) y `SECURITY.md` (#20).
 
-## Pendiente (por prioridad) — actualizado 2026-10-20
+## Pendiente (por prioridad) — actualizado 2026-10-22
 
 **Fuente de verdad del backlog técnico: el bloque `AGT-xxx` de `AGENT_TASKS.md`** (estado, dependencias,
 criterios de aceptación, verificación real y lo que falta por verificar de cada tarea). Esta lista solo
@@ -62,17 +63,18 @@ estado en `AGENT_TASKS.md`, nunca aquí.
 - **AGT-007** (P1, database) · `TODO` — decidir si pagar el plan mínimo de Aiven o aceptar que la BD
   gratuita se apague por inactividad (causó ~45h de caída 27→29 sep, ver `discoveries.md`); requiere una
   decisión humana, no una sesión autónoma.
-- **AGT-016** (P2, security) · `TODO` desde 2026-10-17 — Spring Framework 6.1.x (en uso vía
-  `spring-boot-starter-parent` 3.2.12) tiene 3 CVEs nuevos sin parche open-source en esa serie; el único
-  arreglo libre exige subir Spring Boot más allá de 3.2.x (y, a día de hoy, toda la serie 3.x ya está sin
-  soporte libre — el destino con parches activos es Spring Boot 4.x). Sin ruta de explotación real conocida
-  en el código propio (API REST pura, sin JSP/Thymeleaf ni resource handlers de Spring), pero requiere una
-  decisión humana sobre el alcance de la migración, no un parche de una línea (ver `SECURITY.md` #18).
-- **AGT-018** (P3, maintenance) · `TODO` desde 2026-10-18 — `npm audit` del frontend (15 vulnerabilidades,
-  sin cambio en el total desde AGT-011) incluye `braces` ([GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm),
-  DoS por agotamiento de pila, vía `karma`/`chokidar`/`micromatch`), nunca documentado antes por su nombre
-  en este backlog. `braces` no tiene todavía ninguna versión parcheada publicada en npm (confirmado contra
-  el registro real) — sin fix de una línea posible; solo build/test, `npm audit --omit=dev` sigue en 0
+- **AGT-016** (P2, security) · `TODO` desde 2026-10-17, reconfirmado sin cambios el 2026-10-22 — Spring
+  Framework 6.1.x (en uso vía `spring-boot-starter-parent` 3.2.12) tiene 3 CVEs nuevos sin parche
+  open-source en esa serie; el único arreglo libre exige subir Spring Boot más allá de 3.2.x (y, a día de
+  hoy, toda la serie 3.x ya está sin soporte libre — el destino con parches activos es Spring Boot 4.x).
+  Sin ruta de explotación real conocida en el código propio (API REST pura, sin JSP/Thymeleaf ni resource
+  handlers de Spring), pero requiere una decisión humana sobre el alcance de la migración, no un parche de
+  una línea (ver `SECURITY.md` #18).
+- **AGT-018** (P3, maintenance) · `TODO` desde 2026-10-18, reconfirmado sin cambios el 2026-10-22
+  (`npm view braces versions`/`dist-tags` siguen en `3.0.3`) — `npm audit` del frontend incluye `braces`
+  ([GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm), DoS por agotamiento de pila,
+  vía `karma`/`chokidar`/`micromatch`). `braces` no tiene todavía ninguna versión parcheada publicada en
+  npm — sin fix de una línea posible; solo build/test, `npm audit --omit=dev` nunca lo incluyó
   (ver `SECURITY.md` #19).
 - **AGT-010** (P2, memory) · `REVIEW` desde 2026-10-12 — sincronización de este mismo archivo.
 - **AGT-014** (P2, maintenance) · `REVIEW` desde 2026-10-13 — `spring-boot-starter-parent` 3.2.1 → 3.2.12
@@ -94,6 +96,12 @@ estado en `AGENT_TASKS.md`, nunca aquí.
   añadido `CanjeControllerTest` (4 tests) que fija que el usuario que canjea se identifica siempre por el
   email del JWT, nunca por el `usuarioId` del body (aunque el body mande uno distinto o nulo). Renumerada
   desde AGT-020 al chocar con la sesión concurrente que resolvió AGT-020 (`PuntosController`) casi a la vez.
+- **AGT-023** (P1, security) · `REVIEW` desde 2026-10-22 — primera vulnerabilidad real de **producción**
+  detectada desde AGT-011: `@angular/common` 20.3.33 con fuga del token XSRF
+  ([GHSA-jfgx-762w-99vr](https://github.com/advisories/GHSA-jfgx-762w-99vr), parche incompleto de
+  CVE-2025-66035). Corregido con `ng update @angular/core@20 @angular/cli@20` → 20.3.34 (parche real
+  dentro de la misma serie 20.3.x, sin major); `npm audit --omit=dev` 5→0. De paso, `npm audit fix`
+  corrigió `follow-redirects` (build-only) sin breaking changes.
 
 **Todo lo demás espera solo a que una persona revise y cierre a `DONE`** (o, donde se indica, una acción
 humana puntual), sin ningún trabajo nuevo que hacer en el código:
@@ -117,7 +125,8 @@ humana puntual), sin ningún trabajo nuevo que hacer en el código:
   desde AGT-009). **Pendiente de una persona**: `git rm -r
   frontend/src/app/features/restaurant-app/gestion-promos
   frontend/src/app/core/services/restaurant.service.ts` (ambos ficheros confirmados sin otro uso; el
-  borrado en sí lo bloqueó el modo automático de la sesión que encontró esto).
+  borrado lo ha bloqueado ya tres veces el modo automático de la sesión — AGT-013, AGT-017 y AGT-023 —
+  incluso cuando el `git rm` en sí se ejecuta, el `git commit` posterior se bloquea igual).
 
 **Pendientes sin tarea `AGT-xxx` propia** (no son trabajo de código, o ya se decidió no abrirlas como tal):
 - Inestabilidad del alias de dominio de Vercel: fusionar a `main` no siempre promueve el nuevo despliegue
