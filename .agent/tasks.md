@@ -106,6 +106,15 @@ estado en `AGENT_TASKS.md`, nunca aquí.
   CVE-2025-66035). Corregido con `ng update @angular/core@20 @angular/cli@20` → 20.3.34 (parche real
   dentro de la misma serie 20.3.x, sin major); `npm audit --omit=dev` 5→0. De paso, `npm audit fix`
   corrigió `follow-redirects` (build-only) sin breaking changes.
+- **AGT-024** (P2, security) · `REVIEW` desde 2026-10-23 — primera vez que se auditó `npm audit` en
+  `agent/` (no solo en `frontend/`) desde AGT-018/AGT-023: pasó de 0 a 2 vulnerabilidades —
+  `@modelcontextprotocol/sdk` 1.31.0 (dependencia directa del propio servidor MCP) con 4 CVEs de
+  severidad alta (tareas experimentales sin ligar a la sesión, redirecciones cross-origin del cliente
+  HTTP, agotamiento de memoria por validación, bearer auth que aceptaba tokens de otro servicio) e
+  `ip-address` 10.7.3 (transitiva, ReDoS cuadrático) — el propio `server.mjs` solo usa transporte stdio,
+  nunca el HTTP/OAuth afectado, pero las 5 ya tenían parche dentro de la misma serie. Corregido con
+  `"@modelcontextprotocol/sdk": "^1.32.1"` (sin salto de major) + `npm audit fix` (sube `ip-address` a
+  10.7.4). `npm --prefix agent test` → 105/105 antes y después; `npm audit` en `agent/` → 0.
 
 **Todo lo demás espera solo a que una persona revise y cierre a `DONE`** (o, donde se indica, una acción
 humana puntual), sin ningún trabajo nuevo que hacer en el código:
