@@ -22,6 +22,7 @@ import crypto from "node:crypto";
 import express from "express";
 import { listRequests, decide } from "../agent/src/lib/approvals.mjs";
 import { consumeUnlockCode } from "../agent/src/lib/ui-unlock.mjs";
+import { createSameOriginGuard } from "./lib/same-origin.mjs";
 
 // Riesgo de cada herramienta segun su definicion en el Agent Layer
 // (read < write < exec < approval). Las que no estan aqui se marcan "desconocido".
@@ -86,18 +87,9 @@ function readCookie(req, name) {
 }
 
 export function registerApprovalRoutes(app, { port, clock = Date.now, sessionIdleMs = 15 * 60000, sessionMaxMs = 2 * 3600000, maxSessions = 5 }) {
-  const hosts = [`localhost:${port}`, `127.0.0.1:${port}`];
+  const { hostOk, sameOrigin } = createSameOriginGuard(port);
   const sessions = new Map(); // sid -> { csrf, createdAt, lastSeen }
 
-  const hostOk = (req) => hosts.includes(req.get("host"));
-  // Origin estricto para peticiones que cambian estado: presente, de este mismo
-  // servidor, coincidente con Host y, si el navegador lo informa, same-origin.
-  const sameOrigin = (req) => {
-    const origin = req.get("origin");
-    if (!origin || !hostOk(req) || origin !== `http://${req.get("host")}`) return false;
-    const site = req.get("sec-fetch-site");
-    return !site || site === "same-origin";
-  };
   const noStore = (res) => res.set("Cache-Control", "no-store");
 
   const sweep = () => {
