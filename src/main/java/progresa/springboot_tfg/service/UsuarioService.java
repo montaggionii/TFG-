@@ -158,8 +158,10 @@ public class UsuarioService {
             usuario.setPassword(passwordEncoder.encode(actualizado.getPassword()));
         }
 
-        usuario.setPuntos(actualizado.getPuntos());
-
+        // El saldo de puntos nunca se acepta desde este endpoint de edición de perfil:
+        // solo puede cambiar a través de los flujos dedicados (compra, canje, ajuste de
+        // administrador), cada uno con su propia validación. Aceptarlo aquí permitía que
+        // un cliente autenticado se autoasignara puntos arbitrarios en su propio PUT.
         return toDTO(usuarioDAO.save(usuario));
     }
 
