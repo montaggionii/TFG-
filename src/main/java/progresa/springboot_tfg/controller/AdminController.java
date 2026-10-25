@@ -29,7 +29,7 @@ public class AdminController {
             "PENALIZACION_ADMIN"
     );
 
-    // AGT-028 — debe coincidir exactamente con las opciones que ofrece el
+    // AGT-029 — debe coincidir exactamente con las opciones que ofrece el
     // selector de estado y los botones de acción rápida del formulario de
     // reservas del panel admin (admin-reservations.component.html); antes
     // solo incluía PENDING/CONFIRMED/CANCELLED, así que elegir "Completada",

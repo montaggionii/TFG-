@@ -5,7 +5,7 @@ import { apiLoginAdmin, authenticateAs } from './helpers/auth';
 // gestión del panel admin (businesses/clients/reservations/stats) solo
 // reservations seguía sin ningún spec propio. Este archivo cubre ese
 // hueco (pantalla /admin/reservations cargando datos reales) y, de paso,
-// fija el hallazgo de esta misma sesión (AGT-028): el selector de estado
+// fija el hallazgo de esta misma sesión (AGT-029): el selector de estado
 // y los botones de acción rápida del formulario de reservas ofrecen
 // PENDING/CONFIRMED/CANCELLED/COMPLETED/ATTENDED/NO_SHOW, pero el backend
 // solo aceptaba los tres primeros — elegir "Completada", "Asistió" o "No
@@ -71,7 +71,7 @@ test.describe('Admin — listado de reservas', () => {
     }
   });
 
-  test('AGT-028: los 6 estados que ofrece la UI (incl. Completada/Asistió/No asistió) se aceptan de verdad', async ({ request }) => {
+  test('AGT-029: los 6 estados que ofrece la UI (incl. Completada/Asistió/No asistió) se aceptan de verdad', async ({ request }) => {
     const adminPassword = process.env['FIDELYFOOD_ADMIN_PASSWORD'];
     test.skip(!adminPassword, 'FIDELYFOOD_ADMIN_PASSWORD no está definida en el entorno de este proceso.');
 
@@ -91,7 +91,7 @@ test.describe('Admin — listado de reservas', () => {
     const reserva = await crear.json();
 
     try {
-      // Antes del fix de AGT-028, estas tres transiciones (disponibles
+      // Antes del fix de AGT-029, estas tres transiciones (disponibles
       // como botones de acción rápida en la pantalla real) devolvían 400.
       for (const status of ['COMPLETED', 'ATTENDED', 'NO_SHOW']) {
         const cambio = await request.patch(`${API_URL}/admin/reservations/${reserva.id}/status`, {

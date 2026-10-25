@@ -26,7 +26,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 /**
- * AGT-028 — el selector de estado y los botones de acción rápida del
+ * AGT-029 — el selector de estado y los botones de acción rápida del
  * formulario de reservas del panel admin (admin-reservations.component.html)
  * ofrecen PENDING/CONFIRMED/CANCELLED/COMPLETED/ATTENDED/NO_SHOW, pero
  * AdminController solo aceptaba los tres primeros: elegir "Completada",

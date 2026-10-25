@@ -224,4 +224,77 @@ class UsuarioServiceTest {
         assertThrows(ResourceNotFoundException.class,
                 () -> usuarioService.identificarPorQr("QR-INEXISTENTE"));
     }
+
+    @Test
+    void actualizarConEmailDeOtroUsuarioLanzaAccessDeniedSinGuardarNada() {
+        Usuario usuario = usuarioConPassword("dueno@test.com", "actual123");
+        when(usuarioDAO.findById(1L)).thenReturn(Optional.of(usuario));
+
+        Usuario datosNuevos = new Usuario();
+        datosNuevos.setNombre("Otro nombre");
+        datosNuevos.setEmail("dueno@test.com");
+
+        assertThrows(AccessDeniedException.class,
+                () -> usuarioService.actualizar(1L, datosNuevos, "atacante@test.com"));
+        verify(usuarioDAO, never()).save(any());
+    }
+
+    @Test
+    void actualizarActualizaNombreYEmailDelPropioUsuario() {
+        Usuario usuario = usuarioConPassword("dueno@test.com", "actual123");
+        when(usuarioDAO.findById(1L)).thenReturn(Optional.of(usuario));
+        when(usuarioDAO.save(any(Usuario.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Usuario datosNuevos = new Usuario();
+        datosNuevos.setNombre("Nombre Nuevo");
+        datosNuevos.setEmail("nuevo@test.com");
+
+        usuarioService.actualizar(1L, datosNuevos, "dueno@test.com");
+
+        assertEquals("Nombre Nuevo", usuario.getNombre());
+        assertEquals("nuevo@test.com", usuario.getEmail());
+    }
+
+    /**
+     * Regresión de seguridad: PUT /api/usuarios/{id} (edición de perfil propio) nunca
+     * debe poder cambiar el saldo de puntos de fidelidad del cliente, aunque el cuerpo
+     * de la petición incluya un valor de "puntos" distinto — ese saldo solo puede
+     * cambiar a través de los flujos dedicados (compra, canje, ajuste de administrador).
+     * Antes de este fix, `actualizar()` copiaba `actualizado.getPuntos()` sin ninguna
+     * comprobación: un cliente autenticado podía autoasignarse puntos arbitrarios
+     * enviando su propio `id` con un `puntos` manipulado en el cuerpo del PUT.
+     */
+    @Test
+    void actualizarNuncaCambiaElSaldoDePuntosAunqueElCuerpoLoIncluya() {
+        Usuario usuario = usuarioConPassword("dueno@test.com", "actual123");
+        usuario.setPuntos(50);
+        when(usuarioDAO.findById(1L)).thenReturn(Optional.of(usuario));
+        when(usuarioDAO.save(any(Usuario.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Usuario datosManipulados = new Usuario();
+        datosManipulados.setNombre("Dueno Real");
+        datosManipulados.setEmail("dueno@test.com");
+        datosManipulados.setPuntos(999999);
+
+        var dto = usuarioService.actualizar(1L, datosManipulados, "dueno@test.com");
+
+        assertEquals(50, usuario.getPuntos());
+        assertEquals(50, dto.getPuntos());
+    }
+
+    @Test
+    void actualizarSinPasswordNuevaNoTocaLaPasswordExistente() {
+        Usuario usuario = usuarioConPassword("dueno@test.com", "actual123");
+        String hashOriginal = usuario.getPassword();
+        when(usuarioDAO.findById(1L)).thenReturn(Optional.of(usuario));
+        when(usuarioDAO.save(any(Usuario.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Usuario datosNuevos = new Usuario();
+        datosNuevos.setNombre("Dueno Real");
+        datosNuevos.setEmail("dueno@test.com");
+
+        usuarioService.actualizar(1L, datosNuevos, "dueno@test.com");
+
+        assertEquals(hashOriginal, usuario.getPassword());
+    }
 }
