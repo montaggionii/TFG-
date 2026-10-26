@@ -24,6 +24,16 @@ module.exports = function (config) {
     jasmineHtmlReporter: {
       suppressAll: true // removes the duplicated traces
     },
+    // Launcher solo para CI/contenedores sin sandbox de usuario (se ejecuta como
+    // root): no se usa por defecto (ver "browsers" más abajo), hay que pedirlo
+    // explícitamente con --browsers=ChromeHeadlessCI. El desarrollo local sigue
+    // usando "Chrome" normal, con su sandbox intacto.
+    customLaunchers: {
+      ChromeHeadlessCI: {
+        base: 'ChromeHeadless',
+        flags: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
+      }
+    },
     coverageReporter: {
       dir: require('path').join(__dirname, './coverage/app'),
       subdir: '.',
