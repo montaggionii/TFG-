@@ -198,6 +198,13 @@ humana puntual), sin ningún trabajo nuevo que hacer en el código:
   incluso cuando el `git rm` en sí se ejecuta, el `git commit` posterior se bloquea igual).
 - **AGT-018** (P3, maintenance) · `REVIEW` — el aviso de `braces` que la motivaba fue retirado por
   GitHub; cerrada sin ningún cambio de dependencias.
+- **AGT-032** (P2, security) · `REVIEW` — 2026-10-28: `PUT /api/usuarios/{id}` cambiaba la contraseña
+  sin pedir la actual (saltaba la verificación real de `change-password`); corregido quitando esa rama
+  de `UsuarioService.actualizar` + test de regresión, y eliminado el código muerto del frontend
+  (`perfil.component.ts`, `saveSecurity()`/`openSecurity()`/`isSecurityOpen`/`securityData`, sin ningún
+  botón ni modal que lo disparara en `perfil.component.html`) que explotaba ese camino. `mvn test`
+  142 tests (1 nuevo), 141 passed, solo falla `contextLoads` de siempre sin MySQL real; `tsc`/`ng build`/
+  `playwright test --list` (25/25) sin cambios. Detalle completo en `AGENT_TASKS.md` (AGT-032).
 
 **Pendientes sin tarea `AGT-xxx` propia** (no son trabajo de código, o ya se decidió no abrirlas como tal):
 - Inestabilidad del alias de dominio de Vercel: fusionar a `main` no siempre promueve el nuevo despliegue
