@@ -207,7 +207,7 @@ Auditoría real del código (no una checklist genérica). Cada hallazgo indica s
 - **Solución**: `npm audit fix` (sin `--force`) en `frontend/` — solo tocó el lockfile: `@angular-devkit/build-angular` 20.3.41→20.3.42, `@angular-devkit/build-webpack` 0.2003.41→0.2003.42, `webpack-dev-middleware` 7.4.2→7.4.6, y dependencias menores arrastradas (`mime`, `range-parser`). Ningún paquete de `package.json` cambió de versión ni de rango.
 - **Verificado**: `npm audit` (frontend) → 6 (4 moderadas + 2 altas) → **5 (4 moderadas, 0 altas)**; `npm audit --omit=dev` → 0 antes y después. `npx tsc --noEmit` sin errores. `ng build --configuration production` limpio, mismos warnings preexistentes de siempre. `npx playwright test --list` → 25/25 en 12 ficheros, sin cambios. `ng test --browsers=ChromeHeadlessCI` → 25/25 passed (mismo resultado que AGT-030/AGT-032).
 - **Pendiente**: las 5 vulnerabilidades moderadas restantes (`uuid`/`sockjs`/`webpack-dev-server`) solo se resuelven saltando a `@angular-devkit/build-angular@22.2.5` (la versión objetivo subió de `@21.2.24`, citada en #20/#22, a `@22.2.5` — confirma que sigue sin publicarse un parche libre dentro de la serie 20.x) — decisión humana pendiente, mismo criterio ya diferido repetidamente en este backlog.
-- **Estado**: ✅ corregido en `agent/fidelyfood-autonomous`, pendiente de PR/revisión humana. Ver `AGENT_TASKS.md` (AGT-033).
+- **Estado**: ✅ corregido en `agent/fidelyfood-autonomous`, pendiente de PR/revisión humana. Ver `AGENT_TASKS.md` (AGT-034).
 
 ## Verificado y correcto (sin acción necesaria)
 
