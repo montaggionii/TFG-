@@ -27,7 +27,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
- * AGT-035 — UsuarioController no tenía ningún test propio. identificarQr
+ * AGT-036 — UsuarioController no tenía ningún test propio. identificarQr
  * comprueba ROLE_RESTAURANT directamente en el controlador
  * (SecurityUtils.requireRole), no delegado a un servicio — UsuarioService.
  * identificarPorQr no tiene ninguna comprobación de rol propia — mismo
