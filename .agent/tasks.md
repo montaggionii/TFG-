@@ -96,6 +96,22 @@ estado en `AGENT_TASKS.md`, nunca aquí.
   y que el email que otorga puntos es siempre el autenticado, nunca uno del body. `RestauranteController`/
   `UsuarioController`/`MovimientoPuntosController` y el resto de `AdminController` siguen sin cobertura de
   controlador, para una futura sesión.
+- **AGT-036** (P2, testing) · `REVIEW` desde 2026-10-30 — `UsuarioController` no tenía ningún test propio;
+  `identificarQr` comprueba `ROLE_RESTAURANT` en el controlador (defensa en profundidad, `SecurityConfig`
+  ya protege la ruta) igual que AGT-020/022/033/035. `MovimientoPuntosController`/`RestauranteController`
+  se reconfirmaron como pura delegación en su servicio, sin hallazgo. `UsuarioControllerTest` nuevo
+  (8 tests). Queda sin cobertura de controlador el resto de `AdminController` (negocios/clientes/borrado).
+- **AGT-037** (P2, maintenance) · `REVIEW` desde 2026-10-31 — `npm audit` en `frontend/` detectó un aviso
+  nuevo de severidad alta en `follow-redirects` ([GHSA-mrwp-f3q8-3g9p](https://github.com/advisories/GHSA-mrwp-f3q8-3g9p))
+  que afecta justo la versión 1.16.1 que AGT-023/`SECURITY.md` #20 había fijado como "corregida" frente a
+  un CVE distinto — primer caso en que un parche previo de esta rutina queda vulnerable ante un aviso
+  posterior. `npm audit fix` (sin `--force`) subió `follow-redirects` a 1.16.2 (parche dentro de la misma
+  serie, sin tocar `package.json`); 0 altas tras el cambio. Las 45 vulnerabilidades moderadas restantes
+  siguen bloqueadas por la misma decisión humana de siempre (salto de major de `@angular-devkit/
+  build-angular`, ver AGT-034) — nota: el recuento subió de 5 a 46 solo porque esta vez `npm ci` reinstaló
+  también las copias de `minimatch`/`glob` de herramientas de desarrollo (`@angular/cli`, `eslint-plugin-
+  import`, etc.), no por una regresión real; `npm audit --omit=dev` sigue en 0 antes y después. Detalle
+  completo en `AGENT_TASKS.md` (AGT-037) y `SECURITY.md` (#25).
 - **AGT-029** (P2, backend/testing) · `REVIEW` desde 2026-10-25 — `AdminController` solo aceptaba
   3 de los 6 estados de reserva que ofrece la UI real (faltaban `COMPLETED`/`ATTENDED`/`NO_SHOW`);
   corregido + spec E2E nuevo de `/admin/reservations`.
