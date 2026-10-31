@@ -432,10 +432,6 @@ public class RestauranteService {
             restaurante.setLongitud(actualizado.getLongitud());
         }
 
-        if (actualizado.getPassword() != null) {
-            restaurante.setPassword(passwordEncoder.encode(actualizado.getPassword()));
-        }
-
         return restauranteDAO.save(restaurante);
     }
 
