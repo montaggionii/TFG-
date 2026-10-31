@@ -210,7 +210,7 @@ class RestauranteServiceTest {
 
     @Test
     void actualizarNuncaCambiaLaPasswordAunqueElCuerpoIncluyaUnaNueva() {
-        // AGT-037 — mismo patrón ya corregido en UsuarioService.actualizar
+        // AGT-038 — mismo patrón ya corregido en UsuarioService.actualizar
         // (AGT-032), pero sin detectarse hasta ahora en RestauranteService:
         // a diferencia de UsuarioController, aquí no existe ningún endpoint
         // dedicado de cambio de contraseña (el equivalente a

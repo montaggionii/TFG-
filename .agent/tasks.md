@@ -65,7 +65,7 @@
 
 - [x] **`CompraController` sin ningún test propio (AGT-035)** — 2026-10-30: rama ya al día con `main` (0 commits de diferencia); sin PR nuevo que auditar. Repasado el backlog `AGT-xxx` completo, mismo resultado que AGT-034: solo AGT-007/AGT-016 en `TODO`, ambas bloqueadas por decisión humana. Se repitió el tipo de auditoría ya usado en AGT-017/019/020/021/033 (controladores sin test propio): de los que quedaban, se eligió `CompraController` por ser el más pequeño (un único endpoint, `POST /api/compras`). Añadido `CompraControllerTest` (4 tests): fija que `registrarCompra` exige `ROLE_RESTAURANT` (comprobado en el controlador, no en `CompraService`) y que el email que recibe puntos es siempre el autenticado, nunca uno del body. **Verificado en este entorno**: `mvn test -Dtest=CompraControllerTest` → 4/4; `mvn test` completo → 155 tests, 0 failures, 1 error (el mismo de siempre, `contextLoads`, requiere MySQL real), sin regresión en los 151 preexistentes. No se tocó frontend/`agent`/`access-center`. Quedan sin cobertura de controlador: `RestauranteController`, `UsuarioController`, `MovimientoPuntosController` y el resto de `AdminController` (negocios/clientes/borrado) — para una futura sesión. Detalle completo en `AGENT_TASKS.md` (AGT-035, estado `REVIEW`).
 - [x] **`UsuarioController` sin ningún test propio (AGT-036)** — 2026-10-30, sesión concurrente a AGT-035: `identificarQr` comprueba `ROLE_RESTAURANT` en el controlador (defensa en profundidad, `SecurityConfig` ya exige el rol a nivel de filtro), no en `UsuarioService`. Añadido `UsuarioControllerTest` (8 tests). `RestauranteController`/`MovimientoPuntosController` se reconfirmaron como pura delegación en su servicio, sin hallazgo. Detalle completo en `AGENT_TASKS.md` (AGT-036, estado `REVIEW`).
-- [x] **`PUT /api/restaurantes/{id}` podía cambiar la contraseña sin pedir la actual (AGT-037)** — 2026-10-31: al releer `RestauranteService.java` línea por línea (en vez de solo confirmar, como AGT-033/036, que el controlador delega su autorización en el servicio), se encontró el mismo patrón ya corregido en `UsuarioService` por AGT-032: `actualizar()` aplicaba `actualizado.getPassword()` del cuerpo sin pedir la contraseña actual — y, a diferencia de `UsuarioController`, `RestauranteController` no tiene ningún endpoint dedicado de cambio de contraseña que sustituya esa vía, así que era el único camino posible. Corregido quitando esa rama del método (ya no lee `password` del cuerpo en absoluto); confirmado que el frontend real (`SettingsComponent`) nunca envía ese campo. Test nuevo `actualizarNuncaCambiaLaPasswordAunqueElCuerpoIncluyaUnaNueva` en `RestauranteServiceTest`. **Verificado**: `mvn test -Dtest=RestauranteServiceTest` → 17/17; `mvn test` completo → 164 tests, 1 error (el mismo de siempre, `contextLoads`, sin MySQL real), 0 regresiones. Detalle completo en `AGENT_TASKS.md` (AGT-037, estado `REVIEW`).
+- [x] **`PUT /api/restaurantes/{id}` podía cambiar la contraseña sin pedir la actual (AGT-038)** — 2026-10-31: al releer `RestauranteService.java` línea por línea (en vez de solo confirmar, como AGT-033/036, que el controlador delega su autorización en el servicio), se encontró el mismo patrón ya corregido en `UsuarioService` por AGT-032: `actualizar()` aplicaba `actualizado.getPassword()` del cuerpo sin pedir la contraseña actual — y, a diferencia de `UsuarioController`, `RestauranteController` no tiene ningún endpoint dedicado de cambio de contraseña que sustituya esa vía, así que era el único camino posible. Corregido quitando esa rama del método (ya no lee `password` del cuerpo en absoluto); confirmado que el frontend real (`SettingsComponent`) nunca envía ese campo. Test nuevo `actualizarNuncaCambiaLaPasswordAunqueElCuerpoIncluyaUnaNueva` en `RestauranteServiceTest`. Renumerada de AGT-037 a AGT-038 al fusionar con una sesión concurrente que ya había usado ese número para un hallazgo distinto (`follow-redirects`, ver sección "Pendiente" más abajo). **Verificado**: `mvn test -Dtest=RestauranteServiceTest` → 17/17; `mvn test` completo → 164 tests, 1 error (el mismo de siempre, `contextLoads`, sin MySQL real), 0 regresiones. Detalle completo en `AGENT_TASKS.md` (AGT-038, estado `REVIEW`).
 
 ## Pendiente (por prioridad) — actualizado 2026-10-31
 
@@ -97,13 +97,25 @@ estado en `AGENT_TASKS.md`, nunca aquí.
   añadido `CompraControllerTest` (4 tests) que fija la comprobación de `ROLE_RESTAURANT` en el controlador
   y que el email que otorga puntos es siempre el autenticado, nunca uno del body.
 - **AGT-036** (P2, testing) · `REVIEW` desde 2026-10-30 — `UsuarioController` no tenía ningún test propio;
-  añadido `UsuarioControllerTest` (8 tests). Con esto, de los controladores grandes revisados tras
-  AGT-020/022/032/033, solo queda sin cobertura de controlador el resto de `AdminController`
-  (negocios/clientes/borrado lógico-duro), para una futura sesión.
-- **AGT-037** (P2, security) · `REVIEW` desde 2026-10-31 — `PUT /api/restaurantes/{id}` cambiaba la
+  `identificarQr` comprueba `ROLE_RESTAURANT` en el controlador (defensa en profundidad, `SecurityConfig`
+  ya protege la ruta) igual que AGT-020/022/033/035. `MovimientoPuntosController`/`RestauranteController`
+  se reconfirmaron como pura delegación en su servicio, sin hallazgo. `UsuarioControllerTest` nuevo
+  (8 tests). Queda sin cobertura de controlador el resto de `AdminController` (negocios/clientes/borrado).
+- **AGT-037** (P2, maintenance) · `REVIEW` desde 2026-10-31 — `npm audit` en `frontend/` detectó un aviso
+  nuevo de severidad alta en `follow-redirects` ([GHSA-mrwp-f3q8-3g9p](https://github.com/advisories/GHSA-mrwp-f3q8-3g9p))
+  que afecta justo la versión 1.16.1 que AGT-023/`SECURITY.md` #20 había fijado como "corregida" frente a
+  un CVE distinto — primer caso en que un parche previo de esta rutina queda vulnerable ante un aviso
+  posterior. `npm audit fix` (sin `--force`) subió `follow-redirects` a 1.16.2 (parche dentro de la misma
+  serie, sin tocar `package.json`); 0 altas tras el cambio. Las 45 vulnerabilidades moderadas restantes
+  siguen bloqueadas por la misma decisión humana de siempre (salto de major de `@angular-devkit/
+  build-angular`, ver AGT-034) — nota: el recuento subió de 5 a 46 solo porque esta vez `npm ci` reinstaló
+  también las copias de `minimatch`/`glob` de herramientas de desarrollo (`@angular/cli`, `eslint-plugin-
+  import`, etc.), no por una regresión real; `npm audit --omit=dev` sigue en 0 antes y después. Detalle
+  completo en `AGENT_TASKS.md` (AGT-037) y `SECURITY.md` (#25).
+- **AGT-038** (P2, security) · `REVIEW` desde 2026-10-31 — `PUT /api/restaurantes/{id}` cambiaba la
   contraseña del restaurante sin pedir la actual (mismo patrón que AGT-032, pero sin endpoint dedicado de
   cambio de contraseña que lo sustituyera); corregido quitando esa rama de `RestauranteService.actualizar`
-  + test de regresión nuevo.
+  + test de regresión nuevo. Renumerada de AGT-037 al fusionar con la sesión concurrente de arriba.
 - **AGT-029** (P2, backend/testing) · `REVIEW` desde 2026-10-25 — `AdminController` solo aceptaba
   3 de los 6 estados de reserva que ofrece la UI real (faltaban `COMPLETED`/`ATTENDED`/`NO_SHOW`);
   corregido + spec E2E nuevo de `/admin/reservations`.
