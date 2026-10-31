@@ -18,7 +18,7 @@
     "claude:check": "node src/cli/claude-check.mjs"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.31.0",
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "zod": "^4.6.5"
   }
 }

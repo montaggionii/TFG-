@@ -154,12 +154,11 @@ public class UsuarioService {
         usuario.setNombre(actualizado.getNombre());
         usuario.setEmail(actualizado.getEmail());
 
-        if (actualizado.getPassword() != null) {
-            usuario.setPassword(passwordEncoder.encode(actualizado.getPassword()));
-        }
-
-        usuario.setPuntos(actualizado.getPuntos());
-
+        // La contraseña nunca se acepta desde este endpoint de edición de perfil: aceptarla
+        // aquí permitía cambiarla sin aportar la contraseña actual, saltándose la verificación
+        // que sí exige el flujo dedicado (changePassword). El saldo de puntos tampoco se acepta
+        // aquí por el mismo motivo: solo puede cambiar a través de los flujos dedicados (compra,
+        // canje, ajuste de administrador), cada uno con su propia validación.
         return toDTO(usuarioDAO.save(usuario));
     }
 
