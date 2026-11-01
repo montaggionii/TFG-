@@ -67,7 +67,7 @@
 - [x] **`UsuarioController` sin ningún test propio (AGT-036)** — 2026-10-30, sesión concurrente a AGT-035: `identificarQr` comprueba `ROLE_RESTAURANT` en el controlador (defensa en profundidad, `SecurityConfig` ya exige el rol a nivel de filtro), no en `UsuarioService`. Añadido `UsuarioControllerTest` (8 tests). `RestauranteController`/`MovimientoPuntosController` se reconfirmaron como pura delegación en su servicio, sin hallazgo. Detalle completo en `AGENT_TASKS.md` (AGT-036, estado `REVIEW`).
 - [x] **`PUT /api/restaurantes/{id}` podía cambiar la contraseña sin pedir la actual (AGT-038)** — 2026-10-31: al releer `RestauranteService.java` línea por línea (en vez de solo confirmar, como AGT-033/036, que el controlador delega su autorización en el servicio), se encontró el mismo patrón ya corregido en `UsuarioService` por AGT-032: `actualizar()` aplicaba `actualizado.getPassword()` del cuerpo sin pedir la contraseña actual — y, a diferencia de `UsuarioController`, `RestauranteController` no tiene ningún endpoint dedicado de cambio de contraseña que sustituya esa vía, así que era el único camino posible. Corregido quitando esa rama del método (ya no lee `password` del cuerpo en absoluto); confirmado que el frontend real (`SettingsComponent`) nunca envía ese campo. Test nuevo `actualizarNuncaCambiaLaPasswordAunqueElCuerpoIncluyaUnaNueva` en `RestauranteServiceTest`. Renumerada de AGT-037 a AGT-038 al fusionar con una sesión concurrente que ya había usado ese número para un hallazgo distinto (`follow-redirects`, ver sección "Pendiente" más abajo). **Verificado**: `mvn test -Dtest=RestauranteServiceTest` → 17/17; `mvn test` completo → 164 tests, 1 error (el mismo de siempre, `contextLoads`, sin MySQL real), 0 regresiones. Detalle completo en `AGENT_TASKS.md` (AGT-038, estado `REVIEW`).
 
-## Pendiente (por prioridad) — actualizado 2026-10-31
+## Pendiente (por prioridad) — actualizado 2026-11-01
 
 **Fuente de verdad del backlog técnico: el bloque `AGT-xxx` de `AGENT_TASKS.md`** (estado, dependencias,
 criterios de aceptación, verificación real y lo que falta por verificar de cada tarea). Esta lista solo
@@ -116,6 +116,11 @@ estado en `AGENT_TASKS.md`, nunca aquí.
   contraseña del restaurante sin pedir la actual (mismo patrón que AGT-032, pero sin endpoint dedicado de
   cambio de contraseña que lo sustituyera); corregido quitando esa rama de `RestauranteService.actualizar`
   + test de regresión nuevo. Renumerada de AGT-037 al fusionar con la sesión concurrente de arriba.
+- **AGT-039** (P2, testing) · `REVIEW` desde 2026-11-01 — `AdminController` solo tenía test de puntos
+  (AGT-017) y de reservas (AGT-029); añadido `AdminControllerBusinessAndClientTest` (21 tests) cubriendo
+  negocios/clientes (alta/edición, activar/desactivar, borrado lógico) y fijando que `ensureEditableClient`
+  sigue bloqueando tocar una cuenta `ROLE_ADMIN` o ya eliminada, y que `hardDeleteClient` sigue
+  permanentemente deshabilitado. Con esto, ningún controlador grande del backend queda ya sin test propio.
 - **AGT-029** (P2, backend/testing) · `REVIEW` desde 2026-10-25 — `AdminController` solo aceptaba
   3 de los 6 estados de reserva que ofrece la UI real (faltaban `COMPLETED`/`ATTENDED`/`NO_SHOW`);
   corregido + spec E2E nuevo de `/admin/reservations`.
