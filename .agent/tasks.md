@@ -67,7 +67,7 @@
 - [x] **`UsuarioController` sin ningún test propio (AGT-036)** — 2026-10-30, sesión concurrente a AGT-035: `identificarQr` comprueba `ROLE_RESTAURANT` en el controlador (defensa en profundidad, `SecurityConfig` ya exige el rol a nivel de filtro), no en `UsuarioService`. Añadido `UsuarioControllerTest` (8 tests). `RestauranteController`/`MovimientoPuntosController` se reconfirmaron como pura delegación en su servicio, sin hallazgo. Detalle completo en `AGENT_TASKS.md` (AGT-036, estado `REVIEW`).
 - [x] **`PUT /api/restaurantes/{id}` podía cambiar la contraseña sin pedir la actual (AGT-038)** — 2026-10-31: al releer `RestauranteService.java` línea por línea (en vez de solo confirmar, como AGT-033/036, que el controlador delega su autorización en el servicio), se encontró el mismo patrón ya corregido en `UsuarioService` por AGT-032: `actualizar()` aplicaba `actualizado.getPassword()` del cuerpo sin pedir la contraseña actual — y, a diferencia de `UsuarioController`, `RestauranteController` no tiene ningún endpoint dedicado de cambio de contraseña que sustituya esa vía, así que era el único camino posible. Corregido quitando esa rama del método (ya no lee `password` del cuerpo en absoluto); confirmado que el frontend real (`SettingsComponent`) nunca envía ese campo. Test nuevo `actualizarNuncaCambiaLaPasswordAunqueElCuerpoIncluyaUnaNueva` en `RestauranteServiceTest`. Renumerada de AGT-037 a AGT-038 al fusionar con una sesión concurrente que ya había usado ese número para un hallazgo distinto (`follow-redirects`, ver sección "Pendiente" más abajo). **Verificado**: `mvn test -Dtest=RestauranteServiceTest` → 17/17; `mvn test` completo → 164 tests, 1 error (el mismo de siempre, `contextLoads`, sin MySQL real), 0 regresiones. Detalle completo en `AGENT_TASKS.md` (AGT-038, estado `REVIEW`).
 
-## Pendiente (por prioridad) — actualizado 2026-11-01
+## Pendiente (por prioridad) — actualizado 2026-11-02
 
 **Fuente de verdad del backlog técnico: el bloque `AGT-xxx` de `AGENT_TASKS.md`** (estado, dependencias,
 criterios de aceptación, verificación real y lo que falta por verificar de cada tarea). Esta lista solo
@@ -121,7 +121,11 @@ estado en `AGENT_TASKS.md`, nunca aquí.
   negocios/clientes (alta/edición, activar/desactivar, borrado lógico) y fijando que `ensureEditableClient`
   sigue bloqueando tocar una cuenta `ROLE_ADMIN` o ya eliminada, y que `hardDeleteClient` sigue
   permanentemente deshabilitado. Con esto, ningún controlador grande del backend queda ya sin test propio.
-- **AGT-040** (P3, backend/validación) · `REVIEW` desde 2026-11-02 — sin hallazgo nuevo de dependencias
+- **AGT-040** (P2, testing) · `REVIEW` desde 2026-11-02 — el catálogo de recompensas del cliente
+  (`/u/recompensas`) no tenía ningún spec E2E propio (hueco ya señalado por nombre en el cierre de AGT-003);
+  añadido `client-rewards.spec.ts`: crea una promoción `CANJEAR` real vía API y comprueba que la pantalla
+  la agrupa por restaurante y muestra su coste en puntos real, además de salir del estado de carga.
+- **AGT-041** (P3, backend/validación) · `REVIEW` desde 2026-11-02 — sin hallazgo nuevo de dependencias
   (`npm audit`/`mvn dependency:tree` reconfirmados sin cambios desde AGT-037/AGT-016), se releyeron los
   servicios de negocio restantes (`PromocionService`/`RecompensaService`/`CompraService`/
   `MovimientoPuntosService`/`QrService`, todos correctos) y se encontró que `UsuarioService.actualizar`/
@@ -133,8 +137,8 @@ estado en `AGENT_TASKS.md`, nunca aquí.
   inconsistencia de validación entre dos caminos de escritura del mismo campo. Corregido añadiendo el
   mismo chequeo (`DuplicateResourceException`) a ambos servicios + un test de regresión por servicio,
   verificado con `git stash` que ambos tests fallan contra el código original y pasan con el fix. `mvn
-  test` → 187 tests (2 nuevos), solo falla `contextLoads` de siempre sin MySQL real. Detalle completo en
-  `AGENT_TASKS.md` (AGT-040).
+  test` → 187 tests (2 nuevos), solo falla `contextLoads` de siempre sin MySQL real. Renumerada de AGT-040
+  al fusionar con la sesión concurrente de arriba. Detalle completo en `AGENT_TASKS.md` (AGT-041).
 - **AGT-029** (P2, backend/testing) · `REVIEW` desde 2026-10-25 — `AdminController` solo aceptaba
   3 de los 6 estados de reserva que ofrece la UI real (faltaban `COMPLETED`/`ATTENDED`/`NO_SHOW`);
   corregido + spec E2E nuevo de `/admin/reservations`.
