@@ -326,4 +326,28 @@ class UsuarioServiceTest {
         assertEquals(hashOriginal, usuario.getPassword());
         assertFalse(passwordEncoder.matches("passwordImpuestaSinVerificarLaActual", usuario.getPassword()));
     }
+
+    /**
+     * AGT-040 — PUT /api/usuarios/{id} (autoedición del propio perfil) nunca
+     * comprobaba si el email nuevo ya pertenecía a OTRO usuario: el único
+     * freno era la restricción unique de la columna en BD, que sin este
+     * chequeo se traducía en una excepción no controlada (500 genérico) en
+     * vez de un 409 claro. Mismo patrón que AdminController.updateClient ya
+     * aplicaba (existsByEmailAndIdNot), pero que faltaba en este otro camino
+     * de escritura del mismo campo.
+     */
+    @Test
+    void actualizarConEmailYaUsadoPorOtroUsuarioLanzaDuplicateResourceExceptionSinGuardar() {
+        Usuario usuario = usuarioConPassword("dueno@test.com", "actual123");
+        when(usuarioDAO.findById(1L)).thenReturn(Optional.of(usuario));
+        when(usuarioDAO.existsByEmailAndIdNot("victima@test.com", 1L)).thenReturn(true);
+
+        Usuario datosNuevos = new Usuario();
+        datosNuevos.setNombre("Dueno Real");
+        datosNuevos.setEmail("victima@test.com");
+
+        assertThrows(DuplicateResourceException.class,
+                () -> usuarioService.actualizar(1L, datosNuevos, "dueno@test.com"));
+        verify(usuarioDAO, never()).save(any());
+    }
 }

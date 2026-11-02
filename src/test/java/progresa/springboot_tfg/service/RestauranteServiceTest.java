@@ -17,6 +17,7 @@ import progresa.springboot_tfg.entity.MovimientoPuntos;
 import progresa.springboot_tfg.entity.Restaurante;
 import progresa.springboot_tfg.entity.Role;
 import progresa.springboot_tfg.entity.Usuario;
+import progresa.springboot_tfg.exception.DuplicateResourceException;
 import progresa.springboot_tfg.exception.ResourceNotFoundException;
 import progresa.springboot_tfg.security.JwtUtil;
 
@@ -234,6 +235,33 @@ class RestauranteServiceTest {
 
         assertTrue(passwordEncoder.matches("actual123", actualizado.getPassword()));
         assertFalse(passwordEncoder.matches("nueva456", actualizado.getPassword()));
+    }
+
+    /**
+     * AGT-040 — PUT /api/restaurantes/{id} (autoedición del propio restaurante)
+     * nunca comprobaba si el email nuevo ya pertenecía a OTRO restaurante: el
+     * único freno era la restricción unique de la columna en BD, que sin este
+     * chequeo se traducía en una excepción no controlada (500 genérico) en vez
+     * de un 409 claro. Mismo patrón que AdminController.updateBusiness ya
+     * aplicaba (existsByEmailAndIdNot), pero que faltaba en este otro camino de
+     * escritura del mismo campo.
+     */
+    @Test
+    void actualizarConEmailYaUsadoPorOtroRestauranteLanzaDuplicateResourceExceptionSinGuardar() {
+        Restaurante restaurante = restauranteConPassword("venezuelafood@test.com", "actual123");
+        when(restauranteDAO.findById(3L)).thenReturn(Optional.of(restaurante));
+        when(restauranteDAO.existsByEmailAndIdNot("alabroster@test.com", 3L)).thenReturn(true);
+
+        Restaurante cambios = new Restaurante();
+        cambios.setNombre("Venezuela Food");
+        cambios.setEmail("alabroster@test.com");
+        cambios.setDireccion("Calle Falsa 123");
+        cambios.setCiudad("Valencia");
+        cambios.setTelefono("600000000");
+
+        assertThrows(DuplicateResourceException.class,
+                () -> restauranteService.actualizar(3L, cambios, "venezuelafood@test.com"));
+        verify(restauranteDAO, never()).save(any());
     }
 
     private MovimientoPuntos movimiento(Long usuarioId, int puntos, Double monto, LocalDateTime fecha) {

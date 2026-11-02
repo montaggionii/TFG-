@@ -121,6 +121,20 @@ estado en `AGENT_TASKS.md`, nunca aquí.
   negocios/clientes (alta/edición, activar/desactivar, borrado lógico) y fijando que `ensureEditableClient`
   sigue bloqueando tocar una cuenta `ROLE_ADMIN` o ya eliminada, y que `hardDeleteClient` sigue
   permanentemente deshabilitado. Con esto, ningún controlador grande del backend queda ya sin test propio.
+- **AGT-040** (P3, backend/validación) · `REVIEW` desde 2026-11-02 — sin hallazgo nuevo de dependencias
+  (`npm audit`/`mvn dependency:tree` reconfirmados sin cambios desde AGT-037/AGT-016), se releyeron los
+  servicios de negocio restantes (`PromocionService`/`RecompensaService`/`CompraService`/
+  `MovimientoPuntosService`/`QrService`, todos correctos) y se encontró que `UsuarioService.actualizar`/
+  `RestauranteService.actualizar` (autoedición de perfil, ya corregidos por AGT-028/032/038 para
+  contraseña/puntos) nunca comprobaban `existsByEmailAndIdNot` antes de `setEmail`, a diferencia de
+  `AdminController.updateBusiness`/`updateClient`, que sí lo hacían. Sin ese chequeo, el único freno era
+  la restricción `unique` de la columna en BD, que al violarse caía en el `Exception` genérico (500) en
+  vez de un 409 claro — no es un fallo de ownership (`requireOwner` sigue intacto), solo una
+  inconsistencia de validación entre dos caminos de escritura del mismo campo. Corregido añadiendo el
+  mismo chequeo (`DuplicateResourceException`) a ambos servicios + un test de regresión por servicio,
+  verificado con `git stash` que ambos tests fallan contra el código original y pasan con el fix. `mvn
+  test` → 187 tests (2 nuevos), solo falla `contextLoads` de siempre sin MySQL real. Detalle completo en
+  `AGENT_TASKS.md` (AGT-040).
 - **AGT-029** (P2, backend/testing) · `REVIEW` desde 2026-10-25 — `AdminController` solo aceptaba
   3 de los 6 estados de reserva que ofrece la UI real (faltaban `COMPLETED`/`ATTENDED`/`NO_SHOW`);
   corregido + spec E2E nuevo de `/admin/reservations`.

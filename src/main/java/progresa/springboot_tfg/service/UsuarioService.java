@@ -151,6 +151,16 @@ public class UsuarioService {
             requireOwner(usuario, emailAutenticado);
         }
 
+        // AGT-040 — mismo chequeo que AdminController.updateClient ya hacía (existsByEmailAndIdNot)
+        // pero que este endpoint de autoedición de perfil nunca tenía: sin él, un cliente podía
+        // mandar el email de otra cuenta ya existente y el único freno era la restricción unique
+        // de la columna en BD, que no se traduce a ninguna excepción controlada aquí -> el cliente
+        // recibía un 500 genérico ("Ha ocurrido un error inesperado") en vez de un 409 claro.
+        if (actualizado.getEmail() != null
+                && usuarioDAO.existsByEmailAndIdNot(actualizado.getEmail(), id)) {
+            throw new DuplicateResourceException("Ya existe otro usuario con ese email");
+        }
+
         usuario.setNombre(actualizado.getNombre());
         usuario.setEmail(actualizado.getEmail());
 

@@ -12,6 +12,7 @@ import progresa.springboot_tfg.entity.MovimientoPuntos;
 import progresa.springboot_tfg.entity.Restaurante;
 import progresa.springboot_tfg.entity.Role;
 import progresa.springboot_tfg.exception.BadRequestException;
+import progresa.springboot_tfg.exception.DuplicateResourceException;
 import progresa.springboot_tfg.exception.ResourceNotFoundException;
 import progresa.springboot_tfg.security.JwtUtil;
 import progresa.springboot_tfg.util.ImagenUtil;
@@ -415,6 +416,17 @@ public class RestauranteService {
 
         if (emailAutenticado != null) {
             requireOwner(restaurante, emailAutenticado);
+        }
+
+        // AGT-040 — mismo chequeo que AdminController.updateBusiness ya hacía
+        // (existsByEmailAndIdNot) pero que este endpoint de autoedición de perfil
+        // (PUT /api/restaurantes/{id}) nunca tenía: sin él, un restaurante podía
+        // mandar el email de otro restaurante ya existente y el único freno era la
+        // restricción unique de la columna en BD, que no se traduce a ninguna
+        // excepción controlada aquí -> 500 genérico en vez de un 409 claro.
+        if (actualizado.getEmail() != null
+                && restauranteDAO.existsByEmailAndIdNot(actualizado.getEmail(), id)) {
+            throw new DuplicateResourceException("Ya existe otro restaurante con ese email");
         }
 
         restaurante.setNombre(actualizado.getNombre());
