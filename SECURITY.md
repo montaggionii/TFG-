@@ -227,7 +227,7 @@ Auditoría real del código (no una checklist genérica). Cada hallazgo indica s
 - **Solución**: override explícito en `package.json` (`"minimatch": "11.0.4"`, mismo mecanismo ya usado para `piscina` en FID-020) — fuerza una única copia parcheada en las 8 rutas sin tocar la versión de ningún paquete de nivel superior (`eslint`, `@angular/cli`, `@angular-devkit/build-angular`, etc. no cambiaron de versión).
 - **Verificado**: `npm ci` (dos veces, antes/después, para confirmar reproducibilidad desde el lockfile) → `npm audit` (frontend) 45 moderadas → **19 moderadas (0 altas)**; `npm ls minimatch` → una sola versión (11.0.4) en las 8 rutas antes afectadas. `npm audit --omit=dev` → 0 antes y después. `npx tsc --noEmit` sin errores. `ng build --configuration production` limpio, mismos warnings preexistentes de siempre. `ng lint` → mismos 8 errores/1 warning preexistentes, sin relación con esta dependencia (confirma que `eslint`/`@typescript-eslint` siguen funcionando igual con `minimatch@11`). `npx playwright test --list` → 26/26 en 13 ficheros, sin cambios.
 - **Pendiente**: las 19 vulnerabilidades moderadas restantes (`uuid`/`sockjs`/`webpack-dev-server`/`@angular/cli`/`@capacitor/cli` y su cadena de `npm`/`sigstore`/`pacote`) siguen sin parche libre fuera de un salto de major (`@angular-devkit/build-angular@22`/`@angular/cli@22`/`@capacitor/cli@9`) — mismo tipo de decisión humana ya diferida repetidamente en este backlog.
-- **Estado**: ✅ corregido en `agent/fidelyfood-autonomous`, pendiente de PR/revisión humana. Ver `AGENT_TASKS.md` (AGT-042).
+- **Estado**: ✅ corregido en `agent/fidelyfood-autonomous`, pendiente de PR/revisión humana. Ver `AGENT_TASKS.md` (AGT-043).
 
 ## Verificado y correcto (sin acción necesaria)
 
