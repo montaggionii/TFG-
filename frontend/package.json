@@ -71,6 +71,7 @@
   },
   "description": "An Ionic project",
   "overrides": {
-    "piscina": "5.3.2"
+    "piscina": "5.3.2",
+    "minimatch": "11.0.4"
   }
 }

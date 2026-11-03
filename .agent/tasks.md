@@ -139,6 +139,21 @@ estado en `AGENT_TASKS.md`, nunca aquí.
   verificado con `git stash` que ambos tests fallan contra el código original y pasan con el fix. `mvn
   test` → 187 tests (2 nuevos), solo falla `contextLoads` de siempre sin MySQL real. Renumerada de AGT-040
   al fusionar con la sesión concurrente de arriba. Detalle completo en `AGENT_TASKS.md` (AGT-041).
+- **AGT-042** (P3, maintenance) · `REVIEW` desde 2026-11-03 — las 45 vulnerabilidades moderadas de
+  `frontend/` documentadas desde AGT-037/`SECURITY.md` #25 se habían asumido sin comprobar como un bloque
+  homogéneo que solo se resolvía con `npm audit fix --force` (salto de major). Al desglosarlas por nombre
+  por primera vez, 10 de las 45 (con 8 efectos en cascada: `eslint`, `@eslint/eslintrc`/`config-array`,
+  `eslint-plugin-import`, `glob`, `@typescript-eslint/typescript-estree`, `@tufjs/models`, `karma`/
+  `karma-coverage`) resultaron ser la misma `minimatch` < 11.0.1 ([GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249),
+  DoS por amplificación de `globparts`), instalada en 8 copias independientes de las series 3.x/5.x/9.x.
+  Como la API de `minimatch` no cambió entre esas series y la 11.x, se corrigió con un override explícito
+  en `package.json` (`"minimatch": "11.0.4"`, mismo mecanismo que el override de `piscina` de FID-020) sin
+  tocar la versión de ningún paquete de nivel superior. `npm ci` (repetido antes/después para confirmar
+  reproducibilidad) → 45 → **19 moderadas, 0 altas**; `npm audit --omit=dev` sigue en 0. `npx tsc --noEmit`,
+  `ng build --configuration production`, `ng lint` (mismos 8 errores/1 warning preexistentes, sin relación)
+  y `npx playwright test --list` (26/26 en 13 ficheros) sin regresiones. Las 19 restantes (`uuid`/`sockjs`/
+  `webpack-dev-server`/`@angular/cli`/`@capacitor/cli`) siguen bloqueadas por la misma decisión humana de
+  siempre. Detalle completo en `AGENT_TASKS.md` (AGT-042) y `SECURITY.md` (#26).
 - **AGT-029** (P2, backend/testing) · `REVIEW` desde 2026-10-25 — `AdminController` solo aceptaba
   3 de los 6 estados de reserva que ofrece la UI real (faltaban `COMPLETED`/`ATTENDED`/`NO_SHOW`);
   corregido + spec E2E nuevo de `/admin/reservations`.
