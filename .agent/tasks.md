@@ -165,6 +165,15 @@ estado en `AGENT_TASKS.md`, nunca aquí.
   `webpack-dev-server`/`@angular/cli`/`@capacitor/cli`) siguen bloqueadas por la misma decisión humana de
   siempre. Renumerada de AGT-042 al fusionar con la sesión concurrente de arriba. Detalle completo en
   `AGENT_TASKS.md` (AGT-043) y `SECURITY.md` (#26).
+- **AGT-044** (P2, testing/maintenance) · `REVIEW` desde 2026-11-04 — el override de `minimatch` de
+  AGT-043 rompía `ng test`/Karma por completo (`TypeError: mm is not a function`, AGT-043 nunca lo detectó
+  porque no pudo ejecutar `ng test` en su sandbox); corregido con un override anidado que excluye a
+  `karma`/`karma-coverage` (vuelven a `minimatch@3.1.5`, única excepción aceptada — herramienta de
+  test sin entrada de atacante real) sin afectar a las otras 6 rutas ya en `11.0.4`. De paso, añadido
+  `promocion.service.spec.ts` (11 tests), primer test unitario de un servicio del frontend desde que
+  AGT-030 solo cubrió `authGuard`/`roleGuard`/`tokenInterceptor` — ningún servicio de `core/services/`
+  tenía ninguno. `ng test` → 36/36 (25 preexistentes + 11 nuevos, antes 0 por el `TypeError`). Detalle
+  completo en `AGENT_TASKS.md` (AGT-044) y `SECURITY.md` (#27).
 - **AGT-029** (P2, backend/testing) · `REVIEW` desde 2026-10-25 — `AdminController` solo aceptaba
   3 de los 6 estados de reserva que ofrece la UI real (faltaban `COMPLETED`/`ATTENDED`/`NO_SHOW`);
   corregido + spec E2E nuevo de `/admin/reservations`.
