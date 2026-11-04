@@ -73,8 +73,10 @@
   "overrides": {
     "piscina": "5.3.2",
     "minimatch": "11.0.4",
+    "glob": "14.0.3",
     "karma": {
-      "minimatch": "3.1.5"
+      "minimatch": "3.1.5",
+      "glob": "7.2.3"
     },
     "karma-coverage": {
       "minimatch": "3.1.5"
