@@ -68,7 +68,7 @@
 - [x] **`UsuarioController` sin ningún test propio (AGT-036)** — 2026-10-30, sesión concurrente a AGT-035: `identificarQr` comprueba `ROLE_RESTAURANT` en el controlador (defensa en profundidad, `SecurityConfig` ya exige el rol a nivel de filtro), no en `UsuarioService`. Añadido `UsuarioControllerTest` (8 tests). `RestauranteController`/`MovimientoPuntosController` se reconfirmaron como pura delegación en su servicio, sin hallazgo. Detalle completo en `AGENT_TASKS.md` (AGT-036, estado `REVIEW`).
 - [x] **`PUT /api/restaurantes/{id}` podía cambiar la contraseña sin pedir la actual (AGT-038)** — 2026-10-31: al releer `RestauranteService.java` línea por línea (en vez de solo confirmar, como AGT-033/036, que el controlador delega su autorización en el servicio), se encontró el mismo patrón ya corregido en `UsuarioService` por AGT-032: `actualizar()` aplicaba `actualizado.getPassword()` del cuerpo sin pedir la contraseña actual — y, a diferencia de `UsuarioController`, `RestauranteController` no tiene ningún endpoint dedicado de cambio de contraseña que sustituya esa vía, así que era el único camino posible. Corregido quitando esa rama del método (ya no lee `password` del cuerpo en absoluto); confirmado que el frontend real (`SettingsComponent`) nunca envía ese campo. Test nuevo `actualizarNuncaCambiaLaPasswordAunqueElCuerpoIncluyaUnaNueva` en `RestauranteServiceTest`. Renumerada de AGT-037 a AGT-038 al fusionar con una sesión concurrente que ya había usado ese número para un hallazgo distinto (`follow-redirects`, ver sección "Pendiente" más abajo). **Verificado**: `mvn test -Dtest=RestauranteServiceTest` → 17/17; `mvn test` completo → 164 tests, 1 error (el mismo de siempre, `contextLoads`, sin MySQL real), 0 regresiones. Detalle completo en `AGENT_TASKS.md` (AGT-038, estado `REVIEW`).
 
-## Pendiente (por prioridad) — actualizado 2026-11-02
+## Pendiente (por prioridad) — actualizado 2026-11-05
 
 **Fuente de verdad del backlog técnico: el bloque `AGT-xxx` de `AGENT_TASKS.md`** (estado, dependencias,
 criterios de aceptación, verificación real y lo que falta por verificar de cada tarea). Esta lista solo
@@ -180,6 +180,21 @@ estado en `AGENT_TASKS.md`, nunca aquí.
   (`@angular-devkit/build-angular`/`build-webpack`, `sockjs`, `uuid`, `webpack-dev-server`) siguen
   bloqueadas por la misma decisión humana de siempre (salto de major de `@angular/cli`). Detalle completo
   en `AGENT_TASKS.md` (AGT-044) y `SECURITY.md` (#27).
+- **AGT-046** (P3, testing) · `REVIEW` desde 2026-11-05 — sin hallazgo nuevo de dependencias
+  (`npm audit` reconfirmado sin cambios en `agent/`/`access-center/`/`frontend/` desde AGT-044/045) y sin
+  tarea `TODO` con código pendiente (AGT-007/AGT-016 siguen exigiendo decisión humana), se retomó la línea
+  que dejó abierta AGT-045: de los servicios de `frontend/src/app/core/services/` sin ningún test propio,
+  se eligió `GeolocationService` por ser el único con lógica real no trivial (Haversine, filtro de 25 m de
+  ruido del GPS, recuento de referencias de observadores, máquina de estados). Al escribir los tests se
+  encontró que `spyOn(Geolocation, 'metodo')` (el objeto que exporta `@capacitor/geolocation`) no
+  intercepta nada de verdad — es un `Proxy` cuyo trap `get` siempre genera un wrapper nuevo e ignora
+  cualquier propiedad asignada directamente — confirmado ejecutando esa primera versión (9/20 tests
+  fallaron). Corregido mockeando un nivel más abajo, en `navigator.geolocation`/`navigator.permissions`
+  (lo que la implementación web del plugin llama de verdad). `geolocation.service.spec.ts` nuevo
+  (20 tests). **Verificado**: `ng test` → 20/20 nuevos, 56/56 en total (antes 36/36); confirmado que el
+  test del filtro de 25 m detecta una regresión real (bajando el umbral a 0 en el código, falla
+  exactamente ese test; revertido). `tsc`/`ng build`/`playwright test --list` sin cambios. No se tocó
+  ningún archivo de backend. Detalle completo en `AGENT_TASKS.md` (AGT-046).
 - **AGT-045** (P2, testing/maintenance) · `REVIEW` desde 2026-11-04 — los overrides de `minimatch`
   (AGT-043) y `glob` (AGT-044, sesión concurrente) rompían `ng test`/Karma por completo (con solo uno,
   `TypeError: mm is not a function`; con los dos fusionados, colgado indefinido) — ninguna de las dos
