@@ -195,6 +195,26 @@ estado en `AGENT_TASKS.md`, nunca aquí.
   test del filtro de 25 m detecta una regresión real (bajando el umbral a 0 en el código, falla
   exactamente ese test; revertido). `tsc`/`ng build`/`playwright test --list` sin cambios. No se tocó
   ningún archivo de backend. Detalle completo en `AGENT_TASKS.md` (AGT-046).
+- **AGT-048** (P3, testing) · `REVIEW` desde 2026-11-06 — renumerada desde AGT-047 al chocar
+  con la sesión concurrente de arriba (`RestauranteControllerTest`, backend, sin solapamiento de
+  archivos). Instalado `node_modules` desde cero en
+  `agent/`/`access-center/`/`frontend/` (no existían en este sandbox) y reconfirmado sin hallazgo
+  nuevo de dependencias (`npm audit` igual que AGT-044/045/046; `mvn dependency:tree` con el `mvn`
+  del sistema —`./mvnw` no pudo descargar su distribución aquí— reconfirma Spring 6.1.15/Boot
+  3.2.12 sin cambios desde AGT-016). Sin tarea `TODO` con código pendiente (AGT-007/AGT-016 siguen
+  exigiendo decisión humana), se retomó la línea de AGT-045/046: de los 8 servicios de
+  `core/services/` que seguían sin ningún test propio, se eligió `UsuarioService` por su método
+  `resolveImageUrl` (repara rutas de imagen con host/IP antiguos reconstruyéndolas sobre el
+  `apiUrl` actual; distingue base64/`assets/`/externas/relativas) y `resolveProfileImage`
+  (fallback por campo + placeholder) — usados por 8 componentes para la foto de perfil en toda la
+  app. `usuario.service.spec.ts` nuevo (21 tests: 4 HTTP + 9 de `resolveImageUrl` + 4 de
+  `resolveProfileImage` + 3 de `onProfileImageError` con un `<img>` real del DOM, no un doble
+  simulado). **Verificado**: `ng test` → 21/21 nuevos, 77/77 en total (antes 56/56); confirmado que
+  los tests detectan una regresión real (quitando la rama que trata el string literal `"null"`
+  como vacío, falla exactamente ese test; revertido con `git checkout --`, confirmado con `git
+  diff` que volvió al original). `tsc`/`ng build --configuration production`/
+  `playwright test --list` (26/26) sin cambios. No se tocó ningún archivo de backend. Detalle
+  completo en `AGENT_TASKS.md` (AGT-048).
 - **AGT-045** (P2, testing/maintenance) · `REVIEW` desde 2026-11-04 — los overrides de `minimatch`
   (AGT-043) y `glob` (AGT-044, sesión concurrente) rompían `ng test`/Karma por completo (con solo uno,
   `TypeError: mm is not a function`; con los dos fusionados, colgado indefinido) — ninguna de las dos
