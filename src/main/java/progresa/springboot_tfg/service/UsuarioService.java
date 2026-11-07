@@ -151,15 +151,24 @@ public class UsuarioService {
             requireOwner(usuario, emailAutenticado);
         }
 
+        // AGT-040 — mismo chequeo que AdminController.updateClient ya hacía (existsByEmailAndIdNot)
+        // pero que este endpoint de autoedición de perfil nunca tenía: sin él, un cliente podía
+        // mandar el email de otra cuenta ya existente y el único freno era la restricción unique
+        // de la columna en BD, que no se traduce a ninguna excepción controlada aquí -> el cliente
+        // recibía un 500 genérico ("Ha ocurrido un error inesperado") en vez de un 409 claro.
+        if (actualizado.getEmail() != null
+                && usuarioDAO.existsByEmailAndIdNot(actualizado.getEmail(), id)) {
+            throw new DuplicateResourceException("Ya existe otro usuario con ese email");
+        }
+
         usuario.setNombre(actualizado.getNombre());
         usuario.setEmail(actualizado.getEmail());
 
-        if (actualizado.getPassword() != null) {
-            usuario.setPassword(passwordEncoder.encode(actualizado.getPassword()));
-        }
-
-        usuario.setPuntos(actualizado.getPuntos());
-
+        // La contraseña nunca se acepta desde este endpoint de edición de perfil: aceptarla
+        // aquí permitía cambiarla sin aportar la contraseña actual, saltándose la verificación
+        // que sí exige el flujo dedicado (changePassword). El saldo de puntos tampoco se acepta
+        // aquí por el mismo motivo: solo puede cambiar a través de los flujos dedicados (compra,
+        // canje, ajuste de administrador), cada uno con su propia validación.
         return toDTO(usuarioDAO.save(usuario));
     }
 

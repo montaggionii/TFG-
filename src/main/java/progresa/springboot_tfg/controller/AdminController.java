@@ -29,6 +29,20 @@ public class AdminController {
             "PENALIZACION_ADMIN"
     );
 
+    // AGT-029 — debe coincidir exactamente con las opciones que ofrece el
+    // selector de estado y los botones de acción rápida del formulario de
+    // reservas del panel admin (admin-reservations.component.html); antes
+    // solo incluía PENDING/CONFIRMED/CANCELLED, así que elegir "Completada",
+    // "Asistió" o "No asistió" desde la UI real siempre fallaba con un 400.
+    private static final Set<String> RESERVATION_STATUSES = Set.of(
+            "PENDING",
+            "CONFIRMED",
+            "CANCELLED",
+            "COMPLETED",
+            "ATTENDED",
+            "NO_SHOW"
+    );
+
     private final UsuarioDAO usuarioDAO;
     private final RestauranteDAO restauranteDAO;
     private final MovimientoPuntosDAO movimientoPuntosDAO;
@@ -381,7 +395,7 @@ public class AdminController {
         AdminReservation reservation = requireReservation(id);
         String oldData = compactReservation(reservation);
         String status = value(data, "status", reservation.getStatus()).trim().toUpperCase();
-        if (!Set.of("PENDING", "CONFIRMED", "CANCELLED").contains(status)) {
+        if (!RESERVATION_STATUSES.contains(status)) {
             throw new BadRequestException("Estado de reserva no válido.");
         }
         reservation.setStatus(status);
@@ -718,7 +732,7 @@ public class AdminController {
         Long businessId = longValue(data.get("businessId"));
         Restaurante business = businessId == null ? null : requireBusiness(businessId);
         String status = value(data, "status", reservation.getStatus() == null ? "PENDING" : reservation.getStatus()).trim().toUpperCase();
-        if (!Set.of("PENDING", "CONFIRMED", "CANCELLED").contains(status)) throw new BadRequestException("Estado de reserva no válido.");
+        if (!RESERVATION_STATUSES.contains(status)) throw new BadRequestException("Estado de reserva no válido.");
 
         reservation.setUsuario(client);
         reservation.setRestaurante(business);
