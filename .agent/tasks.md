@@ -215,6 +215,24 @@ estado en `AGENT_TASKS.md`, nunca aquí.
   diff` que volvió al original). `tsc`/`ng build --configuration production`/
   `playwright test --list` (26/26) sin cambios. No se tocó ningún archivo de backend. Detalle
   completo en `AGENT_TASKS.md` (AGT-048).
+- **AGT-049** (P3, testing) · `REVIEW` desde 2026-11-07 — mismo tipo de hallazgo que AGT-048 pero en
+  `RestauranteService`: `resolverImagenUrl` repara rutas de imagen de restaurante/promoción con host/IP
+  antiguos sobre el `apiUrl` actual; `getRestaurantImageCandidate`/`getLocalRestaurantImage`/
+  `resolvePromotionImage` añaden, respectivamente, resolución por el primer campo de imagen con valor
+  (11 nombres posibles), un fallback local determinista por hash de `id`/`nombre` (4 imágenes) y la
+  combinación imagen propia/restaurante embebido/`restaurantFallback`/fuente sintética — usado por
+  `map.component.ts`, `safe-restaurant-image.directive.ts` y 8 componentes más, sin ningún test hasta
+  ahora. `restaurante.service.spec.ts` nuevo (35 tests: 7 HTTP + 9 de `resolverImagenUrl` + 5 de
+  `getLocalRestaurantImage` + 4 de `resolveRestaurantImage` + 4 de `resolvePromotionImage` + 3 de
+  `onImageError` con un `<img>` real del DOM). Los métodos HTTP de este servicio construyen la query
+  string a mano en la URL (no usan `HttpParams`), así que los tests los comparan por URL completa, no
+  por `request.params` (no hay precedente de ese patrón en el resto de la suite). **Verificado**:
+  `ng test` → 35/35 nuevos, 112/112 en total (antes 77/77), sin ningún aviso de "has no expectations".
+  `tsc`/`ng build --configuration production`/`playwright test --list` (26/26) sin cambios. `mvn test`
+  (backend sin tocar) → 198 tests, 197 passed, solo falla `contextLoads` de siempre sin MySQL real.
+  `npm audit`/`mvn dependency:tree` reconfirmados sin cambios desde AGT-044/045/046/048/016. No se tocó
+  ningún archivo de backend ni de `agent/`/`access-center/`. Detalle completo en `AGENT_TASKS.md`
+  (AGT-049).
 - **AGT-045** (P2, testing/maintenance) · `REVIEW` desde 2026-11-04 — los overrides de `minimatch`
   (AGT-043) y `glob` (AGT-044, sesión concurrente) rompían `ng test`/Karma por completo (con solo uno,
   `TypeError: mm is not a function`; con los dos fusionados, colgado indefinido) — ninguna de las dos
