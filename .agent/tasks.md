@@ -68,7 +68,7 @@
 - [x] **`UsuarioController` sin ningún test propio (AGT-036)** — 2026-10-30, sesión concurrente a AGT-035: `identificarQr` comprueba `ROLE_RESTAURANT` en el controlador (defensa en profundidad, `SecurityConfig` ya exige el rol a nivel de filtro), no en `UsuarioService`. Añadido `UsuarioControllerTest` (8 tests). `RestauranteController`/`MovimientoPuntosController` se reconfirmaron como pura delegación en su servicio, sin hallazgo. Detalle completo en `AGENT_TASKS.md` (AGT-036, estado `REVIEW`).
 - [x] **`PUT /api/restaurantes/{id}` podía cambiar la contraseña sin pedir la actual (AGT-038)** — 2026-10-31: al releer `RestauranteService.java` línea por línea (en vez de solo confirmar, como AGT-033/036, que el controlador delega su autorización en el servicio), se encontró el mismo patrón ya corregido en `UsuarioService` por AGT-032: `actualizar()` aplicaba `actualizado.getPassword()` del cuerpo sin pedir la contraseña actual — y, a diferencia de `UsuarioController`, `RestauranteController` no tiene ningún endpoint dedicado de cambio de contraseña que sustituya esa vía, así que era el único camino posible. Corregido quitando esa rama del método (ya no lee `password` del cuerpo en absoluto); confirmado que el frontend real (`SettingsComponent`) nunca envía ese campo. Test nuevo `actualizarNuncaCambiaLaPasswordAunqueElCuerpoIncluyaUnaNueva` en `RestauranteServiceTest`. Renumerada de AGT-037 a AGT-038 al fusionar con una sesión concurrente que ya había usado ese número para un hallazgo distinto (`follow-redirects`, ver sección "Pendiente" más abajo). **Verificado**: `mvn test -Dtest=RestauranteServiceTest` → 17/17; `mvn test` completo → 164 tests, 1 error (el mismo de siempre, `contextLoads`, sin MySQL real), 0 regresiones. Detalle completo en `AGENT_TASKS.md` (AGT-038, estado `REVIEW`).
 
-## Pendiente (por prioridad) — actualizado 2026-11-05
+## Pendiente (por prioridad) — actualizado 2026-11-08
 
 **Fuente de verdad del backlog técnico: el bloque `AGT-xxx` de `AGENT_TASKS.md`** (estado, dependencias,
 criterios de aceptación, verificación real y lo que falta por verificar de cada tarea). Esta lista solo
@@ -233,6 +233,25 @@ estado en `AGENT_TASKS.md`, nunca aquí.
   `npm audit`/`mvn dependency:tree` reconfirmados sin cambios desde AGT-044/045/046/048/016. No se tocó
   ningún archivo de backend ni de `agent/`/`access-center/`. Detalle completo en `AGENT_TASKS.md`
   (AGT-049).
+- **AGT-050** (P3, testing) · `REVIEW` desde 2026-11-08 — último servicio no trivial de
+  `core/services/` sin ningún test propio: `AdminService`, usado por los 5 componentes del panel de
+  administración. Sin hallazgo nuevo de dependencias ni de backend (`npm audit`/`mvn dependency:tree`
+  reconfirmados sin cambios desde AGT-048/049/016; AGT-007/AGT-016 siguen siendo las únicas `TODO`,
+  bloqueadas por decisión humana). De los 7 servicios restantes sin spec, se reconfirmó el descarte de
+  `compra`/`movimiento`/`puntos`/`recompensa` (puro wrapper HTTP) y `maps`/`restaurant` (acoplado a
+  DOM/`google` el primero, código muerto sin ningún uso el segundo); `AdminService.getBusinesses()` es
+  el único con lógica propia real: `response?.content || response?.items || response || []` tolera que
+  el backend (`AdminController`, confirmado leyendo su código: en la práctica siempre manda ambos
+  campos con el mismo valor) devuelva la lista envuelta en `content`, en `items` o como array plano.
+  `admin.service.spec.ts` nuevo (31 tests: 1 de `getDashboard` + 4 de `getBusinesses` (las 4 formas de
+  respuesta, prioridad `content` > `items`) + 4 de búsquedas con `params` + 22 del resto de métodos
+  HTTP de negocios/clientes/puntos/reservas/stats/logs). **Verificado**: `ng test` → 31/31 nuevos,
+  143/143 en total (antes 112/112), sin regresión; confirmado que los tests detectan una regresión real
+  (invirtiendo a mano la prioridad `content`/`items`, falla exactamente ese test; revertido, `git diff`
+  confirma que el fichero volvió al original). `tsc`/`ng build --configuration production`/
+  `playwright test --list` (26/26) sin cambios. `mvn test` (backend sin tocar) → 198 tests, 197 passed,
+  solo falla `contextLoads` de siempre sin MySQL real. No se tocó ningún archivo de backend ni de
+  `agent/`/`access-center/`. Detalle completo en `AGENT_TASKS.md` (AGT-050).
 - **AGT-045** (P2, testing/maintenance) · `REVIEW` desde 2026-11-04 — los overrides de `minimatch`
   (AGT-043) y `glob` (AGT-044, sesión concurrente) rompían `ng test`/Karma por completo (con solo uno,
   `TypeError: mm is not a function`; con los dos fusionados, colgado indefinido) — ninguna de las dos
