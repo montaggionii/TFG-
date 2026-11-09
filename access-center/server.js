@@ -10,6 +10,7 @@ import { runAgent } from "../agent/src/runner/run.mjs";
 import { createProvider } from "../agent/src/llm/providers.mjs";
 import { createContext } from "../agent/src/tools/registry.mjs";
 import { loadRoster, getAgent, routeByArea } from "../agent/src/lib/roster.mjs";
+import { createSameOriginGuard } from "./lib/same-origin.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_PATH = path.join(__dirname, "..");
@@ -167,9 +168,14 @@ registerApprovalRoutes(app, { port: PORT });
 app.use(express.json());
 
 // CORS solo para el frontend local de FidelyFood (necesario para que
-// AgentStateService pueda hacer POST aquí desde el navegador). Sigue sin
-// exponerse nada fuera de este Mac: el servidor entero solo escucha en
-// 127.0.0.1, esto únicamente permite que otro puerto de localhost lo llame.
+// AgentStateService pueda hacer POST aquí desde el navegador, puerto distinto).
+// Esto es informativo para el navegador (qué origen puede LEER la respuesta),
+// no autorización: no impide que la petición llegue y se ejecute en el
+// servidor desde cualquier origen o proceso de loopback. Las rutas que de
+// verdad necesitan frenar peticiones de otro origen (p. ej. /api/jarvis/run,
+// que dispara una ejecución real del agente) comprueban Host/Origin aparte
+// con `createSameOriginGuard` (mismo mecanismo ya usado en
+// approvals-routes.mjs), no con esta cabecera CORS.
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", FRONTEND_URL);
   res.header("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
@@ -413,6 +419,7 @@ app.get("/api/jarvis", (req, res) => res.json(buildJarvis()));
 // Una sola ejecucion simultanea. La politica, aprobaciones y auditoria
 // siguen siendo responsabilidad del Agent Layer.
 const activeHarveyRuns = new Map();
+const { sameOrigin: harveySameOrigin } = createSameOriginGuard(PORT);
 
 function normalizeHarveyPrompt(value) {
   if (typeof value !== "string") return "";
@@ -420,6 +427,18 @@ function normalizeHarveyPrompt(value) {
 }
 
 app.post("/api/jarvis/run", async (req, res) => {
+  // Unico llamador legitimo: el fetch same-origin de oficina.html (ver
+  // public/oficina.html). Sin esta comprobacion, cualquier pagina web abierta
+  // a la vez en el navegador podria lanzar una ejecucion real de Harvey por
+  // CSRF simplemente haciendo ese mismo POST — la cabecera CORS de arriba no
+  // lo impide, solo decide qué origen puede leer la respuesta.
+  if (!harveySameOrigin(req)) {
+    return res.status(403).json({
+      ok: false,
+      error: "Harvey solo acepta ordenes desde la Oficina de Agentes (mismo origen).",
+    });
+  }
+
   const prompt = normalizeHarveyPrompt(req.body?.prompt);
   const taskId =
     typeof req.body?.taskId === "string" && req.body.taskId.trim()

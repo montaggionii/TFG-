@@ -17,6 +17,7 @@ import progresa.springboot_tfg.entity.MovimientoPuntos;
 import progresa.springboot_tfg.entity.Restaurante;
 import progresa.springboot_tfg.entity.Role;
 import progresa.springboot_tfg.entity.Usuario;
+import progresa.springboot_tfg.exception.DuplicateResourceException;
 import progresa.springboot_tfg.exception.ResourceNotFoundException;
 import progresa.springboot_tfg.security.JwtUtil;
 
@@ -206,6 +207,61 @@ class RestauranteServiceTest {
         Restaurante actualizado = restauranteService.actualizar(3L, cambios);
 
         assertEquals("Nuevo nombre", actualizado.getNombre());
+    }
+
+    @Test
+    void actualizarNuncaCambiaLaPasswordAunqueElCuerpoIncluyaUnaNueva() {
+        // AGT-038 — mismo patrón ya corregido en UsuarioService.actualizar
+        // (AGT-032), pero sin detectarse hasta ahora en RestauranteService:
+        // a diferencia de UsuarioController, aquí no existe ningún endpoint
+        // dedicado de cambio de contraseña (el equivalente a
+        // /api/usuarios/{id}/change-password), así que PUT /api/restaurantes/{id}
+        // era el único camino — y aplicaba una contraseña nueva del cuerpo sin
+        // pedir ni comprobar la actual. requireOwner impide que otro
+        // restaurante lo explote, pero no una sesión propia ya comprometida.
+        Restaurante restaurante = restauranteConPassword("venezuelafood@test.com", "actual123");
+        when(restauranteDAO.findById(3L)).thenReturn(Optional.of(restaurante));
+        when(restauranteDAO.save(any(Restaurante.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Restaurante cambios = new Restaurante();
+        cambios.setNombre("Venezuela Food");
+        cambios.setEmail("venezuelafood@test.com");
+        cambios.setDireccion("Calle Falsa 123");
+        cambios.setCiudad("Valencia");
+        cambios.setTelefono("600000000");
+        cambios.setPassword("nueva456");
+
+        Restaurante actualizado = restauranteService.actualizar(3L, cambios, "venezuelafood@test.com");
+
+        assertTrue(passwordEncoder.matches("actual123", actualizado.getPassword()));
+        assertFalse(passwordEncoder.matches("nueva456", actualizado.getPassword()));
+    }
+
+    /**
+     * AGT-040 — PUT /api/restaurantes/{id} (autoedición del propio restaurante)
+     * nunca comprobaba si el email nuevo ya pertenecía a OTRO restaurante: el
+     * único freno era la restricción unique de la columna en BD, que sin este
+     * chequeo se traducía en una excepción no controlada (500 genérico) en vez
+     * de un 409 claro. Mismo patrón que AdminController.updateBusiness ya
+     * aplicaba (existsByEmailAndIdNot), pero que faltaba en este otro camino de
+     * escritura del mismo campo.
+     */
+    @Test
+    void actualizarConEmailYaUsadoPorOtroRestauranteLanzaDuplicateResourceExceptionSinGuardar() {
+        Restaurante restaurante = restauranteConPassword("venezuelafood@test.com", "actual123");
+        when(restauranteDAO.findById(3L)).thenReturn(Optional.of(restaurante));
+        when(restauranteDAO.existsByEmailAndIdNot("alabroster@test.com", 3L)).thenReturn(true);
+
+        Restaurante cambios = new Restaurante();
+        cambios.setNombre("Venezuela Food");
+        cambios.setEmail("alabroster@test.com");
+        cambios.setDireccion("Calle Falsa 123");
+        cambios.setCiudad("Valencia");
+        cambios.setTelefono("600000000");
+
+        assertThrows(DuplicateResourceException.class,
+                () -> restauranteService.actualizar(3L, cambios, "venezuelafood@test.com"));
+        verify(restauranteDAO, never()).save(any());
     }
 
     private MovimientoPuntos movimiento(Long usuarioId, int puntos, Double monto, LocalDateTime fecha) {

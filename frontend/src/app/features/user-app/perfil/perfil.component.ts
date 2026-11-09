@@ -54,15 +54,13 @@ export class PerfilComponent implements OnInit {
   // ESTADOS DE MODALES
   isEditProfileOpen = false;
   isNotificationsOpen = false;
-  isSecurityOpen = false;
   isSupportOpen = false;
   isLanguageOpen = false;
   isAppearanceOpen = false;
 
   // FORMULARIOS
   editData = { nombre: '', email: '' };
-  securityData = { current: '', new: '', confirm: '' };
-  
+
   // PREFERENCIAS DE NOTIFICACIONES (Persistencia Local)
   notifPrefs = {
     push: true,
@@ -277,36 +275,6 @@ export class PerfilComponent implements OnInit {
         console.log('[PROFILE UPDATED]', updated);
       },
       error: () => this.showToast(this.i18n.instant('profile.toast.profileError'), 'danger')
-    });
-  }
-
-  openSecurity() {
-    console.log('[SECURITY OPEN]');
-    this.securityData = { current: '', new: '', confirm: '' };
-    this.isSecurityOpen = true;
-  }
-
-  saveSecurity() {
-    if (this.securityData.new !== this.securityData.confirm) {
-      this.showToast('Las contraseñas no coinciden', 'warning');
-      return;
-    }
-
-    if (this.securityData.new.length < 6) {
-      this.showToast('La contraseña debe tener al menos 6 caracteres', 'warning');
-      return;
-    }
-
-    this.usuarioService.updateUsuario(this.user.id, {
-      ...this.user,
-      password: this.securityData.new
-    }).subscribe({
-      next: () => {
-        this.isSecurityOpen = false;
-        this.showToast('Contraseña actualizada correctamente', 'success');
-        console.log('[SECURITY ACTION] Password changed');
-      },
-      error: () => this.showToast('Error al cambiar la contraseña', 'danger')
     });
   }
 
