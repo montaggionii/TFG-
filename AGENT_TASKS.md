@@ -20,6 +20,12 @@ Pueden editarse a mano respetando el formato. El histórico anterior (FID-001…
 
 Eventos que crean tareas: `npm --prefix agent run event -- issue <n>` (issue de GitHub), `… error backend` (errores del log), `… feature "texto"` (funcionalidad nueva).
 
+**⚠️ 2026-11-09: todas las tareas de abajo salvo AGT-007/AGT-016 están en `REVIEW`, acumuladas en el PR #51
+(`agent/fidelyfood-autonomous` → `main`, abierto desde 2026-10-08, CI en verde, sin conflictos). Incluye
+vulnerabilidades de seguridad reales ya corregidas pero no desplegadas (AGT-011, AGT-015, AGT-023, AGT-028,
+AGT-032, AGT-038, entre otras). Hace falta revisión/fusión humana del PR #51, no más tareas nuevas — ver
+el aviso en `.agent/tasks.md`.**
+
 <!-- TASKS:START -->
 
 ### AGT-001 · Dashboard del restaurante carga los datos dos veces al entrar
