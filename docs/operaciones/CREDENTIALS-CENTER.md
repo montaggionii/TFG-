@@ -5,7 +5,7 @@ Interfaz visual local, de solo lectura, para consultar las cuentas de prueba del
 ## Cómo arrancarlo
 
 ```bash
-./start-credentials.sh
+./scripts/start-credentials.sh
 ```
 
 o directamente:

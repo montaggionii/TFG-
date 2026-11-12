@@ -10,6 +10,10 @@ FidelyFood es una aplicación de fidelización para restaurantes basada en punto
 
 Este documento recoge la memoria oficial del Trabajo Final de Grado del proyecto FidelyFood, una plataforma orientada a la fidelización de clientes mediante QR, sistema de puntos, promociones, recompensas y geolocalización.
 
+## Documentación del proyecto
+
+Mapa completo en [`docs/README.md`](docs/README.md). En la raíz quedan los documentos que leen los agentes y las herramientas (`AGENTS.md`, `ARCHITECTURE.md`, `API.md`, `DATABASE.md`, `DEPLOYMENT.md`, `DEVELOPMENT.md`, `SECURITY.md`, `TESTING.md`, `AGENT_LAYER.md`, `AGENT_TASKS.md`, `CHANGELOG_AGENT.md`).
+
 ## Resumen del TFG
 
 **Objetivo del proyecto.** FidelyFood digitaliza y optimiza los programas de fidelización tradicionales del sector gastronómico. Busca mejorar la retención de clientes, automatizar recompensas, sustituir tarjetas físicas y permitir un análisis básico del comportamiento de uso.
