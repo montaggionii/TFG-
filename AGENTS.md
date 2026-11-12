@@ -38,7 +38,7 @@ Agent Layer (agent/): LLM → runner/Claude Code → MCP "fidelyfood" → herram
 | `CHANGELOG_AGENT.md` | Registro de ejecuciones del agente |
 | `.mcp.json` | Registro del servidor MCP `fidelyfood` para Claude Code |
 
-El estado técnico histórico vive en [`.agent/`](.agent/) y el registro cronológico de sesiones autónomas en [`.agent-progress.md`](.agent-progress.md). **Antes de empezar cualquier tarea, lee esos archivos** para no re-descubrir el proyecto desde cero, y consulta la memoria (`memory_search`).
+El estado técnico histórico vive en [`.agent/`](.agent/) y el registro cronológico de sesiones autónomas en [`docs/agente/agent-progress.md`](docs/agente/agent-progress.md). **Antes de empezar cualquier tarea, lee esos archivos** para no re-descubrir el proyecto desde cero, y consulta la memoria (`memory_search`).
 
 ## Cómo arrancar y probar
 
