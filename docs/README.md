@@ -24,7 +24,6 @@
 | [`../TESTING.md`](../TESTING.md) | Pruebas |
 | [`../DEPLOYMENT.md`](../DEPLOYMENT.md) | Despliegue |
 | [`../SECURITY.md`](../SECURITY.md) | Seguridad |
-| [`LOCAL-DEV-RUNBOOK.md`](LOCAL-DEV-RUNBOOK.md) | Puesta en marcha local |
 | [`TESTING_ISOLATED.md`](TESTING_ISOLATED.md) | Pruebas aisladas con BD desechable |
 
 ## Agentes (Agent Layer)
@@ -43,4 +42,3 @@
 | Documento | Contenido |
 |---|---|
 | [`operaciones/CREDENTIALS-CENTER.md`](operaciones/CREDENTIALS-CENTER.md) | Access Center local (se arranca con `scripts/start-credentials.sh`) |
-| [`audit/CONSOLIDACION-FIDELYFOOD.md`](audit/CONSOLIDACION-FIDELYFOOD.md) | Informe de consolidación del 2026-10-26 |
