@@ -68,22 +68,25 @@
 - [x] **`UsuarioController` sin ningún test propio (AGT-036)** — 2026-10-30, sesión concurrente a AGT-035: `identificarQr` comprueba `ROLE_RESTAURANT` en el controlador (defensa en profundidad, `SecurityConfig` ya exige el rol a nivel de filtro), no en `UsuarioService`. Añadido `UsuarioControllerTest` (8 tests). `RestauranteController`/`MovimientoPuntosController` se reconfirmaron como pura delegación en su servicio, sin hallazgo. Detalle completo en `AGENT_TASKS.md` (AGT-036, estado `REVIEW`).
 - [x] **`PUT /api/restaurantes/{id}` podía cambiar la contraseña sin pedir la actual (AGT-038)** — 2026-10-31: al releer `RestauranteService.java` línea por línea (en vez de solo confirmar, como AGT-033/036, que el controlador delega su autorización en el servicio), se encontró el mismo patrón ya corregido en `UsuarioService` por AGT-032: `actualizar()` aplicaba `actualizado.getPassword()` del cuerpo sin pedir la contraseña actual — y, a diferencia de `UsuarioController`, `RestauranteController` no tiene ningún endpoint dedicado de cambio de contraseña que sustituya esa vía, así que era el único camino posible. Corregido quitando esa rama del método (ya no lee `password` del cuerpo en absoluto); confirmado que el frontend real (`SettingsComponent`) nunca envía ese campo. Test nuevo `actualizarNuncaCambiaLaPasswordAunqueElCuerpoIncluyaUnaNueva` en `RestauranteServiceTest`. Renumerada de AGT-037 a AGT-038 al fusionar con una sesión concurrente que ya había usado ese número para un hallazgo distinto (`follow-redirects`, ver sección "Pendiente" más abajo). **Verificado**: `mvn test -Dtest=RestauranteServiceTest` → 17/17; `mvn test` completo → 164 tests, 1 error (el mismo de siempre, `contextLoads`, sin MySQL real), 0 regresiones. Detalle completo en `AGENT_TASKS.md` (AGT-038, estado `REVIEW`).
 
-## Pendiente (por prioridad) — actualizado 2026-11-09
+## Pendiente (por prioridad) — actualizado 2026-11-16
 
-**⚠️ Aviso de esta sesión (2026-11-09): el PR #51 necesita revisión humana, no más tareas nuevas.**
+**⚠️ Aviso de esta sesión (2026-11-16): el PR #51 sigue necesitando revisión humana — sin cambios desde el aviso de 2026-11-09.**
 El PR #51 (`agent/fidelyfood-autonomous` → `main`) lleva abierto desde 2026-10-08 (más de un mes) y ha
-acumulado 40 tareas (AGT-011 a AGT-050, 60 commits, ~6000 líneas) sin que nadie lo revise ni fusione
-todavía — CI en verde (`mergeable_state: clean`), sin conflictos con `main`. Entre esas 40 tareas hay
+acumulado 41 tareas (AGT-011 a AGT-051, 61 commits, ~6000 líneas) sin que nadie lo revise ni fusione
+todavía — CI en verde (`mergeable_state: clean`), sin conflictos con `main` (confirmado que el único
+merge humano desde entonces, PR #52, ya estaba integrado en esta rama). Entre esas 41 tareas hay
 **vulnerabilidades de seguridad reales ya corregidas en el PR pero todavía activas en producción**
 mientras siga sin fusionarse: mass assignment que permitía a un cliente autoasignarse puntos de
 fidelidad arbitrarios (AGT-028), cambio de contraseña de usuario/restaurante sin pedir la contraseña
 actual (AGT-032/AGT-038), CSRF real en `POST /api/jarvis/run` del access-center (AGT-015), fuga del
 token XSRF en el `HttpClient` de Angular (AGT-023) y una vulnerabilidad crítica en las dependencias
-nativas de Capacitor (AGT-011). Esta sesión no ha añadido ninguna tarea nueva (AGT-051+) a propósito:
-seguir ampliando un PR de este tamaño sin que ninguna de las 50 tareas en `REVIEW` se cierre no ayuda —
-lo que hace falta ahora es que una persona revise y fusione (o rechace) el PR #51, no más código. Las
-únicas dos tareas en `TODO` real (AGT-007, AGT-016) ya estaban bloqueadas por una decisión humana antes
-de esta sesión y siguen igual.
+nativas de Capacitor (AGT-011). Esta sesión solo añadió una tarea nueva y acotada (AGT-051: 2 avisos
+moderados nuevos de `hono`/`@hono/node-server` en `agent/`, corregidos con `npm audit fix` sin tocar
+`package.json`) porque apareció entre la última comprobación (2026-11-03/08) y hoy — no se ha reabierto
+el resto del backlog ni se ha intentado abarcar nada más grande: seguir ampliando un PR de este tamaño
+sin que ninguna de las 50 tareas ya en `REVIEW` se cierre no ayuda. Lo que hace falta ahora es que una
+persona revise y fusione (o rechace) el PR #51, no más código. Las únicas dos tareas en `TODO` real
+(AGT-007, AGT-016) siguen bloqueadas por la misma decisión humana de siempre, sin cambios.
 
 **Fuente de verdad del backlog técnico: el bloque `AGT-xxx` de `AGENT_TASKS.md`** (estado, dependencias,
 criterios de aceptación, verificación real y lo que falta por verificar de cada tarea). Esta lista solo
@@ -104,6 +107,17 @@ estado en `AGENT_TASKS.md`, nunca aquí.
   Sin ruta de explotación real conocida en el código propio (API REST pura, sin JSP/Thymeleaf ni resource
   handlers de Spring), pero requiere una decisión humana sobre el alcance de la migración, no un parche de
   una línea (ver `SECURITY.md` #18).
+- **AGT-051** (P2, security) · `REVIEW` desde 2026-11-16 — rama ya al día con `main` (PR #52 humano ya
+  integrado); backlog reconfirmado: solo AGT-007/AGT-016 siguen en `TODO`, igual que constató la sesión
+  anterior (2026-11-09, "no más tareas"). `npm audit` en `agent/`, que llevaba en 0 desde AGT-024, tenía
+  2 avisos moderados nuevos: `@hono/node-server` 2.1.3 ([GHSA-qv5m-9pm6-hqp3](https://github.com/advisories/GHSA-qv5m-9pm6-hqp3),
+  [GHSA-jpvv-r467-5p4w](https://github.com/advisories/GHSA-jpvv-r467-5p4w)) y `hono` 4.13.12 (5 avisos,
+  bypass de middleware/CSRF/validación). Ninguna es dependencia directa; `npm audit fix` (sin `--force`,
+  confirmado antes con `--dry-run`) sube ambas dentro de su propia serie, solo reescribe
+  `agent/package-lock.json`. `npm audit` en `agent/` → 0; `npm --prefix agent test` → 105/105, sin
+  regresión. `access-center/` sigue en 0; `frontend/` sigue con las mismas 7 moderadas de siempre,
+  bloqueadas por la misma decisión humana de Angular 21/22. Detalle completo en `AGENT_TASKS.md`
+  (AGT-051) y `SECURITY.md` (#29).
 - **AGT-034** (P2, maintenance) · `REVIEW` desde 2026-10-29 — `npm audit` en `frontend/` bajó de 6 a 5
   vulnerabilidades (0 altas, antes 2): `webpack-dev-middleware` (path-traversal) ya tenía parche dentro de
   su propia serie 7.x, sin exigir el salto de major a Angular 21/22 que la bloqueaba desde AGT-023/025/026.
