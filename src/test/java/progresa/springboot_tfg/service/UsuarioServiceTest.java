@@ -218,6 +218,57 @@ class UsuarioServiceTest {
     }
 
     @Test
+    void loginConTelefonoPermiteEntrarSinEmail() {
+        String rawPassword = "clave123";
+        Usuario usuario = usuarioConPassword("cliente@email.com", rawPassword);
+        usuario.setTelefono("+34600111222");
+        when(usuarioDAO.findByEmail("+34600111222")).thenReturn(Optional.empty());
+        when(usuarioDAO.findByTelefono("+34600111222")).thenReturn(Optional.of(usuario));
+
+        LoginRequestDTO dto = new LoginRequestDTO();
+        dto.setEmail("+34600111222");
+        dto.setPassword(rawPassword);
+
+        LoginResponseDTO respuesta = usuarioService.login(dto);
+        assertEquals("cliente@email.com", respuesta.getEmail());
+    }
+
+    @Test
+    void loginConTelefonoNormalizaEspaciosYGuiones() {
+        String rawPassword = "clave123";
+        Usuario usuario = usuarioConPassword("cliente@email.com", rawPassword);
+        usuario.setTelefono("600111222");
+        // El cliente escribe "600 111-222": debe encontrar el teléfono igualmente
+        when(usuarioDAO.findByEmail("600 111-222")).thenReturn(Optional.empty());
+        when(usuarioDAO.findByTelefono("600111222")).thenReturn(Optional.of(usuario));
+
+        LoginRequestDTO dto = new LoginRequestDTO();
+        dto.setEmail("600 111-222");
+        dto.setPassword(rawPassword);
+
+        assertEquals("cliente@email.com", usuarioService.login(dto).getEmail());
+    }
+
+    @Test
+    void registroConTelefonoLoGuardaYRechazaDuplicados() {
+        RegisterRequestDTO dto = new RegisterRequestDTO();
+        dto.setNombre("Nuevo");
+        dto.setEmail("nuevo@email.com");
+        dto.setPassword("1234");
+        dto.setTelefono(" 600 111 333 ");
+        when(usuarioDAO.findByEmail("nuevo@email.com")).thenReturn(Optional.empty());
+        when(usuarioDAO.findByTelefono("600111333")).thenReturn(Optional.empty());
+        when(usuarioDAO.save(any(Usuario.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Usuario creado = usuarioService.register(dto);
+        assertEquals("600111333", creado.getTelefono());
+
+        // Duplicado
+        when(usuarioDAO.findByTelefono("600111333")).thenReturn(Optional.of(creado));
+        assertThrows(DuplicateResourceException.class, () -> usuarioService.register(dto));
+    }
+
+    @Test
     void identificarPorQrConCodigoDesconocidoLanzaResourceNotFound() {
         when(usuarioDAO.findByQrCode("QR-INEXISTENTE")).thenReturn(Optional.empty());
 

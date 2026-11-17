@@ -27,6 +27,13 @@ public class RegisterRequestDTO {
     )
     private String password;
 
+    @Schema(
+            description = "Número de teléfono del usuario (opcional, permite iniciar sesión con él)",
+            example = "+34600111222",
+            requiredMode = Schema.RequiredMode.NOT_REQUIRED
+    )
+    private String telefono;
+
     public String getNombre() {
         return nombre;
     }
@@ -49,5 +56,13 @@ public class RegisterRequestDTO {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getTelefono() {
+        return telefono;
+    }
+
+    public void setTelefono(String telefono) {
+        this.telefono = telefono;
     }
 }

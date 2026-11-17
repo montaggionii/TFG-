@@ -94,10 +94,10 @@ public class GlobalExceptionHandler {
     }
 
     /* =========================
-       503 - WALLET SIN CONFIGURAR (falta certificado de Apple)
+       503 - PROVEEDOR EXTERNO SIN CONFIGURAR (Wallet, Google/Apple)
        ========================= */
-    @ExceptionHandler(WalletNotConfiguredException.class)
-    public ResponseEntity<Map<String, Object>> manejarWalletSinConfigurar(WalletNotConfiguredException ex) {
+    @ExceptionHandler({WalletNotConfiguredException.class, SocialAuthNotConfiguredException.class})
+    public ResponseEntity<Map<String, Object>> manejarServicioSinConfigurar(RuntimeException ex) {
         return buildResponse(
                 HttpStatus.SERVICE_UNAVAILABLE,
                 "Service Unavailable",

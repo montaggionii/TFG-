@@ -15,6 +15,7 @@ import progresa.springboot_tfg.dto.*;
 import progresa.springboot_tfg.entity.Usuario; // 🔥 NUEVO
 import progresa.springboot_tfg.security.JwtUtil;
 import progresa.springboot_tfg.service.RestauranteService;
+import progresa.springboot_tfg.service.SocialAuthService;
 import progresa.springboot_tfg.service.UsuarioService;
 
 import java.nio.charset.StandardCharsets;
@@ -31,6 +32,7 @@ public class AuthController {
 
     private final UsuarioService usuarioService;
     private final RestauranteService restauranteService;
+    private final SocialAuthService socialAuthService;
     private final JwtUtil jwtUtil;
     private final String adminPassword;
 
@@ -38,10 +40,12 @@ public class AuthController {
     // cuenta admin utilizable (login-admin devuelve siempre 401).
     public AuthController(UsuarioService usuarioService,
                           RestauranteService restauranteService,
+                          SocialAuthService socialAuthService,
                           JwtUtil jwtUtil,
                           @Value("${fidelyfood.admin.password:}") String adminPassword) {
         this.usuarioService = usuarioService;
         this.restauranteService = restauranteService;
+        this.socialAuthService = socialAuthService;
         this.jwtUtil = jwtUtil;
         this.adminPassword = adminPassword == null ? "" : adminPassword.trim();
         if (this.adminPassword.isEmpty()) {
@@ -146,5 +150,21 @@ public class AuthController {
             @RequestBody RestauranteRegisterRequestDTO dto) {
 
         return ResponseEntity.ok(restauranteService.register(dto));
+    }
+
+    // "Continuar con Google": verifica el id_token y crea la sesión
+    @Operation(summary = "Login con Google",
+            description = "Verifica el id_token de Google Sign-In y devuelve el JWT de la sesión; si el cliente es nuevo se registra automáticamente")
+    @PostMapping("/google")
+    public ResponseEntity<LoginResponseDTO> loginGoogle(@RequestBody SocialLoginRequestDTO dto) {
+        return ResponseEntity.ok(socialAuthService.loginGoogle(dto.getIdToken(), dto.getNombre()));
+    }
+
+    // "Continuar con Apple": verifica el id_token y crea la sesión
+    @Operation(summary = "Login con Apple",
+            description = "Verifica el id_token de Sign in with Apple y devuelve el JWT de la sesión; si el cliente es nuevo se registra automáticamente")
+    @PostMapping("/apple")
+    public ResponseEntity<LoginResponseDTO> loginApple(@RequestBody SocialLoginRequestDTO dto) {
+        return ResponseEntity.ok(socialAuthService.loginApple(dto.getIdToken(), dto.getNombre()));
     }
 }
