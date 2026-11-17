@@ -185,6 +185,7 @@
   "userCard.benefits": "Voir mes avantages",
   "userCard.scanAtRestaurant": "Scanner dans le lieu",
   "userCard.qrInstruction": "Montrez ce code au serveur pour gagner des points ou échanger des récompenses",
+  "userCard.addToWallet": "Ajouter à Apple Wallet",
   "restaurant.fallbackTitle": "Restaurant",
   "restaurant.location": "Emplacement",
   "restaurant.contact": "Contact",

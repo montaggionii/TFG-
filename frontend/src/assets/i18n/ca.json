@@ -185,6 +185,7 @@
   "userCard.benefits": "Veure els meus beneficis",
   "userCard.scanAtRestaurant": "Escanejar al local",
   "userCard.qrInstruction": "Mostra aquest codi al cambrer per a sumar punts o canviar premis",
+  "userCard.addToWallet": "Afegir a Apple Wallet",
   "restaurant.fallbackTitle": "Restaurant",
   "restaurant.location": "Ubicació",
   "restaurant.contact": "Contacte",

@@ -95,7 +95,11 @@
       </div>
 
       <div class="modal-footer">
-        <ion-button expand="block" mode="ios" class="close-modal-btn" (click)="isModalOpen = false">
+        <ion-button expand="block" mode="ios" class="wallet-btn" (click)="addToWallet()">
+          <ion-icon slot="start" name="wallet-outline"></ion-icon>
+          {{ 'userCard.addToWallet' | ffTranslate }}
+        </ion-button>
+        <ion-button expand="block" fill="outline" mode="ios" class="close-modal-btn" (click)="isModalOpen = false">
           {{ 'common.understood' | ffTranslate }}
         </ion-button>
       </div>
