@@ -12,6 +12,7 @@ export interface AuthState {
   nombre: string | null;
   id?: number;
   foto?: string | null;
+  puntos?: number;
 }
 
 
@@ -162,6 +163,7 @@ export class AuthService {
       const nombre = res.nombre || res.usuario?.nombre || res.restaurante?.nombre || 'Usuario';
       const id = res.id || res.usuario?.id || res.restaurante?.id;
       const foto = res.fotoPerfil || res.foto || res.usuario?.fotoPerfil || res.restaurante?.foto || null;
+      const puntos = res.puntos ?? res.usuario?.puntos;
 
       // 5. PERSISTENCIA ANTES QUE EMISIÓN (ORDEN VITAL)
       localStorage.setItem('token', res.token);
@@ -170,7 +172,7 @@ export class AuthService {
       if (id) localStorage.setItem('userId', id.toString());
       if (foto) localStorage.setItem('userPhoto', foto);
 
-      const newState: AuthState = { token: res.token, rol: role, nombre, id, foto };
+      const newState: AuthState = { token: res.token, rol: role, nombre, id, foto, puntos };
 
 
       // Emitimos el nuevo estado DESPUÉS de asegurar el localStorage
@@ -193,7 +195,8 @@ export class AuthService {
       email: '',
       rol: state.rol || '',
       token: state.token || '',
-      fotoPerfil: state.foto || undefined
+      fotoPerfil: state.foto || undefined,
+      puntos: state.puntos
     });
 
   }

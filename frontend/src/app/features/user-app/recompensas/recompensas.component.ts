@@ -57,6 +57,7 @@ export class RecompensasComponent implements OnInit {
   isLoading = true;
   error = false;
   userPoints = 0;
+  private procesandoCanje = false;
 
   ngOnInit() {
     this.cargarDatos();
@@ -77,7 +78,16 @@ export class RecompensasComponent implements OnInit {
       next: (data) => {
         this.procesarRecompensas(data);
         const user = this.globalState.getState();
-        this.userPoints = user?.puntos || 0;
+        if (user?.puntos != null) {
+          this.userPoints = user.puntos;
+        } else if (user?.id != null) {
+          // Al recargar directo en esta ruta el estado en memoria está vacío:
+          // pedimos el saldo real para no mostrar todo el catálogo bloqueado.
+          this.usuarioService.getUsuarioById(user.id).subscribe(data2 => {
+            this.globalState.setState({ ...user, id: user.id!, puntos: data2.puntos });
+            this.userPoints = data2.puntos;
+          });
+        }
         this.isLoading = false;
         if (event) event.target.complete();
       },
@@ -136,6 +146,8 @@ export class RecompensasComponent implements OnInit {
   }
 
   private async ejecutarCanje(recompensa: any) {
+    if (this.procesandoCanje) return; // Evita doble-gasto por doble click / alert apilado
+    this.procesandoCanje = true;
     const user = this.globalState.getState();
     if (!user?.id) return;
 
@@ -144,6 +156,7 @@ export class RecompensasComponent implements OnInit {
 
     this.promocionService.canjearPromocion(user.id, recompensa.id).subscribe({
       next: async () => {
+        this.procesandoCanje = false;
         // Actualizar puntos
         this.usuarioService.getUsuarioById(user.id!).subscribe(data => {
           this.globalState.setState({ ...user, puntos: data.puntos });
@@ -158,6 +171,7 @@ export class RecompensasComponent implements OnInit {
         toast.present();
       },
       error: async (err) => {
+        this.procesandoCanje = false;
         await loading.dismiss();
         const toast = await this.toastCtrl.create({
           message: err.error?.message || this.i18n.instant('rewards.insufficient'),
