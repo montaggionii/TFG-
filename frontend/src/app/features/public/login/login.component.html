@@ -38,13 +38,13 @@
       <!-- 4. FORMULARIO: Estilo limpio y moderno -->
       <form [formGroup]="loginForm" (ngSubmit)="doLogin()" class="auth-form">
         <div class="input-group">
-          <ion-label>Correo Electrónico</ion-label>
+          <ion-label>Email o teléfono</ion-label>
           <div class="field-wrapper">
-            <ion-icon name="mail-outline"></ion-icon>
-            <ion-input type="email"
+            <ion-icon name="person-outline"></ion-icon>
+            <ion-input type="text"
                        formControlName="email"
-                       placeholder="ejemplo@email.com"
-                       aria-label="Correo Electrónico"
+                       placeholder="ejemplo@email.com · +34 600 111 222"
+                       aria-label="Email o teléfono"
                        class="custom-input"></ion-input>
           </div>
         </div>
@@ -67,6 +67,18 @@
           <ion-icon name="arrow-forward-outline" slot="end"></ion-icon>
         </ion-button>
       </form>
+
+      <!-- 5b. ACCESO SOCIAL: solo con proveedor configurado (nada de botones falsos) -->
+      <div *ngIf="!isRestaurantMode && (googleConfigured || appleConfigured)" class="social-login">
+        <div class="divider"><span>o continúa con</span></div>
+        <div *ngIf="googleConfigured" class="google-host">
+          <div #googleBtnHost class="google-btn-host"></div>
+        </div>
+        <ion-button *ngIf="appleConfigured" expand="block" class="social-btn apple-btn" (click)="appleSignIn()">
+          <ion-icon slot="start" name="logo-apple"></ion-icon>
+          <span>Continuar con Apple</span>
+        </ion-button>
+      </div>
 
       <!-- 6. ENLACES: Footer -->
       <div class="footer-links">

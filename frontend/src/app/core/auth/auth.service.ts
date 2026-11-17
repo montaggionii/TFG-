@@ -104,6 +104,23 @@ export class AuthService {
     return this.http.post<any>(`${this.apiUrl}/register`, data);
   }
 
+  /**
+   * "Continuar con Google / Apple": el id_token que entrega el SDK del
+   * proveedor se envía al backend, que lo verifica y devuelve la sesión
+   * propia (JWT). El backend da de alta automáticamente a clientes nuevos.
+   */
+  loginSocial(provider: 'google' | 'apple', idToken: string, nombre?: string): Observable<any> {
+    const fullUrl = `${this.apiUrl}/${provider}`;
+    return this.http.post<any>(fullUrl, { idToken, nombre }).pipe(
+      tap({
+        next: (res) => this.handleAuthResponse(res, 'ROLE_USER'),
+        error: (err) => {
+          console.error(`[AUTH ERROR] Fallo en login ${provider}:`, err.status, err.statusText);
+        }
+      })
+    );
+  }
+
   registerRestaurante(data: any): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/register-restaurante`, data);
   }

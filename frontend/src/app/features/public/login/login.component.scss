@@ -212,3 +212,48 @@
     }
   }
 }
+
+/* ====== ACCESO SOCIAL (Google / Apple) ====== */
+.social-login {
+  margin-top: 18px;
+
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 4px 0 14px;
+
+    &::before,
+    &::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: rgba(0, 0, 0, 0.12);
+    }
+
+    span {
+      font-size: 0.78rem;
+      color: #8a8a8a;
+      letter-spacing: 0.03em;
+      white-space: nowrap;
+    }
+  }
+
+  .google-host {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 12px;
+  }
+
+  .apple-btn {
+    --background: #000000;
+    --color: #ffffff;
+    --border-radius: 999px;
+    height: 48px;
+    font-weight: 700;
+
+    ion-icon {
+      font-size: 1.25rem;
+    }
+  }
+}
