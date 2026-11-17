@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import progresa.springboot_tfg.dto.*;
 import progresa.springboot_tfg.entity.Usuario; // 🔥 NUEVO
 import progresa.springboot_tfg.security.JwtUtil;
+import progresa.springboot_tfg.service.OtpAuthService;
 import progresa.springboot_tfg.service.RestauranteService;
 import progresa.springboot_tfg.service.SocialAuthService;
 import progresa.springboot_tfg.service.UsuarioService;
@@ -33,6 +34,7 @@ public class AuthController {
     private final UsuarioService usuarioService;
     private final RestauranteService restauranteService;
     private final SocialAuthService socialAuthService;
+    private final OtpAuthService otpAuthService;
     private final JwtUtil jwtUtil;
     private final String adminPassword;
 
@@ -41,11 +43,13 @@ public class AuthController {
     public AuthController(UsuarioService usuarioService,
                           RestauranteService restauranteService,
                           SocialAuthService socialAuthService,
+                          OtpAuthService otpAuthService,
                           JwtUtil jwtUtil,
                           @Value("${fidelyfood.admin.password:}") String adminPassword) {
         this.usuarioService = usuarioService;
         this.restauranteService = restauranteService;
         this.socialAuthService = socialAuthService;
+        this.otpAuthService = otpAuthService;
         this.jwtUtil = jwtUtil;
         this.adminPassword = adminPassword == null ? "" : adminPassword.trim();
         if (this.adminPassword.isEmpty()) {
@@ -166,5 +170,21 @@ public class AuthController {
     @PostMapping("/apple")
     public ResponseEntity<LoginResponseDTO> loginApple(@RequestBody SocialLoginRequestDTO dto) {
         return ResponseEntity.ok(socialAuthService.loginApple(dto.getIdToken(), dto.getNombre()));
+    }
+
+    // "Entrar con mi móvil": envía un código de 6 dígitos por SMS
+    @Operation(summary = "Enviar código OTP por SMS",
+            description = "Genera y envía un código de 6 dígitos al teléfono indicado. En desarrollo (sin SMS configurado) el código vuelve en devCodigo; en producción solo viaja por SMS.")
+    @PostMapping("/otp/send")
+    public ResponseEntity<OtpSendResponseDTO> otpEnviar(@RequestBody OtpSendRequestDTO dto) {
+        return ResponseEntity.ok(otpAuthService.enviarCodigo(dto.getTelefono()));
+    }
+
+    // Verifica el código SMS y crea la sesión (alta automática si es nuevo)
+    @Operation(summary = "Verificar código OTP",
+            description = "Comprueba el código recibido por SMS y devuelve el JWT de la sesión; si el teléfono es nuevo se registra automáticamente")
+    @PostMapping("/otp/verify")
+    public ResponseEntity<LoginResponseDTO> otpVerificar(@RequestBody OtpVerifyRequestDTO dto) {
+        return ResponseEntity.ok(otpAuthService.verificarYEntrar(dto.getTelefono(), dto.getCodigo(), dto.getNombre()));
     }
 }
