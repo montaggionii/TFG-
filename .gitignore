@@ -93,3 +93,4 @@ graphify-out/
 
 # informes de scripts/test-isolated.sh
 test-reports/
+.agent/
