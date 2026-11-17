@@ -18,7 +18,7 @@ Este documento recoge la memoria oficial del Trabajo Final de Grado del proyecto
 
 **Arquitectura general.** El sistema sigue una arquitectura cliente-servidor formada por la aplicación de usuario, un panel para restaurantes y una API REST. El backend concentra la lógica de negocio, autenticación y persistencia; el frontend ofrece la experiencia móvil; y JWT protege la comunicación entre capas.
 
-**Funcionalidades principales.** Incluye registro e inicio de sesión, gestión de perfil, identificación y canje mediante QR, acumulación de puntos por consumo, canje de recompensas, gestión de promociones y clientes para restaurantes, geolocalización y notificaciones.
+**Funcionalidades principales.** Incluye registro e inicio de sesión con varios métodos (email, teléfono con contraseña o código SMS de un solo uso, y "Continuar con Google"/"Continuar con Apple"), gestión de perfil, identificación y canje mediante QR, acumulación de puntos por consumo, canje de recompensas, gestión de promociones y clientes para restaurantes, geolocalización, notificaciones y la tarjeta de fidelización en Apple Wallet ("Añadir a Apple Wallet").
 
 **Valor aportado al usuario.** La plataforma ofrece una experiencia rápida y gamificada, con beneficios y recompensas para clientes, mientras reduce costes operativos y facilita a los restaurantes la gestión digital de sus programas de fidelización. Su enfoque multi-restaurante, QR sin hardware adicional y geolocalización favorece la adopción en negocios locales.
 
@@ -109,9 +109,11 @@ Existen dos tipos de QR:
 
 ##  Seguridad
 
-- Autenticación con JWT
+- Autenticación con JWT (propio de la plataforma, tras verificar credenciales o id_token de Google/Apple)
 - Autorización basada en roles (USER / RESTAURANT)
 - Protección de endpoints
+- Códigos SMS de un solo uso: se guardan hasheados, caducan a los 5 minutos, 3 intentos y 60s entre reenvíos
+- Las cuentas sociales/sms se crean sin contraseña utilizable
 
 ---
 
