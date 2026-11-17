@@ -61,6 +61,15 @@ export class PerfilComponent implements OnInit {
 
   // FORMULARIOS
   editData = { nombre: '', email: '' };
+
+  /**
+   * Las cuentas creadas por código SMS tienen un identificador interno
+   * (sms.<teléfono>@fidelyfood.local) en lugar de un email del usuario:
+   * no se muestra y el campo de edición se deja libre para añadir el real.
+   */
+  esEmailInterno(email: string): boolean {
+    return !!email && email.endsWith('@fidelyfood.local');
+  }
   securityData = { current: '', new: '', confirm: '' };
   
   // PREFERENCIAS DE NOTIFICACIONES (Persistencia Local)
@@ -258,17 +267,25 @@ export class PerfilComponent implements OnInit {
 
   openEditProfile() {
     console.log('[EDIT PROFILE OPEN]');
-    this.editData = { nombre: this.user.nombre, email: this.user.email };
+    this.editData = {
+      nombre: this.user.nombre,
+      email: this.esEmailInterno(this.user.email) ? '' : this.user.email
+    };
     this.isEditProfileOpen = true;
   }
 
   saveProfile() {
-    if (!this.editData.nombre || !this.editData.email) return;
+    if (!this.editData.nombre) return;
+    // Email interno: si el usuario no añade uno real, se conserva el interno
+    const emailFinal = this.esEmailInterno(this.user.email)
+      ? (this.editData.email.trim() || this.user.email)
+      : this.editData.email;
+    if (!emailFinal) return;
 
     this.usuarioService.updateUsuario(this.user.id, {
       ...this.user,
       nombre: this.editData.nombre,
-      email: this.editData.email
+      email: emailFinal
     }).subscribe({
       next: (updated) => {
         this.user = { ...this.user, ...updated };

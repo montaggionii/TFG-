@@ -111,7 +111,14 @@ export class AuthService {
 
   /** Código de acceso por SMS (paso 2: verificar y entrar). */
   otpVerificar(telefono: string, codigo: string, nombre?: string): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/otp/verify`, { telefono, codigo, nombre });
+    return this.http.post<any>(`${this.apiUrl}/otp/verify`, { telefono, codigo, nombre }).pipe(
+      tap({
+        next: (res) => this.handleAuthResponse(res, 'ROLE_USER'),
+        error: (err) => {
+          console.error(`[AUTH ERROR] Fallo en verificación OTP:`, err.status, err.statusText);
+        }
+      })
+    );
   }
 
   /**
