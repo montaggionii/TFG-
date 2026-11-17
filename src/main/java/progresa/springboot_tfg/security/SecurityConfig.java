@@ -60,6 +60,7 @@ public class SecurityConfig {
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").hasAuthority("ROLE_ADMIN")
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
+                        .requestMatchers("/api/wallet/**").hasAuthority("ROLE_USER")
 
                         .requestMatchers(HttpMethod.GET, "/api/usuarios").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/usuarios/identificar-qr").hasAuthority("ROLE_RESTAURANT")

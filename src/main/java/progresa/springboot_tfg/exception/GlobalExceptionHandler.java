@@ -94,6 +94,18 @@ public class GlobalExceptionHandler {
     }
 
     /* =========================
+       503 - WALLET SIN CONFIGURAR (falta certificado de Apple)
+       ========================= */
+    @ExceptionHandler(WalletNotConfiguredException.class)
+    public ResponseEntity<Map<String, Object>> manejarWalletSinConfigurar(WalletNotConfiguredException ex) {
+        return buildResponse(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "Service Unavailable",
+                ex.getMessage()
+        );
+    }
+
+    /* =========================
        500 - ERROR GENERAL
        ========================= */
     @ExceptionHandler(Exception.class)
