@@ -66,7 +66,62 @@
           <span>Entrar al Sistema</span>
           <ion-icon name="arrow-forward-outline" slot="end"></ion-icon>
         </ion-button>
+
+        <!-- ACCESO SIN CONTRASEÑA: código por SMS -->
+        <ion-button *ngIf="!isRestaurantMode" expand="block" fill="clear" type="button" class="sms-link" (click)="irASmsTelefono()">
+          <ion-icon slot="start" name="phone-portrait-outline"></ion-icon>
+          <span>Entrar con código al móvil (sin contraseña)</span>
+        </ion-button>
       </form>
+
+      <!-- FLUJO SMS: paso 1, teléfono -->
+      <div *ngIf="smsStep === 'telefono'" class="sms-flow">
+        <div class="sms-header">
+          <h3>Entra con tu móvil</h3>
+          <p>Te enviamos un código de 6 dígitos por SMS. Sin contraseña.</p>
+        </div>
+        <div class="input-group">
+          <ion-label>Número de teléfono</ion-label>
+          <div class="field-wrapper">
+            <ion-icon name="call-outline"></ion-icon>
+            <ion-input type="tel" inputmode="tel" [(ngModel)]="smsTelefono"
+                       placeholder="+34 600 111 222" aria-label="Número de teléfono"></ion-input>
+          </div>
+        </div>
+        <ion-button expand="block" [disabled]="smsTelefono.trim().length < 7 || smsEnviando" (click)="enviarSms()" class="submit-btn main-gradient-btn">
+          <span>{{ smsEnviando ? 'Enviando...' : 'Enviar código' }}</span>
+        </ion-button>
+        <ion-button expand="block" fill="clear" type="button" (click)="volverAlFormulario()">Volver</ion-button>
+      </div>
+
+      <!-- FLUJO SMS: paso 2, código -->
+      <div *ngIf="smsStep === 'codigo'" class="sms-flow">
+        <div class="sms-header">
+          <h3>Revisa tu móvil</h3>
+          <p>Te hemos enviado el código a {{ smsTelefono }}</p>
+          <p *ngIf="smsDevCodigo" class="sms-dev-note">Modo desarrollo · código: <strong>{{ smsDevCodigo }}</strong></p>
+        </div>
+        <div class="input-group">
+          <ion-label>Código de 6 dígitos</ion-label>
+          <div class="field-wrapper">
+            <ion-icon name="key-outline"></ion-icon>
+            <ion-input type="text" inputmode="numeric" maxlength="6" [(ngModel)]="smsCodigo"
+                       placeholder="123456" aria-label="Código SMS"></ion-input>
+          </div>
+        </div>
+        <div class="input-group">
+          <ion-label>Tu nombre (solo la primera vez)</ion-label>
+          <div class="field-wrapper">
+            <ion-icon name="person-outline"></ion-icon>
+            <ion-input type="text" [(ngModel)]="smsNombre" placeholder="Cómo te llamas" aria-label="Nombre"></ion-input>
+          </div>
+        </div>
+        <ion-button expand="block" [disabled]="smsCodigo.length < 6 || smsVerificando" (click)="verificarSms()" class="submit-btn main-gradient-btn">
+          <span>{{ smsVerificando ? 'Comprobando...' : 'Entrar' }}</span>
+        </ion-button>
+        <ion-button expand="block" fill="clear" type="button" (click)="enviarSms()" [disabled]="smsEnviando">Reenviar código</ion-button>
+        <ion-button expand="block" fill="clear" type="button" (click)="volverAlFormulario()">Usar otro teléfono</ion-button>
+      </div>
 
       <!-- 5b. ACCESO SOCIAL: solo con proveedor configurado (nada de botones falsos) -->
       <div *ngIf="!isRestaurantMode && (googleConfigured || appleConfigured)" class="social-login">

@@ -1,8 +1,9 @@
 import { Component, ElementRef, NgZone, OnInit, ViewChild, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, Validators, ReactiveFormsModule } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, Validators, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { IonicModule, LoadingController, ToastController } from '@ionic/angular';
 import { RouterModule, Router } from '@angular/router';
+import { lastValueFrom } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth.service';
 import { environment } from '../../../../environments/environment';
 
@@ -20,7 +21,7 @@ function identificadorValidator(control: AbstractControl): ValidationErrors | nu
   templateUrl: './login.component.html',
   styleUrls: ["./login.component.scss"],
   standalone: true,
-  imports: [IonicModule, CommonModule, ReactiveFormsModule, RouterModule]
+  imports: [IonicModule, CommonModule, ReactiveFormsModule, FormsModule, RouterModule]
 })
 export class LoginComponent implements OnInit {
   private fb = inject(FormBuilder);
@@ -34,6 +35,16 @@ export class LoginComponent implements OnInit {
 
   loginForm: FormGroup;
   isRestaurantMode = false;
+
+  // Flujo "Entrar con mi móvil": código por SMS sin contraseña
+  smsStep: 'form' | 'telefono' | 'codigo' = 'form';
+  smsTelefono = '';
+  smsCodigo = '';
+  smsNombre = '';
+  smsDevCodigo: string | null = null;
+  smsEnviando = false;
+  smsVerificando = false;
+  smsReintentos = 0;
 
   // Los botones sociales solo se muestran cuando el backend tiene
   // configurado el Client ID del proveedor (nada de botones falsos).
@@ -85,6 +96,52 @@ export class LoginComponent implements OnInit {
       },
       error: async (err) => {
         loading.dismiss();
+        await this.mostrarError(err);
+      }
+    });
+  }
+
+  /* ============ LOGIN POR SMS (sin contraseña) ============ */
+
+  irASmsTelefono() {
+    this.smsStep = 'telefono';
+  }
+
+  volverAlFormulario() {
+    this.smsStep = 'form';
+    this.smsDevCodigo = null;
+    this.smsCodigo = '';
+  }
+
+  async enviarSms() {
+    if (this.smsEnviando) return;
+    this.smsEnviando = true;
+    try {
+      const res = await lastValueFrom(this.authService.otpEnviar(this.smsTelefono));
+      this.smsDevCodigo = res?.devCodigo ?? null;
+      this.smsStep = 'codigo';
+    } catch (err: any) {
+      await this.mostrarError(err);
+    } finally {
+      this.smsEnviando = false;
+    }
+  }
+
+  async verificarSms() {
+    if (this.smsVerificando || this.smsCodigo.length < 4) return;
+    this.smsVerificando = true;
+    const loading = await this.loadingCtrl.create({ message: 'Comprobando código...' });
+    await loading.present();
+
+    this.authService.otpVerificar(this.smsTelefono, this.smsCodigo, this.smsNombre || undefined).subscribe({
+      next: () => {
+        loading.dismiss();
+        console.log('[LOGIN] Sesión iniciada correctamente con SMS');
+      },
+      error: async (err) => {
+        loading.dismiss();
+        this.smsCodigo = '';
+        this.smsReintentos++;
         await this.mostrarError(err);
       }
     });

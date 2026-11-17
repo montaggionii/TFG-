@@ -104,6 +104,16 @@ export class AuthService {
     return this.http.post<any>(`${this.apiUrl}/register`, data);
   }
 
+  /** Código de acceso por SMS (paso 1: enviar). */
+  otpEnviar(telefono: string): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/otp/send`, { telefono });
+  }
+
+  /** Código de acceso por SMS (paso 2: verificar y entrar). */
+  otpVerificar(telefono: string, codigo: string, nombre?: string): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/otp/verify`, { telefono, codigo, nombre });
+  }
+
   /**
    * "Continuar con Google / Apple": el id_token que entrega el SDK del
    * proveedor se envía al backend, que lo verifica y devuelve la sesión
