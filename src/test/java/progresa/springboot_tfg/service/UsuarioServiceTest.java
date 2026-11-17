@@ -269,6 +269,22 @@ class UsuarioServiceTest {
     }
 
     @Test
+    void identificarPorQrAceptaElFormatoVisibleEnLaTarjetaDelCliente() {
+        // La tarjeta del cliente codifica "FIDELITY_ID:<id>": el camarero
+        // escanea eso, no el código interno almacenado
+        Usuario usuario = usuarioConPassword("cliente@email.com", "x");
+        when(usuarioDAO.findById(16L)).thenReturn(Optional.of(usuario));
+
+        assertEquals("cliente@email.com", usuarioService.identificarPorQr("FIDELITY_ID:16").getEmail());
+    }
+
+    @Test
+    void identificarPorQrConFormatoFidelyIdInvalidoLanzaNotFound() {
+        assertThrows(ResourceNotFoundException.class, () -> usuarioService.identificarPorQr("FIDELITY_ID:abc"));
+        assertThrows(ResourceNotFoundException.class, () -> usuarioService.identificarPorQr("FIDELITY_ID:"));
+    }
+
+    @Test
     void identificarPorQrConCodigoDesconocidoLanzaResourceNotFound() {
         when(usuarioDAO.findByQrCode("QR-INEXISTENTE")).thenReturn(Optional.empty());
 

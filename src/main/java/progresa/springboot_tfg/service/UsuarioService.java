@@ -217,9 +217,22 @@ public class UsuarioService {
             throw new ResourceNotFoundException("QR no válido");
         }
 
-        Usuario usuario = usuarioDAO.findByQrCode(cleanQr)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("QR no válido o cliente no encontrado"));
+        Usuario usuario;
+        if (cleanQr.startsWith("FIDELITY_ID:")) {
+            // Formato que codifica el QR visible en la tarjeta del cliente
+            try {
+                Long id = Long.parseLong(cleanQr.substring("FIDELITY_ID:".length()).trim());
+                usuario = usuarioDAO.findById(id)
+                        .orElseThrow(() -> new ResourceNotFoundException("QR no válido o cliente no encontrado"));
+            } catch (NumberFormatException e) {
+                throw new ResourceNotFoundException("QR no válido");
+            }
+        } else {
+            // Formato interno del código almacenado (USER_x_uuid)
+            usuario = usuarioDAO.findByQrCode(cleanQr)
+                    .orElseThrow(() ->
+                            new ResourceNotFoundException("QR no válido o cliente no encontrado"));
+        }
 
         return toDTO(usuario);
     }
