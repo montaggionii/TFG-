@@ -68,3 +68,7 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# Firma de la app (local, nunca en git)
+android/app/*.keystore
+android/app/key.properties

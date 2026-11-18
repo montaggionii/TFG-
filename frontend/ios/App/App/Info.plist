@@ -5,7 +5,7 @@
     <key>CAPACITOR_DEBUG</key>
 	<string>$(CAPACITOR_DEBUG)</string>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>en</string>
+	<string>es</string>
 	<key>CFBundleDisplayName</key>
         <string>FidelyFood</string>
 	<key>CFBundleExecutable</key>
@@ -22,6 +22,17 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<!-- Cámara: escaneo del QR del cliente para registrar compras y canjes -->
+	<key>NSCameraUsageDescription</key>
+	<string>FidelyFood usa la cámara para escanear tu tarjeta QR al acumular o canjear puntos.</string>
+	<!-- Ubicación: radar de restaurantes cercanos en el mapa -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>FidelyFood usa tu ubicación para mostrarte los restaurantes participantes más cercanos.</string>
+	<!-- Fotos: elegir imagen de perfil -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>FidelyFood accede a tus fotos solo si eliges una imagen para tu perfil.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
