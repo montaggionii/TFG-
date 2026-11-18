@@ -10,12 +10,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import progresa.springboot_tfg.dto.CanjePromocionDTO;
 import progresa.springboot_tfg.entity.Canje;
+import progresa.springboot_tfg.entity.Promocion;
 import progresa.springboot_tfg.exception.BadRequestException;
 import progresa.springboot_tfg.exception.ResourceNotFoundException;
+import progresa.springboot_tfg.service.CanjeService;
 import progresa.springboot_tfg.service.PromocionService;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -39,11 +42,14 @@ class CanjeControllerTest {
     @Mock
     private PromocionService promocionService;
 
+    @Mock
+    private CanjeService canjeService;
+
     private CanjeController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new CanjeController(promocionService);
+        controller = new CanjeController(promocionService, canjeService);
     }
 
     private Authentication authComo(String email) {
@@ -59,10 +65,21 @@ class CanjeControllerTest {
         return dto;
     }
 
+    private Canje canjeDe(Long id, int puntosGastados) {
+        Promocion promocion = new Promocion();
+        promocion.setTitulo("Promo de prueba");
+        Canje canje = new Canje();
+        canje.setId(id);
+        canje.setPromocion(promocion);
+        canje.setPuntosGastados(puntosGastados);
+        return canje;
+    }
+
     @Test
     void canjearUsaSiempreElEmailDelJwtNuncaElUsuarioIdDelBody() {
         Authentication authentication = authComo("cliente@test.com");
-        when(promocionService.canjearPromocion(7L, "cliente@test.com")).thenReturn(mock(Canje.class));
+        when(promocionService.canjearPromocion(7L, "cliente@test.com")).thenReturn(canjeDe(1L, 50));
+        when(canjeService.codigoDe(any())).thenReturn("CANJE:1:abc");
 
         ResponseEntity<?> res = controller.canjear(dto(999L, 7L), authentication);
 
@@ -91,7 +108,8 @@ class CanjeControllerTest {
     @Test
     void canjearConUsuarioIdNuloEnElBodySigueFuncionandoPorqueSeIgnora() {
         Authentication authentication = authComo("otro@test.com");
-        when(promocionService.canjearPromocion(3L, "otro@test.com")).thenReturn(mock(Canje.class));
+        when(promocionService.canjearPromocion(3L, "otro@test.com")).thenReturn(canjeDe(2L, 30));
+        when(canjeService.codigoDe(any())).thenReturn("CANJE:2:def");
 
         ResponseEntity<?> res = controller.canjear(dto(null, 3L), authentication);
 

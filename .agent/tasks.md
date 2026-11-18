@@ -68,25 +68,29 @@
 - [x] **`UsuarioController` sin ningún test propio (AGT-036)** — 2026-10-30, sesión concurrente a AGT-035: `identificarQr` comprueba `ROLE_RESTAURANT` en el controlador (defensa en profundidad, `SecurityConfig` ya exige el rol a nivel de filtro), no en `UsuarioService`. Añadido `UsuarioControllerTest` (8 tests). `RestauranteController`/`MovimientoPuntosController` se reconfirmaron como pura delegación en su servicio, sin hallazgo. Detalle completo en `AGENT_TASKS.md` (AGT-036, estado `REVIEW`).
 - [x] **`PUT /api/restaurantes/{id}` podía cambiar la contraseña sin pedir la actual (AGT-038)** — 2026-10-31: al releer `RestauranteService.java` línea por línea (en vez de solo confirmar, como AGT-033/036, que el controlador delega su autorización en el servicio), se encontró el mismo patrón ya corregido en `UsuarioService` por AGT-032: `actualizar()` aplicaba `actualizado.getPassword()` del cuerpo sin pedir la contraseña actual — y, a diferencia de `UsuarioController`, `RestauranteController` no tiene ningún endpoint dedicado de cambio de contraseña que sustituya esa vía, así que era el único camino posible. Corregido quitando esa rama del método (ya no lee `password` del cuerpo en absoluto); confirmado que el frontend real (`SettingsComponent`) nunca envía ese campo. Test nuevo `actualizarNuncaCambiaLaPasswordAunqueElCuerpoIncluyaUnaNueva` en `RestauranteServiceTest`. Renumerada de AGT-037 a AGT-038 al fusionar con una sesión concurrente que ya había usado ese número para un hallazgo distinto (`follow-redirects`, ver sección "Pendiente" más abajo). **Verificado**: `mvn test -Dtest=RestauranteServiceTest` → 17/17; `mvn test` completo → 164 tests, 1 error (el mismo de siempre, `contextLoads`, sin MySQL real), 0 regresiones. Detalle completo en `AGENT_TASKS.md` (AGT-038, estado `REVIEW`).
 
-## Pendiente (por prioridad) — actualizado 2026-11-16
+## Pendiente (por prioridad) — actualizado 2026-11-18
 
-**⚠️ Aviso de esta sesión (2026-11-16): el PR #51 sigue necesitando revisión humana — sin cambios desde el aviso de 2026-11-09.**
-El PR #51 (`agent/fidelyfood-autonomous` → `main`) lleva abierto desde 2026-10-08 (más de un mes) y ha
-acumulado 41 tareas (AGT-011 a AGT-051, 61 commits, ~6000 líneas) sin que nadie lo revise ni fusione
-todavía — CI en verde (`mergeable_state: clean`), sin conflictos con `main` (confirmado que el único
-merge humano desde entonces, PR #52, ya estaba integrado en esta rama). Entre esas 41 tareas hay
-**vulnerabilidades de seguridad reales ya corregidas en el PR pero todavía activas en producción**
-mientras siga sin fusionarse: mass assignment que permitía a un cliente autoasignarse puntos de
-fidelidad arbitrarios (AGT-028), cambio de contraseña de usuario/restaurante sin pedir la contraseña
-actual (AGT-032/AGT-038), CSRF real en `POST /api/jarvis/run` del access-center (AGT-015), fuga del
-token XSRF en el `HttpClient` de Angular (AGT-023) y una vulnerabilidad crítica en las dependencias
-nativas de Capacitor (AGT-011). Esta sesión solo añadió una tarea nueva y acotada (AGT-051: 2 avisos
-moderados nuevos de `hono`/`@hono/node-server` en `agent/`, corregidos con `npm audit fix` sin tocar
-`package.json`) porque apareció entre la última comprobación (2026-11-03/08) y hoy — no se ha reabierto
-el resto del backlog ni se ha intentado abarcar nada más grande: seguir ampliando un PR de este tamaño
-sin que ninguna de las 50 tareas ya en `REVIEW` se cierre no ayuda. Lo que hace falta ahora es que una
-persona revise y fusione (o rechace) el PR #51, no más código. Las únicas dos tareas en `TODO` real
-(AGT-007, AGT-016) siguen bloqueadas por la misma decisión humana de siempre, sin cambios.
+**🚨 Aviso de esta sesión (2026-11-18): el PR #51 sigue sin revisarse (más de un mes abierto) y ahora lleva
+otra vulnerabilidad real de seguridad más, sin fusionar.**
+El PR #51 (`agent/fidelyfood-autonomous` → `main`) sigue abierto desde 2026-10-08. Desde el último aviso
+(2026-11-16), `main` recibió un conjunto grande de features nuevas (login por SMS/OTP, login social
+Google/Apple, Apple Wallet, reservas de mesa, canje con QR temporal, gamificación) que esta rutina
+fusionó y auditó por primera vez hoy — con un hallazgo real: **`SocialAuthService` (login "Continuar con
+Google/Apple") nunca comprobaba el claim OIDC `email_verified` antes de loguear en una cuenta ya
+existente por email, permitiendo tomar la cuenta de otro cliente sin su contraseña (AGT-052, ya
+corregido en esta rama, pendiente de revisión como el resto)**. Sin evidencia de explotación real: el
+login social sigue deshabilitado en producción mientras `GOOGLE_CLIENT_ID`/`APPLE_CLIENT_IDS` no estén
+configurados. El merge con `main` tuvo 2 conflictos reales (no solo de formato): una pantalla muerta e
+insegura de cambio de contraseña en `perfil.component.ts` que `main` reintroducía (se mantuvo eliminada,
+mismo criterio que AGT-032) y `CanjeControllerTest` desactualizado tras un cambio de constructor de
+`CanjeController` en `main` (actualizado, no es una vulnerabilidad).
+Entre las tareas ya acumuladas en el PR sigue habiendo **vulnerabilidades de seguridad reales corregidas
+pero todavía activas en producción** mientras no se fusione: mass assignment de puntos (AGT-028), cambio
+de contraseña sin pedir la actual (AGT-032/AGT-038), CSRF en `POST /api/jarvis/run` (AGT-015), fuga del
+token XSRF (AGT-023), vulnerabilidad crítica de Capacitor (AGT-011) y ahora la toma de cuenta por login
+social sin `email_verified` (AGT-052). Lo que hace falta ahora es que una persona revise y fusione (o
+rechace) el PR #51 — ya son 42 tareas. Las dos tareas en `TODO` real (AGT-007, AGT-016) siguen bloqueadas
+por la misma decisión humana de siempre, sin cambios.
 
 **Fuente de verdad del backlog técnico: el bloque `AGT-xxx` de `AGENT_TASKS.md`** (estado, dependencias,
 criterios de aceptación, verificación real y lo que falta por verificar de cada tarea). Esta lista solo

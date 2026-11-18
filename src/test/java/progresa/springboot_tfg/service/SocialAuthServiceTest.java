@@ -44,6 +44,7 @@ class SocialAuthServiceTest {
                 .issuer("https://accounts.google.com")
                 .audience("google-client-id")
                 .claim("email", email)
+                .claim("email_verified", true)
                 .claim("name", name)
                 .expirationTime(new Date(System.currentTimeMillis() + 300_000))
                 .build();
@@ -78,6 +79,7 @@ class SocialAuthServiceTest {
                 .issuer("https://accounts.google.com")
                 .audience("google-client-id")
                 .claim("email", "nuevo.social@gmail.com")
+                .claim("email_verified", true)
                 .claim("name", "Ana Social")
                 .expirationTime(new Date(System.currentTimeMillis() + 300_000))
                 .build();
@@ -104,6 +106,8 @@ class SocialAuthServiceTest {
                 .issuer("https://appleid.apple.com")
                 .audience("fidelyfood.web")
                 .claim("email", "ana@privaterelay.appleid.com")
+                // Apple manda este claim como string "true"/"false", no como booleano JSON.
+                .claim("email_verified", "true")
                 .expirationTime(new Date(System.currentTimeMillis() + 300_000))
                 .build();
 
@@ -122,5 +126,64 @@ class SocialAuthServiceTest {
 
         assertEquals("Ana Apple", respuesta.getNombre());
         assertTrue(respuesta.getToken() != null && !respuesta.getToken().isBlank());
+    }
+
+    /**
+     * Regresión de seguridad: sin esta comprobación, alguien que controle una cuenta de
+     * Google con email_verified=false (p. ej. un dominio de Workspace sin verificar) podría
+     * "confirmar" el email de un cliente real de FidelyFood y entrar directamente en su
+     * cuenta ya existente (puntos, historial) solo con un id_token firmado por Google, sin
+     * haber probado nunca ser el dueño real de ese email.
+     */
+    @Test
+    void provisionarRechazaEmailNoVerificadoDeGoogleSinTocarElDao() throws Exception {
+        JWTClaimsSet claims = new JWTClaimsSet.Builder()
+                .issuer("https://accounts.google.com")
+                .audience("google-client-id")
+                .claim("email", "victima@test.com")
+                .claim("email_verified", false)
+                .claim("name", "Atacante")
+                .expirationTime(new Date(System.currentTimeMillis() + 300_000))
+                .build();
+
+        var provisionar = SocialAuthService.class.getDeclaredMethod("provisionar", JWTClaimsSet.class, String.class);
+        provisionar.setAccessible(true);
+        Exception ex = assertThrows(Exception.class, () -> provisionar.invoke(service, claims, null));
+        assertTrue(ex.getCause() instanceof SecurityException);
+        org.mockito.Mockito.verifyNoInteractions(usuarioDAO);
+    }
+
+    @Test
+    void provisionarRechazaEmailNoVerificadoDeAppleComoString() throws Exception {
+        JWTClaimsSet claims = new JWTClaimsSet.Builder()
+                .issuer("https://appleid.apple.com")
+                .audience("fidelyfood.web")
+                .claim("email", "victima@test.com")
+                .claim("email_verified", "false")
+                .expirationTime(new Date(System.currentTimeMillis() + 300_000))
+                .build();
+
+        var provisionar = SocialAuthService.class.getDeclaredMethod("provisionar", JWTClaimsSet.class, String.class);
+        provisionar.setAccessible(true);
+        Exception ex = assertThrows(Exception.class, () -> provisionar.invoke(service, claims, null));
+        assertTrue(ex.getCause() instanceof SecurityException);
+        org.mockito.Mockito.verifyNoInteractions(usuarioDAO);
+    }
+
+    @Test
+    void provisionarRechazaCuandoFaltaElClaimEmailVerified() throws Exception {
+        JWTClaimsSet claims = new JWTClaimsSet.Builder()
+                .issuer("https://accounts.google.com")
+                .audience("google-client-id")
+                .claim("email", "victima@test.com")
+                .claim("name", "Atacante")
+                .expirationTime(new Date(System.currentTimeMillis() + 300_000))
+                .build();
+
+        var provisionar = SocialAuthService.class.getDeclaredMethod("provisionar", JWTClaimsSet.class, String.class);
+        provisionar.setAccessible(true);
+        Exception ex = assertThrows(Exception.class, () -> provisionar.invoke(service, claims, null));
+        assertTrue(ex.getCause() instanceof SecurityException);
+        org.mockito.Mockito.verifyNoInteractions(usuarioDAO);
     }
 }
