@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { IonicModule } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -19,7 +19,13 @@ import { CustomerTranslatePipe } from '../../../core/i18n/customer-translate.pip
           <ion-icon name="download-outline"></ion-icon>
           {{ 'descarga.boton' | ffTranslate }}
         </a>
-        <p class="nota">{{ 'descarga.version' | ffTranslate }}</p>
+        <p class="nota">
+          @if (versionActual) {
+            Versión {{ versionActual }}{{ tamanoMb ? ' · ' + tamanoMb : '' }} · Android 6.0 o superior
+          } @else {
+            Última versión · Android 6.0 o superior
+          }
+        </p>
 
         <div class="pasos">
           <h2>{{ 'descarga.comoInstalar' | ffTranslate }}</h2>
@@ -76,4 +82,22 @@ import { CustomerTranslatePipe } from '../../../core/i18n/customer-translate.pip
     .ios-nota p { margin: 4px 0 0; }
   `]
 })
-export class DescargarComponent {}
+export class DescargarComponent implements OnInit {
+  versionActual: string | null = null;
+  tamanoMb: string | null = null;
+
+  async ngOnInit(): Promise<void> {
+    try {
+      // version.json lo actualiza npm run apk en cada release
+      const res = await fetch('/apk/version.json', { cache: 'no-store' });
+      if (!res.ok) return;
+      const info = await res.json();
+      this.versionActual = String(info.latestVersion ?? '');
+      if (this.versionActual) {
+        const head = await fetch(`/apk/fidelyfood-v${this.versionActual}.apk`, { method: 'HEAD' });
+        const bytes = Number(head.headers.get('Content-Length'));
+        if (bytes > 0) this.tamanoMb = (bytes / (1024 * 1024)).toFixed(1).replace('.', ',') + ' MB';
+      }
+    } catch { /* sin datos mostramos la página igualmente */ }
+  }
+}

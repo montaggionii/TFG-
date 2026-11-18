@@ -24,7 +24,8 @@ echo "==> Copiado a $DEST ($(du -h "$DEST" | cut -f1 | sed 's/ //g'))"
 
 # Actualiza el href de la página de descarga si cambió la versión
 sed -i '' "s|/apk/fidelyfood-v[0-9.]*\\.apk|/apk/fidelyfood-v$VERSION.apk|g" \
-  src/app/features/public/descargar/descargar.component.ts
+  src/app/features/public/descargar/descargar.component.ts \
+  src/app/features/public/landing/landing.component.ts
 
 # version.json: la web publica la versión mínima requerida; la app nativa
 # se bloquea y pide actualizar si la instalada es anterior (obligatoria).

@@ -149,7 +149,7 @@ import { RouterLink } from '@angular/router';
               <span class="so">🤖 Android</span>
               <h3>APK directo</h3>
               <p>Sin Play Store. Descarga el archivo firmado e instálalo en un minuto.</p>
-              <a class="btn btn-primario" href="/apk/fidelyfood-v1.0.0.apk" download>Descargar APK</a>
+              <a class="btn btn-primario" href="/apk/fidelyfood-v1.0.2.apk" download>Descargar APK</a>
               <a class="mini-link" routerLink="/descargar">Instrucciones de instalación →</a>
             </div>
             <div class="desc-card">
