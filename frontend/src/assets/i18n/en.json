@@ -265,5 +265,12 @@
   "reservas.notasPh": "Quiet table, baby chair…",
   "reservas.confirmar": "Confirm booking",
   "reservas.creada": "Booking sent! The restaurant will confirm it",
-  "reservas.errorCrear": "Could not create the booking"
+  "reservas.errorCrear": "Could not create the booking",
+  "home.nivel.bronce": "BRONZE",
+  "home.nivel.plata": "SILVER",
+  "home.nivel.oro": "GOLD",
+  "home.racha": "weeks in a row",
+  "home.ganadosMes": "pts this month",
+  "home.locales": "places visited",
+  "home.paraSiguiente": "to level up"
 }

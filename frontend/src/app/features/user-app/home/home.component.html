@@ -16,6 +16,21 @@
         <!-- 1. TARJETA DE USUARIO PREMIUM -->
         <app-user-card [user]="user"></app-user-card>
 
+        <!-- 1b. TU ACTIVIDAD: nivel, racha y resumen del mes -->
+        <section class="section-container actividad-card" *ngIf="resumen">
+          <div class="actividad-head">
+            <span class="nivel-badge" [class.oro]="resumen.nivel === 'ORO'" [class.plata]="resumen.nivel === 'PLATA'">
+              {{ 'home.nivel.' + (resumen.nivel | lowercase) | ffTranslate }}
+            </span>
+            <span class="racha" *ngIf="resumen.rachaSemanas > 0">🔥 {{ resumen.rachaSemanas }} {{ 'home.racha' | ffTranslate }}</span>
+          </div>
+          <div class="actividad-stats">
+            <div><strong>+{{ resumen.ganadosMes }}</strong><small>{{ 'home.ganadosMes' | ffTranslate }}</small></div>
+            <div><strong>{{ resumen.localesVisitados }}</strong><small>{{ 'home.locales' | ffTranslate }}</small></div>
+            <div *ngIf="resumen.puntosParaSiguiente > 0"><strong>{{ resumen.puntosParaSiguiente }}</strong><small>{{ 'home.paraSiguiente' | ffTranslate }}</small></div>
+          </div>
+        </section>
+
         <!-- 2. BANNERS PROMOCIONALES (NUEVO) -->
         <section class="section-container animate__animated animate__fadeInUp" *ngIf="promotionalBanners && promotionalBanners.length > 0">
           <app-section-header [title]="'home.sections.news.title' | ffTranslate" [subtitle]="'home.sections.news.subtitle' | ffTranslate"></app-section-header>

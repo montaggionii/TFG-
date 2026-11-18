@@ -4,6 +4,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.Operation;
 import progresa.springboot_tfg.dao.MovimientoPuntosDAO;
 import progresa.springboot_tfg.dao.RestauranteDAO;
 import progresa.springboot_tfg.dao.UsuarioDAO;
@@ -14,7 +15,11 @@ import progresa.springboot_tfg.exception.BadRequestException;
 import progresa.springboot_tfg.exception.ResourceNotFoundException;
 import progresa.springboot_tfg.security.SecurityUtils;
 
-import java.util.Map;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.WeekFields;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/puntos")
@@ -39,6 +44,76 @@ public class PuntosController {
             Authentication authentication) {
         Usuario usuario = getOwnedUsuario(usuarioId, authentication);
         return ResponseEntity.ok(Map.of("puntos", usuario.getPuntos()));
+    }
+
+    @Operation(summary = "Resumen de fidelidad del cliente",
+            description = "Nivel (Bronce/Plata/Oro), racha de semanas consecutivas con compras, " +
+                    "puntos del mes, locales visitados y última visita. Alimenta la gamificación " +
+                    "y el panel de impacto del cliente.")
+    @GetMapping("/{usuarioId}/resumen")
+    public ResponseEntity<Map<String, Object>> resumenFidelidad(
+            @PathVariable Long usuarioId,
+            Authentication authentication) {
+        Usuario usuario = getOwnedUsuario(usuarioId, authentication);
+        List<MovimientoPuntos> movimientos = movimientoPuntosDAO.findByUsuarioOrderByFechaDesc(usuario).stream()
+                .filter(mov -> mov.getPuntos() > 0 || "CANJEADOS".equals(mov.getTipo()))
+                .toList();
+
+        int puntos = usuario.getPuntos();
+        String nivel = puntos >= 500 ? "ORO" : puntos >= 100 ? "PLATA" : "BRONCE";
+        int puntosParaSiguiente = puntos >= 500 ? 0 : puntos >= 100 ? 500 - puntos : 100 - puntos;
+
+        // Racha: semanas naturales consecutivas (lunes-domingo) con al menos
+        // una compra que diera puntos, contando desde la semana actual.
+        WeekFields wf = WeekFields.ISO;
+        Set<String> semanas = new HashSet<>();
+        movimientos.stream()
+                .filter(mov -> mov.getPuntos() > 0)
+                .filter(mov -> mov.getFecha() != null)
+                .forEach(mov -> semanas.add(mov.getFecha().getYear() + "-" + mov.getFecha().get(wf.weekOfWeekBasedYear())));
+        int racha = 0;
+        LocalDate hoy = LocalDate.now();
+        while (true) {
+            String clave = hoy.getYear() + "-" + hoy.get(wf.weekOfWeekBasedYear());
+            if (semanas.contains(clave)) {
+                racha++;
+                hoy = hoy.minusWeeks(1);
+            } else {
+                break;
+            }
+        }
+
+        LocalDate inicioMes = LocalDate.now().withDayOfMonth(1);
+        int ganadosMes = movimientos.stream()
+                .filter(mov -> mov.getPuntos() > 0 && mov.getFecha() != null
+                        && mov.getFecha().toLocalDate().isAfter(inicioMes.minusDays(1)))
+                .mapToInt(MovimientoPuntos::getPuntos).sum();
+        int gastadosMes = movimientos.stream()
+                .filter(mov -> mov.getPuntos() < 0 && mov.getFecha() != null
+                        && mov.getFecha().toLocalDate().isAfter(inicioMes.minusDays(1)))
+                .mapToInt(MovimientoPuntos::getPuntos).sum();
+
+        Set<Long> locales = movimientos.stream()
+                .filter(mov -> mov.getRestaurante() != null)
+                .map(mov -> mov.getRestaurante().getId())
+                .collect(Collectors.toSet());
+
+        LocalDateTime ultimaVisita = movimientos.stream()
+                .filter(mov -> mov.getPuntos() > 0 && mov.getFecha() != null)
+                .map(MovimientoPuntos::getFecha)
+                .max(LocalDateTime::compareTo)
+                .orElse(null);
+
+        Map<String, Object> resumen = new LinkedHashMap<>();
+        resumen.put("puntos", puntos);
+        resumen.put("nivel", nivel);
+        resumen.put("puntosParaSiguiente", puntosParaSiguiente);
+        resumen.put("rachaSemanas", racha);
+        resumen.put("ganadosMes", ganadosMes);
+        resumen.put("gastadosMes", gastadosMes);
+        resumen.put("localesVisitados", locales.size());
+        resumen.put("ultimaVisita", ultimaVisita == null ? null : ultimaVisita.toString());
+        return ResponseEntity.ok(resumen);
     }
 
     @GetMapping("/{usuarioId}/{restauranteId}")

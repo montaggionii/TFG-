@@ -265,5 +265,12 @@
   "reservas.notasPh": "Tavolo tranquillo, seggiolino…",
   "reservas.confirmar": "Conferma prenotazione",
   "reservas.creada": "Prenotazione inviata! Il ristorante la confermerà",
-  "reservas.errorCrear": "Impossibile creare la prenotazione"
+  "reservas.errorCrear": "Impossibile creare la prenotazione",
+  "home.nivel.bronce": "BRONZO",
+  "home.nivel.plata": "ARGENTO",
+  "home.nivel.oro": "ORO",
+  "home.racha": "settimane di fila",
+  "home.ganadosMes": "pts questo mese",
+  "home.locales": "locali visitati",
+  "home.paraSiguiente": "per salire di livello"
 }

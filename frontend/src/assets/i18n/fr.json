@@ -265,5 +265,12 @@
   "reservas.notasPh": "Table calme, chaise bébé…",
   "reservas.confirmar": "Confirmer la réservation",
   "reservas.creada": "Réservation envoyée ! Le restaurant va la confirmer",
-  "reservas.errorCrear": "Impossible de créer la réservation"
+  "reservas.errorCrear": "Impossible de créer la réservation",
+  "home.nivel.bronce": "BRONZE",
+  "home.nivel.plata": "ARGENT",
+  "home.nivel.oro": "OR",
+  "home.racha": "semaines d'affilée",
+  "home.ganadosMes": "pts ce mois",
+  "home.locales": "lieux visités",
+  "home.paraSiguiente": "pour monter de niveau"
 }

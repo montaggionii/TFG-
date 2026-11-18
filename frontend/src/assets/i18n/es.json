@@ -265,5 +265,12 @@
   "reservas.notasPh": "Mesa tranquila, trona para bebé…",
   "reservas.confirmar": "Confirmar reserva",
   "reservas.creada": "¡Reserva enviada! El restaurante la confirmará",
-  "reservas.errorCrear": "No se pudo crear la reserva"
+  "reservas.errorCrear": "No se pudo crear la reserva",
+  "home.nivel.bronce": "BRONCE",
+  "home.nivel.plata": "PLATA",
+  "home.nivel.oro": "ORO",
+  "home.racha": "semanas seguidas",
+  "home.ganadosMes": "pts este mes",
+  "home.locales": "locales visitados",
+  "home.paraSiguiente": "para subir de nivel"
 }

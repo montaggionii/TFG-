@@ -265,5 +265,12 @@
   "reservas.notasPh": "Taula tranquil·la, trona per a bebè…",
   "reservas.confirmar": "Confirmar la reserva",
   "reservas.creada": "Reserva enviada! El restaurant la confirmarà",
-  "reservas.errorCrear": "No s'ha pogut crear la reserva"
+  "reservas.errorCrear": "No s'ha pogut crear la reserva",
+  "home.nivel.bronce": "BRONZE",
+  "home.nivel.plata": "PLATA",
+  "home.nivel.oro": "OR",
+  "home.racha": "setmanes seguides",
+  "home.ganadosMes": "pts aquest mes",
+  "home.locales": "locals visitats",
+  "home.paraSiguiente": "per pujar de nivell"
 }
