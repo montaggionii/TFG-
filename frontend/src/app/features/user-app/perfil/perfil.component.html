@@ -338,6 +338,10 @@
         <ion-icon [icon]="icons.logOutOutline"></ion-icon>
         <span>{{ 'actions.logout' | ffTranslate }}</span>
       </button>
+      <button class="btn-destructive tap-effect btn-delete-account" (click)="eliminarCuenta()">
+        <ion-icon [icon]="icons.trashOutline || icons.logOutOutline"></ion-icon>
+        <span>{{ 'profile.deleteAccount.button' | ffTranslate }}</span>
+      </button>
     </div>
 
     <!-- FOOTER LEGAL -->

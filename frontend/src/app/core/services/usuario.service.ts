@@ -17,6 +17,11 @@ export class UsuarioService {
     return this.http.put<any>(`${this.apiUrl}/${id}`, data);
   }
 
+  /** Borrado de cuenta propia (requisito de Play Store / App Store). */
+  eliminarCuenta(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
+
   uploadPhoto(id: number, file: File): Observable<string> {
     const formData = new FormData();
     formData.append('file', file);

@@ -236,5 +236,11 @@
   "restaurant.alert.confirmTitle": "Confirmer",
   "restaurant.alert.message": "Voulez-vous {{action}} \"{{promo}}\" ?",
   "restaurant.alert.actionRedeem": "échanger",
-  "restaurant.alert.actionEarn": "gagner"
+  "restaurant.alert.actionEarn": "gagner",
+  "profile.deleteAccount.button": "Supprimer le compte",
+  "profile.deleteAccount.title": "Supprimer votre compte ?",
+  "profile.deleteAccount.message": "Vous perdrez vos points et votre historique sera anonymisé. Cette action est irréversible.",
+  "profile.deleteAccount.confirm": "Supprimer définitivement",
+  "profile.deleteAccount.done": "Votre compte a été supprimé. Merci d'avoir fait partie de l'aventure.",
+  "profile.deleteAccount.error": "Impossible de supprimer le compte. Réessaie."
 }

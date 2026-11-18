@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -86,6 +87,11 @@ public class UsuarioService {
                 .orElseThrow(() -> new SecurityException("Credenciales incorrectas"));
 
         if (!passwordEncoder.matches(loginDTO.getPassword(), usuario.getPassword())) {
+            throw new SecurityException("Credenciales incorrectas");
+        }
+
+        // Cuenta eliminada por el propio usuario o desactivada: no reentra.
+        if (Boolean.TRUE.equals(usuario.getDeleted()) || !Boolean.TRUE.equals(usuario.getActive())) {
             throw new SecurityException("Credenciales incorrectas");
         }
 
@@ -178,12 +184,32 @@ public class UsuarioService {
         usuarioDAO.deleteById(id);
     }
 
+    /**
+     * Eliminación de cuenta propia solicitada por el usuario (requisito de
+     * Google Play y App Store). No borra la fila: los movimientos y canjes
+     * históricos referencian al usuario y las estadísticas de los
+     * restaurantes dependen de ellos. En su lugar desactiva la cuenta y
+     * anonimiza todos los datos personales, de modo que el usuario ya no
+     * es identificable ni puede volver a entrar.
+     */
     public void eliminarPropio(Long id, String emailAutenticado) {
         Usuario usuario = usuarioDAO.findById(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Usuario no encontrado"));
         requireOwner(usuario, emailAutenticado);
-        usuarioDAO.delete(usuario);
+
+        usuario.setActive(false);
+        usuario.setDeleted(true);
+        usuario.setDeletedAt(LocalDateTime.now());
+        usuario.setNombre("Usuario eliminado");
+        // El email es la identidad del JWT (subject) y debe seguir siendo
+        // único: se reemplaza por uno no identificable.
+        usuario.setEmail("cuenta-eliminada." + id + "." + System.currentTimeMillis() + "@fidelyfood.local");
+        usuario.setTelefono(null);
+        usuario.setFotoPerfil(null);
+        usuario.setQrCode("ELIMINADO_" + UUID.randomUUID());
+        usuario.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
+        usuarioDAO.save(usuario);
     }
 
     public void changePassword(Long id, String currentPassword, String newPassword) {

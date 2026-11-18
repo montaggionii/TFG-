@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonicModule, ToastController } from '@ionic/angular';
+import { IonicModule, ToastController, AlertController } from '@ionic/angular';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
 import { UsuarioService } from '../../../core/services/usuario.service';
@@ -43,6 +43,7 @@ export class PerfilComponent implements OnInit {
   private puntosService = inject(PuntosService);
   private movimientoService = inject(MovimientoService);
   private toastCtrl = inject(ToastController);
+  private alertCtrl = inject(AlertController);
   private globalState = inject(GlobalStateService);
 
 
@@ -93,6 +94,7 @@ export class PerfilComponent implements OnInit {
       personCircleOutline: icons.personCircleOutline,
       shieldCheckmarkOutline: icons.shieldCheckmarkOutline,
       logOutOutline: icons.logOutOutline,
+      trashOutline: icons.trashOutline,
       chevronForwardOutline: icons.chevronForwardOutline,
       star: icons.star,
       gift: icons.gift,
@@ -192,6 +194,33 @@ export class PerfilComponent implements OnInit {
 
   logout() {
     this.authService.logout();
+  }
+
+  eliminarCuenta() {
+    const user = this.globalState.getState();
+    if (!user?.id) return;
+    this.alertCtrl.create({
+      header: this.i18n.instant('profile.deleteAccount.title'),
+      message: this.i18n.instant('profile.deleteAccount.message'),
+      buttons: [
+        { text: this.i18n.instant('common.cancel'), role: 'cancel' },
+        {
+          text: this.i18n.instant('profile.deleteAccount.confirm'),
+          role: 'destructive',
+          handler: () => {
+            this.usuarioService.eliminarCuenta(user.id).subscribe({
+              next: () => {
+                this.showToast(this.i18n.instant('profile.deleteAccount.done'), 'success');
+                this.authService.logout();
+              },
+              error: () => {
+                this.showToast(this.i18n.instant('profile.deleteAccount.error'), 'danger');
+              }
+            });
+          }
+        }
+      ]
+    }).then(a => a.present());
   }
 
   triggerFileInput() {

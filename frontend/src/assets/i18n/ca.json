@@ -236,5 +236,11 @@
   "restaurant.alert.confirmTitle": "Confirmar",
   "restaurant.alert.message": "Vols {{action}} \"{{promo}}\"?",
   "restaurant.alert.actionRedeem": "canviar",
-  "restaurant.alert.actionEarn": "guanyar"
+  "restaurant.alert.actionEarn": "guanyar",
+  "profile.deleteAccount.button": "Eliminar el compte",
+  "profile.deleteAccount.title": "Vols eliminar el teu compte?",
+  "profile.deleteAccount.message": "Perdràs els teus punts i el teu historial s'anonimitzarà. Aquesta acció no es pot desfer.",
+  "profile.deleteAccount.confirm": "Eliminar definitivament",
+  "profile.deleteAccount.done": "El teu compte s'ha eliminat. Gràcies per haver-ne format part.",
+  "profile.deleteAccount.error": "No s'ha pogut eliminar el compte. Torna-ho a provar."
 }

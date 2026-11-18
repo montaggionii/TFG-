@@ -291,4 +291,45 @@ class UsuarioServiceTest {
         assertThrows(ResourceNotFoundException.class,
                 () -> usuarioService.identificarPorQr("QR-INEXISTENTE"));
     }
+
+    @Test
+    void eliminarPropioAnonimizaYDesactivaSinBorrarLaFila() {
+        Usuario usuario = usuarioConPassword("cliente@test.com", "x");
+        usuario.setTelefono("+34600111222");
+        usuario.setQrCode("USER_1_uuid");
+        when(usuarioDAO.findById(1L)).thenReturn(Optional.of(usuario));
+
+        usuarioService.eliminarPropio(1L, "cliente@test.com");
+
+        // Requisito de Play Store / App Store: la cuenta desaparece para el
+        // usuario, pero la fila se conserva (anonimizada) porque movimientos
+        // y canjes históricos la referencian.
+        assertFalse(usuario.getActive());
+        assertTrue(usuario.getDeleted());
+        assertEquals("Usuario eliminado", usuario.getNombre());
+        assertNull(usuario.getTelefono());
+        assertNull(usuario.getFotoPerfil());
+        assertTrue(usuario.getEmail().startsWith("cuenta-eliminada.1."));
+        assertTrue(usuario.getEmail().endsWith("@fidelyfood.local"));
+        assertTrue(usuario.getQrCode().startsWith("ELIMINADO_"));
+        // Ya no puede entrar ni con la contraseña antigua ni la nueva conocida
+        assertFalse(passwordEncoder.matches("x", usuario.getPassword()));
+        verify(usuarioDAO, never()).delete(any());
+        verify(usuarioDAO).save(usuario);
+    }
+
+    @Test
+    void loginConCuentaEliminadaRechazaAunqueElPasswordCoincida() {
+        Usuario usuario = usuarioConPassword("eliminado@test.com", "correcta123");
+        usuario.setDeleted(true);
+        when(usuarioDAO.findByEmail("eliminado@test.com")).thenReturn(Optional.of(usuario));
+
+        LoginRequestDTO peticion = new LoginRequestDTO();
+        peticion.setEmail("eliminado@test.com");
+        peticion.setPassword("correcta123");
+
+        assertThrows(SecurityException.class,
+                () -> usuarioService.login(peticion));
+        verify(jwtUtil, never()).generateToken(any(), any());
+    }
 }
