@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { BehaviorSubject, tap, Observable } from 'rxjs';
+import { BehaviorSubject, tap, Observable, timeout, throwError, catchError } from 'rxjs';
 import { jwtDecode } from 'jwt-decode';
 import { environment } from '../../../environments/environment';
 import { GlobalStateService } from '../state/global-state.service';
@@ -58,12 +58,28 @@ export class AuthService {
     });
   }
 
+  // Render Free "duerme" el backend por inactividad: la primera petición
+  // puede tardar hasta ~2 min. Con timeout la UI no queda colgada para
+  // siempre y el mensaje avisa de que hay que reintentar.
+  private readonly SERVIDOR_FRO = 120000;
+  private conDespertar<T>(obs: Observable<T>): Observable<T> {
+    return obs.pipe(
+      timeout(this.SERVIDOR_FRO),
+      catchError((err: any) => {
+        if (err?.name === 'TimeoutError') {
+          return throwError(() => ({ status: 0, error: { message: 'El servidor está despertando (primera conexión del día). Espera un minuto e inténtalo de nuevo.' } }));
+        }
+        return throwError(() => err);
+      })
+    );
+  }
+
   // --- MÉTODOS DE AUTENTICACIÓN ---
 
   loginUsuario(credentials: any): Observable<any> {
     const fullUrl = `${this.apiUrl}/login`;
 
-    return this.http.post<any>(fullUrl, credentials).pipe(
+    return this.conDespertar(this.http.post<any>(fullUrl, credentials)).pipe(
       tap({
         next: (res) => this.handleAuthResponse(res, 'ROLE_USER'),
         error: (err) => {
@@ -77,7 +93,7 @@ export class AuthService {
   loginRestaurante(credentials: any): Observable<any> {
     const fullUrl = `${this.apiUrl}/login-restaurante`;
 
-    return this.http.post<any>(fullUrl, credentials).pipe(
+    return this.conDespertar(this.http.post<any>(fullUrl, credentials)).pipe(
       tap({
         next: (res) => this.handleAuthResponse(res, 'ROLE_RESTAURANT'),
         error: (err) => {
@@ -102,7 +118,7 @@ export class AuthService {
   }
 
   registerUsuario(data: any): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/register`, data);
+    return this.conDespertar(this.http.post<any>(`${this.apiUrl}/register`, data));
   }
 
   /** Código de acceso por SMS (paso 1: enviar). */
