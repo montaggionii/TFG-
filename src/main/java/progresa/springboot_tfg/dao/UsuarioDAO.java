@@ -9,7 +9,11 @@ public interface UsuarioDAO extends JpaRepository<Usuario, Long> {
 
     Optional<Usuario> findByEmail(String email);
 
+    Optional<Usuario> findByTelefono(String telefono);
+
     Optional<Usuario> findByQrCode(String qrCode);
 
     boolean existsByEmailAndIdNot(String email, Long id);
+
+    boolean existsByTelefonoAndIdNot(String telefono, Long id);
 }

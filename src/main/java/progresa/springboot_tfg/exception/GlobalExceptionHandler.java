@@ -94,6 +94,18 @@ public class GlobalExceptionHandler {
     }
 
     /* =========================
+       503 - PROVEEDOR EXTERNO SIN CONFIGURAR (Wallet, Google/Apple)
+       ========================= */
+    @ExceptionHandler({WalletNotConfiguredException.class, SocialAuthNotConfiguredException.class})
+    public ResponseEntity<Map<String, Object>> manejarServicioSinConfigurar(RuntimeException ex) {
+        return buildResponse(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "Service Unavailable",
+                ex.getMessage()
+        );
+    }
+
+    /* =========================
        500 - ERROR GENERAL
        ========================= */
     @ExceptionHandler(Exception.class)

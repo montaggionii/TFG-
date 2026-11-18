@@ -12,6 +12,7 @@ export interface AuthState {
   nombre: string | null;
   id?: number;
   foto?: string | null;
+  puntos?: number;
 }
 
 
@@ -104,6 +105,40 @@ export class AuthService {
     return this.http.post<any>(`${this.apiUrl}/register`, data);
   }
 
+  /** Código de acceso por SMS (paso 1: enviar). */
+  otpEnviar(telefono: string): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/otp/send`, { telefono });
+  }
+
+  /** Código de acceso por SMS (paso 2: verificar y entrar). */
+  otpVerificar(telefono: string, codigo: string, nombre?: string): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/otp/verify`, { telefono, codigo, nombre }).pipe(
+      tap({
+        next: (res) => this.handleAuthResponse(res, 'ROLE_USER'),
+        error: (err) => {
+          console.error(`[AUTH ERROR] Fallo en verificación OTP:`, err.status, err.statusText);
+        }
+      })
+    );
+  }
+
+  /**
+   * "Continuar con Google / Apple": el id_token que entrega el SDK del
+   * proveedor se envía al backend, que lo verifica y devuelve la sesión
+   * propia (JWT). El backend da de alta automáticamente a clientes nuevos.
+   */
+  loginSocial(provider: 'google' | 'apple', idToken: string, nombre?: string): Observable<any> {
+    const fullUrl = `${this.apiUrl}/${provider}`;
+    return this.http.post<any>(fullUrl, { idToken, nombre }).pipe(
+      tap({
+        next: (res) => this.handleAuthResponse(res, 'ROLE_USER'),
+        error: (err) => {
+          console.error(`[AUTH ERROR] Fallo en login ${provider}:`, err.status, err.statusText);
+        }
+      })
+    );
+  }
+
   registerRestaurante(data: any): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/register-restaurante`, data);
   }
@@ -128,6 +163,7 @@ export class AuthService {
       const nombre = res.nombre || res.usuario?.nombre || res.restaurante?.nombre || 'Usuario';
       const id = res.id || res.usuario?.id || res.restaurante?.id;
       const foto = res.fotoPerfil || res.foto || res.usuario?.fotoPerfil || res.restaurante?.foto || null;
+      const puntos = res.puntos ?? res.usuario?.puntos;
 
       // 5. PERSISTENCIA ANTES QUE EMISIÓN (ORDEN VITAL)
       localStorage.setItem('token', res.token);
@@ -136,7 +172,7 @@ export class AuthService {
       if (id) localStorage.setItem('userId', id.toString());
       if (foto) localStorage.setItem('userPhoto', foto);
 
-      const newState: AuthState = { token: res.token, rol: role, nombre, id, foto };
+      const newState: AuthState = { token: res.token, rol: role, nombre, id, foto, puntos };
 
 
       // Emitimos el nuevo estado DESPUÉS de asegurar el localStorage
@@ -159,7 +195,8 @@ export class AuthService {
       email: '',
       rol: state.rol || '',
       token: state.token || '',
-      fotoPerfil: state.foto || undefined
+      fotoPerfil: state.foto || undefined,
+      puntos: state.puntos
     });
 
   }

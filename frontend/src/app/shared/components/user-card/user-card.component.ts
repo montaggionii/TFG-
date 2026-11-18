@@ -6,6 +6,8 @@ import { addIcons } from 'ionicons';
 import * as icons from 'ionicons/icons';
 import * as QRCode from 'qrcode';
 import { UsuarioService } from '../../../core/services/usuario.service';
+import { WalletService } from '../../../core/services/wallet.service';
+import { ToastController } from '@ionic/angular';
 import { CustomerTranslatePipe } from '../../../core/i18n/customer-translate.pipe';
 
 @Component({
@@ -26,6 +28,8 @@ export class UserCardComponent implements OnInit, OnChanges, AfterViewInit {
   
   private router = inject(Router);
   private usuarioService = inject(UsuarioService);
+  private walletService = inject(WalletService);
+  private toastCtrl = inject(ToastController);
   public icons = icons;
 
   constructor() {
@@ -72,6 +76,20 @@ export class UserCardComponent implements OnInit, OnChanges, AfterViewInit {
     this.isModalOpen = true;
     // Dar tiempo al modal para renderizar el canvas
     setTimeout(() => this.generateLargeQRCode(), 200);
+  }
+
+  async addToWallet() {
+    try {
+      this.walletService.addToWallet();
+    } catch {
+      const toast = await this.toastCtrl.create({
+        message: 'No se pudo abrir Wallet. Inténtalo de nuevo.',
+        duration: 2500,
+        color: 'danger',
+        position: 'top'
+      });
+      await toast.present();
+    }
   }
 
   async generateQRCode() {

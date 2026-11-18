@@ -24,6 +24,22 @@ public class Canje {
 
     private LocalDateTime fecha;
 
+    /** PENDIENTE (espera validación en caja), VALIDADO, CANCELADO. */
+    private String estado;
+
+    /** Token secreto de un solo uso que codifica el QR temporal. */
+    @Column(length = 64)
+    private String token;
+
+    /** Caducidad del token: pasado este tiempo el canje se cancela con reembolso. */
+    private LocalDateTime tokenExpira;
+
+    private LocalDateTime fechaValidacion;
+
+    public boolean isPendiente() {
+        return estado == null || estado.isBlank() || "PENDIENTE".equalsIgnoreCase(estado);
+    }
+
     public Canje() {
         this.fecha = LocalDateTime.now();
     }
@@ -66,5 +82,37 @@ public class Canje {
 
     public void setFecha(LocalDateTime fecha) {
         this.fecha = fecha;
+    }
+
+    public String getEstado() {
+        return estado;
+    }
+
+    public void setEstado(String estado) {
+        this.estado = estado;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
+    }
+
+    public LocalDateTime getTokenExpira() {
+        return tokenExpira;
+    }
+
+    public void setTokenExpira(LocalDateTime tokenExpira) {
+        this.tokenExpira = tokenExpira;
+    }
+
+    public LocalDateTime getFechaValidacion() {
+        return fechaValidacion;
+    }
+
+    public void setFechaValidacion(LocalDateTime fechaValidacion) {
+        this.fechaValidacion = fechaValidacion;
     }
 }

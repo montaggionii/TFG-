@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -52,6 +53,13 @@ public class UsuarioService {
         usuario.setPassword(passwordEncoder.encode(dto.getPassword()));
         usuario.setPuntos(0);
         usuario.setRole(Role.ROLE_USER);
+        if (dto.getTelefono() != null && !dto.getTelefono().isBlank()) {
+            String telefono = normalizarTelefono(dto.getTelefono());
+            if (usuarioDAO.findByTelefono(telefono).isPresent()) {
+                throw new DuplicateResourceException("El teléfono ya está registrado");
+            }
+            usuario.setTelefono(telefono);
+        }
 
         // 🔥 1. Guardar para obtener ID
         Usuario usuarioGuardado = usuarioDAO.save(usuario);
@@ -68,13 +76,22 @@ public class UsuarioService {
 
     public LoginResponseDTO login(LoginRequestDTO loginDTO) {
 
-        // Mismo error (401) tanto si el email no existe como si la contraseña
-        // es incorrecta — distinguirlos (antes: 404 vs 500) permitía enumerar
-        // qué emails están registrados a partir del código de estado HTTP.
-        Usuario usuario = usuarioDAO.findByEmail(loginDTO.getEmail())
+        // Mismo error (401) tanto si el identificador no existe como si la contraseña
+        // es incorrecta — distinguirlos permitía enumerar qué cuentas están
+        // registradas a partir del código de estado HTTP.
+        String identificador = loginDTO.getEmail() == null ? "" : loginDTO.getEmail().trim();
+
+        // El cliente puede entrar con su email o con su teléfono
+        Usuario usuario = usuarioDAO.findByEmail(identificador)
+                .or(() -> usuarioDAO.findByTelefono(normalizarTelefono(identificador)))
                 .orElseThrow(() -> new SecurityException("Credenciales incorrectas"));
 
         if (!passwordEncoder.matches(loginDTO.getPassword(), usuario.getPassword())) {
+            throw new SecurityException("Credenciales incorrectas");
+        }
+
+        // Cuenta eliminada por el propio usuario o desactivada: no reentra.
+        if (Boolean.TRUE.equals(usuario.getDeleted()) || !Boolean.TRUE.equals(usuario.getActive())) {
             throw new SecurityException("Credenciales incorrectas");
         }
 
@@ -176,12 +193,32 @@ public class UsuarioService {
         usuarioDAO.deleteById(id);
     }
 
+    /**
+     * Eliminación de cuenta propia solicitada por el usuario (requisito de
+     * Google Play y App Store). No borra la fila: los movimientos y canjes
+     * históricos referencian al usuario y las estadísticas de los
+     * restaurantes dependen de ellos. En su lugar desactiva la cuenta y
+     * anonimiza todos los datos personales, de modo que el usuario ya no
+     * es identificable ni puede volver a entrar.
+     */
     public void eliminarPropio(Long id, String emailAutenticado) {
         Usuario usuario = usuarioDAO.findById(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Usuario no encontrado"));
         requireOwner(usuario, emailAutenticado);
-        usuarioDAO.delete(usuario);
+
+        usuario.setActive(false);
+        usuario.setDeleted(true);
+        usuario.setDeletedAt(LocalDateTime.now());
+        usuario.setNombre("Usuario eliminado");
+        // El email es la identidad del JWT (subject) y debe seguir siendo
+        // único: se reemplaza por uno no identificable.
+        usuario.setEmail("cuenta-eliminada." + id + "." + System.currentTimeMillis() + "@fidelyfood.local");
+        usuario.setTelefono(null);
+        usuario.setFotoPerfil(null);
+        usuario.setQrCode("ELIMINADO_" + UUID.randomUUID());
+        usuario.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
+        usuarioDAO.save(usuario);
     }
 
     public void changePassword(Long id, String currentPassword, String newPassword) {
@@ -215,9 +252,22 @@ public class UsuarioService {
             throw new ResourceNotFoundException("QR no válido");
         }
 
-        Usuario usuario = usuarioDAO.findByQrCode(cleanQr)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("QR no válido o cliente no encontrado"));
+        Usuario usuario;
+        if (cleanQr.startsWith("FIDELITY_ID:")) {
+            // Formato que codifica el QR visible en la tarjeta del cliente
+            try {
+                Long id = Long.parseLong(cleanQr.substring("FIDELITY_ID:".length()).trim());
+                usuario = usuarioDAO.findById(id)
+                        .orElseThrow(() -> new ResourceNotFoundException("QR no válido o cliente no encontrado"));
+            } catch (NumberFormatException e) {
+                throw new ResourceNotFoundException("QR no válido");
+            }
+        } else {
+            // Formato interno del código almacenado (USER_x_uuid)
+            usuario = usuarioDAO.findByQrCode(cleanQr)
+                    .orElseThrow(() ->
+                            new ResourceNotFoundException("QR no válido o cliente no encontrado"));
+        }
 
         return toDTO(usuario);
     }
@@ -269,5 +319,14 @@ public class UsuarioService {
         if (emailAutenticado == null || !usuario.getEmail().equalsIgnoreCase(emailAutenticado)) {
             throw new AccessDeniedException("No puedes acceder a datos de otro usuario");
         }
+    }
+
+    /**
+     * Normaliza un teléfono para que el login por teléfono no dependa de
+     * cómo lo escribió el usuario: elimina espacios, guiones y puntos.
+     */
+    public static String normalizarTelefono(String telefono) {
+        if (telefono == null) return null;
+        return telefono.replaceAll("[\\s\\-.()]", "");
     }
 }

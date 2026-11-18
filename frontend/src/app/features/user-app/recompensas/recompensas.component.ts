@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule, ToastController, LoadingController, AlertController } from '@ionic/angular';
 import { addIcons } from 'ionicons';
@@ -14,6 +14,7 @@ import {
   chevronForwardOutline
 } from 'ionicons/icons';
 import { PromocionService } from '../../../core/services/promocion.service';
+import { CanjeService, CanjePendiente } from '../../../core/services/canje.service';
 import { UsuarioService } from '../../../core/services/usuario.service';
 import { RestauranteService } from '../../../core/services/restaurante.service';
 import { GlobalStateService } from '../../../core/state/global-state.service';
@@ -21,6 +22,7 @@ import { RouterLink } from '@angular/router';
 import { CustomerI18nService } from '../../../core/i18n/customer-i18n.service';
 import { CustomerTranslatePipe } from '../../../core/i18n/customer-translate.pipe';
 import { SafeRestaurantImageDirective } from '../../../shared/directives/safe-restaurant-image.directive';
+import * as QRCode from 'qrcode';
 
 @Component({
   selector: 'app-recompensas',
@@ -29,8 +31,9 @@ import { SafeRestaurantImageDirective } from '../../../shared/directives/safe-re
   standalone: true,
   imports: [IonicModule, CommonModule, RouterLink, CustomerTranslatePipe, SafeRestaurantImageDirective]
 })
-export class RecompensasComponent implements OnInit {
+export class RecompensasComponent implements OnInit, OnDestroy {
   private promocionService = inject(PromocionService);
+  private canjeService = inject(CanjeService);
   private usuarioService = inject(UsuarioService);
   private restauranteService = inject(RestauranteService);
   private globalState = inject(GlobalStateService);
@@ -57,6 +60,11 @@ export class RecompensasComponent implements OnInit {
   isLoading = true;
   error = false;
   userPoints = 0;
+  private procesandoCanje = false;
+
+  canjeEnCurso: (CanjePendiente & { qrDataUrl?: string; segundosRestantes?: number }) | null = null;
+  private canjePolling?: any;
+  private canjeCuentaAtras?: any;
 
   ngOnInit() {
     this.cargarDatos();
@@ -77,7 +85,16 @@ export class RecompensasComponent implements OnInit {
       next: (data) => {
         this.procesarRecompensas(data);
         const user = this.globalState.getState();
-        this.userPoints = user?.puntos || 0;
+        if (user?.puntos != null) {
+          this.userPoints = user.puntos;
+        } else if (user?.id != null) {
+          // Al recargar directo en esta ruta el estado en memoria está vacío:
+          // pedimos el saldo real para no mostrar todo el catálogo bloqueado.
+          this.usuarioService.getUsuarioById(user.id).subscribe(data2 => {
+            this.globalState.setState({ ...user, id: user.id!, puntos: data2.puntos });
+            this.userPoints = data2.puntos;
+          });
+        }
         this.isLoading = false;
         if (event) event.target.complete();
       },
@@ -136,28 +153,23 @@ export class RecompensasComponent implements OnInit {
   }
 
   private async ejecutarCanje(recompensa: any) {
+    if (this.procesandoCanje) return; // Evita doble-gasto por doble click / alert apilado
+    this.procesandoCanje = true;
     const user = this.globalState.getState();
     if (!user?.id) return;
 
     const loading = await this.loadingCtrl.create({ message: this.i18n.instant('rewards.processing') });
     await loading.present();
 
-    this.promocionService.canjearPromocion(user.id, recompensa.id).subscribe({
-      next: async () => {
-        // Actualizar puntos
-        this.usuarioService.getUsuarioById(user.id!).subscribe(data => {
-          this.globalState.setState({ ...user, puntos: data.puntos });
-          this.userPoints = data.puntos;
-        });
-        
+    this.canjeService.canjear(recompensa.id).subscribe({
+      next: async (canje) => {
+        this.procesandoCanje = false;
         await loading.dismiss();
-        const toast = await this.toastCtrl.create({
-          message: this.i18n.instant('rewards.success'),
-          duration: 3000, color: 'success', position: 'top'
-        });
-        toast.present();
+        this.refrescarSaldo();
+        await this.mostrarQrCanje(canje);
       },
       error: async (err) => {
+        this.procesandoCanje = false;
         await loading.dismiss();
         const toast = await this.toastCtrl.create({
           message: err.error?.message || this.i18n.instant('rewards.insufficient'),
@@ -166,5 +178,78 @@ export class RecompensasComponent implements OnInit {
         toast.present();
       }
     });
+  }
+
+  /** Modal con el QR temporal que el camarero escanea para validar el canje. */
+  private async mostrarQrCanje(canje: CanjePendiente) {
+    let qrDataUrl: string | undefined;
+    try {
+      qrDataUrl = await QRCode.toDataURL(canje.codigo, { width: 480, margin: 1 });
+    } catch { /* el modal muestra el código textual como respaldo */ }
+    this.canjeEnCurso = { ...canje, qrDataUrl, segundosRestantes: canje.expiraEn };
+
+    this.pararPollingCanje();
+    this.canjePolling = setInterval(() => this.canjeService.estado(canje.id).subscribe({
+      next: (estado) => {
+        if (estado.estado === 'VALIDADO' && this.canjeEnCurso) {
+          this.finalizarCanje(this.i18n.instant('rewards.canje.validado'), 'success');
+          this.refrescarSaldo();
+        }
+      },
+      error: () => { /* seguimos esperando */ }
+    }), 4000);
+
+    this.canjeCuentaAtras = setInterval(() => {
+      if (!this.canjeEnCurso) return;
+      this.canjeEnCurso.segundosRestantes = Math.max(0, (this.canjeEnCurso.segundosRestantes || 0) - 1);
+      if (this.canjeEnCurso.segundosRestantes <= 0) {
+        // Nadie lo validó a tiempo: cancelamos y devolvemos los puntos.
+        this.canjeService.cancelar(canje.id).subscribe({
+          next: () => this.finalizarCanje(this.i18n.instant('rewards.canje.devuelto'), 'warning'),
+          error: (err) => this.finalizarCanje(err.error?.message || this.i18n.instant('rewards.canje.error'), 'danger')
+        });
+      }
+    }, 1000);
+  }
+
+  private finalizarCanje(mensaje: string, color: string) {
+    this.pararPollingCanje();
+    this.cerrarModalCanje();
+    this.toastCtrl.create({ message: mensaje, duration: 3500, color, position: 'top' })
+      .then(t => t.present());
+  }
+
+  cancelarCanjeEnCurso() {
+    if (!this.canjeEnCurso) return;
+    this.canjeService.cancelar(this.canjeEnCurso.id).subscribe({
+      next: () => {
+        this.finalizarCanje(this.i18n.instant('rewards.canje.devuelto'), 'warning');
+        this.refrescarSaldo();
+      },
+      error: (err) => this.finalizarCanje(err.error?.message || this.i18n.instant('rewards.canje.error'), 'danger')
+    });
+  }
+
+  cerrarModalCanje() {
+    this.pararPollingCanje();
+    this.canjeEnCurso = null;
+  }
+
+  private pararPollingCanje() {
+    if (this.canjePolling) { clearInterval(this.canjePolling); this.canjePolling = undefined; }
+    if (this.canjeCuentaAtras) { clearInterval(this.canjeCuentaAtras); this.canjeCuentaAtras = undefined; }
+  }
+
+  private refrescarSaldo() {
+    const user = this.globalState.getState();
+    if (!user?.id) return;
+    this.usuarioService.getUsuarioById(user.id).subscribe(data => {
+      this.globalState.setState({ ...user, id: user.id, puntos: data.puntos });
+      this.userPoints = data.puntos;
+    });
+  }
+
+  ngOnDestroy() {
+    this.pararPollingCanje();
   }
 }

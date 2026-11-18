@@ -40,6 +40,11 @@ export class PuntosService {
     return this.http.get<{puntos: number}>(`${this.apiUrl}/puntos/${usuarioId}/total`);
   }
 
+  /** Nivel, racha semanal, puntos del mes, locales visitados… */
+  getResumenFidelidad(usuarioId: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/puntos/${usuarioId}/resumen`);
+  }
+
   // Sumar puntos al cliente
   sumarPuntos(payload: {
     usuarioId: number;

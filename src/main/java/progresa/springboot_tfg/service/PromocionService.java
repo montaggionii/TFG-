@@ -18,6 +18,8 @@ import progresa.springboot_tfg.exception.ResourceNotFoundException;
 import progresa.springboot_tfg.util.ImagenUtil;
 
 import java.util.List;
+import java.util.UUID;
+import java.time.LocalDateTime;
 
 @Service
 public class PromocionService {
@@ -214,11 +216,15 @@ public class PromocionService {
         mov.setDescripcion("Canje de promoción: " + promocion.getTitulo());
         movimientoPuntosDAO.save(mov);
 
-        // registrar canje
+        // registrar canje — queda PENDIENTE hasta que el restaurante
+        // valide el QR temporal del cliente (ver CanjeService)
         Canje canje = new Canje();
         canje.setUsuario(usuario);
         canje.setPromocion(promocion);
         canje.setPuntosGastados(promocion.getPuntosOtorgados());
+        canje.setEstado("PENDIENTE");
+        canje.setToken(UUID.randomUUID().toString().replace("-", ""));
+        canje.setTokenExpira(LocalDateTime.now().plusMinutes(10));
         return canjeDAO.save(canje);
     }
 

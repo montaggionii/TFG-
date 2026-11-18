@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonicModule, ToastController } from '@ionic/angular';
+import { IonicModule, ToastController, AlertController } from '@ionic/angular';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth.service';
 import { UsuarioService } from '../../../core/services/usuario.service';
@@ -43,6 +43,7 @@ export class PerfilComponent implements OnInit {
   private puntosService = inject(PuntosService);
   private movimientoService = inject(MovimientoService);
   private toastCtrl = inject(ToastController);
+  private alertCtrl = inject(AlertController);
   private globalState = inject(GlobalStateService);
 
 
@@ -60,6 +61,16 @@ export class PerfilComponent implements OnInit {
 
   // FORMULARIOS
   editData = { nombre: '', email: '' };
+
+  /**
+   * Las cuentas creadas por código SMS tienen un identificador interno
+   * (sms.<teléfono>@fidelyfood.local) en lugar de un email del usuario:
+   * no se muestra y el campo de edición se deja libre para añadir el real.
+   */
+  esEmailInterno(email: string): boolean {
+    return !!email && email.endsWith('@fidelyfood.local');
+  }
+  securityData = { current: '', new: '', confirm: '' };
 
   // PREFERENCIAS DE NOTIFICACIONES (Persistencia Local)
   notifPrefs = {
@@ -82,6 +93,7 @@ export class PerfilComponent implements OnInit {
       personCircleOutline: icons.personCircleOutline,
       shieldCheckmarkOutline: icons.shieldCheckmarkOutline,
       logOutOutline: icons.logOutOutline,
+      trashOutline: icons.trashOutline,
       chevronForwardOutline: icons.chevronForwardOutline,
       star: icons.star,
       gift: icons.gift,
@@ -183,6 +195,33 @@ export class PerfilComponent implements OnInit {
     this.authService.logout();
   }
 
+  eliminarCuenta() {
+    const user = this.globalState.getState();
+    if (!user?.id) return;
+    this.alertCtrl.create({
+      header: this.i18n.instant('profile.deleteAccount.title'),
+      message: this.i18n.instant('profile.deleteAccount.message'),
+      buttons: [
+        { text: this.i18n.instant('common.cancel'), role: 'cancel' },
+        {
+          text: this.i18n.instant('profile.deleteAccount.confirm'),
+          role: 'destructive',
+          handler: () => {
+            this.usuarioService.eliminarCuenta(user.id).subscribe({
+              next: () => {
+                this.showToast(this.i18n.instant('profile.deleteAccount.done'), 'success');
+                this.authService.logout();
+              },
+              error: () => {
+                this.showToast(this.i18n.instant('profile.deleteAccount.error'), 'danger');
+              }
+            });
+          }
+        }
+      ]
+    }).then(a => a.present());
+  }
+
   triggerFileInput() {
     if (!this.user) {
       this.showToast(this.i18n.instant('profile.toast.waitProfile'), 'warning');
@@ -256,17 +295,25 @@ export class PerfilComponent implements OnInit {
 
   openEditProfile() {
     console.log('[EDIT PROFILE OPEN]');
-    this.editData = { nombre: this.user.nombre, email: this.user.email };
+    this.editData = {
+      nombre: this.user.nombre,
+      email: this.esEmailInterno(this.user.email) ? '' : this.user.email
+    };
     this.isEditProfileOpen = true;
   }
 
   saveProfile() {
-    if (!this.editData.nombre || !this.editData.email) return;
+    if (!this.editData.nombre) return;
+    // Email interno: si el usuario no añade uno real, se conserva el interno
+    const emailFinal = this.esEmailInterno(this.user.email)
+      ? (this.editData.email.trim() || this.user.email)
+      : this.editData.email;
+    if (!emailFinal) return;
 
     this.usuarioService.updateUsuario(this.user.id, {
       ...this.user,
       nombre: this.editData.nombre,
-      email: this.editData.email
+      email: emailFinal
     }).subscribe({
       next: (updated) => {
         this.user = { ...this.user, ...updated };

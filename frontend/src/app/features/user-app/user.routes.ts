@@ -28,6 +28,10 @@ export const userRoutes: Routes = [
         loadComponent: () => import('./restaurante-detalle/restaurante-detalle-page.component').then(m => m.RestauranteDetallePageComponent)
       },
       {
+        path: 'reservas',
+        loadComponent: () => import('./reservas/reservas.component').then(m => m.ReservasComponent)
+      },
+      {
         path: 'perfil',
         loadComponent: () => import('./perfil/perfil.component').then(m => m.PerfilComponent)
       },
