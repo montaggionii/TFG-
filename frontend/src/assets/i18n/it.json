@@ -281,5 +281,13 @@
   "restaurant.share.label": "Condividi",
   "restaurant.share.value": "Invita i tuoi amici in questo locale",
   "profile.biometria.title": "Sblocco biometrico",
-  "profile.biometria.subtitle": "Apri l'app con Face ID / impronta (o il tuo PIN)"
+  "profile.biometria.subtitle": "Apri l'app con Face ID / impronta (o il tuo PIN)",
+  "home.pagar": "PAGARE / GUADAGNARE PUNTI",
+  "home.sorpresa": "Sorpresa del giorno",
+  "home.sorpresa.girando": "Girando…",
+  "home.sorpresa.ganado": "Hai vinto {{premio}} punti!",
+  "home.pasaporte": "Passaporto: {{visitados}}/{{objetivo}} locali",
+  "home.reclamarPasaporte": "Riscatta +25 pts",
+  "home.gastoMes": "€ questo mese",
+  "reservas.repetir": "Ripeti"
 }

@@ -145,6 +145,13 @@
 
     <!-- Carrusel de Tarjetas Premium (Explore Experience) -->
     <div class="explore-carousel-container" *ngIf="!showDetailSheet">
+      <!-- Recomendación contextual: cerca y a punto de canjear -->
+      <div class="reco-banner" *ngIf="recomendacion" (click)="irADetalle(recomendacion)">
+        <span class="reco-icon">💡</span>
+        <p>A {{ recomendacion.distanciaKm }} km: <strong>{{ recomendacion.restaurante }}</strong> —
+          te faltan <strong>{{ recomendacion.faltan }} pts</strong> para {{ recomendacion.promo }}</p>
+      </div>
+
       <div class="empty-map-results" *ngIf="restaurantesFiltrados.length === 0">
         <ion-icon name="search-outline"></ion-icon>
         <div>

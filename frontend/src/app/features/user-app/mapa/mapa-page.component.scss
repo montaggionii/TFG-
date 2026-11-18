@@ -683,3 +683,13 @@ ion-content.map-page-content::part(scroll) {
     &.active { background: var(--ion-color-primary); color: #fff; }
   }
 }
+
+// Banner de recomendación contextual
+.reco-banner {
+  display: flex; align-items: center; gap: 10px;
+  margin: 0 0 10px; padding: 10px 14px; border-radius: 14px;
+  background: linear-gradient(90deg, rgba(255,122,0,.14), rgba(255,200,61,.12));
+  border: 1px solid rgba(255,122,0,.3); cursor: pointer;
+  .reco-icon { font-size: 22px; }
+  p { margin: 0; font-size: 13px; color: var(--app-text); }
+}

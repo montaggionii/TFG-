@@ -7,6 +7,8 @@ import { Subscription } from 'rxjs';
 import { MapComponent } from '../../../shared/components/map/map.component';
 import { RestauranteService } from '../../../core/services/restaurante.service';
 import { FavoritoService } from '../../../core/services/favorito.service';
+import { PuntosService } from '../../../core/services/puntos.service';
+import { GlobalStateService } from '../../../core/state/global-state.service';
 import { GeolocationService, GeoStatus } from '../../../core/services/geolocation.service';
 import { addIcons } from 'ionicons';
 import { 
@@ -32,6 +34,9 @@ export class MapaPageComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private restauranteService = inject(RestauranteService);
   private favoritoService = inject(FavoritoService);
+  private puntosService = inject(PuntosService);
+  private globalState = inject(GlobalStateService);
+  recomendacion: any = null;
   private toastCtrl = inject(ToastController);
   private geoService = inject(GeolocationService);
   private apiUrl = environment.apiUrl;
@@ -113,12 +118,23 @@ export class MapaPageComponent implements OnInit, OnDestroy {
     this.geoService.stopWatching();
   }
 
+  /** Sugerencia contextual: local cercano donde faltan pocos puntos para una recompensa. */
+  private calcularRecomendacion() {
+    const user = this.globalState.getState();
+    if (!user?.id) return;
+    this.puntosService.getRecomendacion(user.id, this.userLocation!.lat, this.userLocation!.lng).subscribe({
+      next: (r) => this.recomendacion = r || null,
+      error: () => this.recomendacion = null
+    });
+  }
+
   reintentarUbicacion() {
     this.geoService.retry();
   }
 
   cargarRestaurantes() {
     if (!this.userLocation) return;
+    this.calcularRecomendacion();
     
     this.isLoading = true;
 

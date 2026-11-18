@@ -665,3 +665,32 @@
     div { flex: 1; background: var(--ion-color-light); border-radius: 12px; padding: 10px 6px;
       strong { display: block; font-size: 18px; } small { font-size: 11px; color: var(--ion-color-medium); } } }
 }
+
+// Acciones rápidas: pagar + sorpresa del día
+.acciones-rapidas { margin: 12px 0 4px; display: flex; flex-direction: column; gap: 10px;
+  .boton-gigante {
+    height: 64px; font-size: 20px; font-weight: 800; letter-spacing: .5px;
+    border-radius: 22px; box-shadow: 0 8px 24px rgba(255,122,0,.35);
+    ion-icon { font-size: 26px; }
+  }
+  .sorpresa-btn {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    padding: 12px; border-radius: 16px; border: 1px dashed rgba(255,122,0,.5);
+    background: rgba(255,122,0,.06); color: var(--app-text); font-weight: 700; font-size: 15px;
+    .ruleta { font-size: 22px; display: inline-block;
+      &.girando { animation: girarRuleta .5s linear infinite; } }
+    &:disabled { opacity: .6; }
+  }
+}
+@keyframes girarRuleta { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+.sorpresa-resultado { display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin: 8px 0; padding: 12px; border-radius: 14px; font-weight: 800; font-size: 16px;
+  background: rgba(52,199,89,.12); color: var(--app-success, green); }
+
+// Pasaporte de sabor
+.pasaporte { margin-top: 10px;
+  .pasaporte-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+    .sello { font-size: 20px; opacity: .25;
+      &.marcado { opacity: 1; filter: drop-shadow(0 0 6px rgba(255,122,0,.5)); } }
+    small { color: var(--app-text-secondary); font-size: 12px; margin-left: 4px; } }
+}

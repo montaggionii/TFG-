@@ -35,12 +35,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String authHeader = request.getHeader("Authorization");
 
         // El pase de Wallet se abre como enlace directo en Safari (un enlace
-        // no puede llevar cabeceras), así que para esa única ruta se acepta
-        // el JWT también como parámetro ?token=. Resto de rutas: solo cabecera.
+        // no puede llevar cabeceras), y el stream SSE de puntos (EventSource
+        // tampoco puede mandar cabeceras), así que para esas únicas rutas se
+        // acepta el JWT también como parámetro ?token=. Resto: solo cabecera.
         String token = null;
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             token = authHeader.substring(7);
-        } else if (authHeader == null && request.getRequestURI().startsWith("/api/wallet/")) {
+        } else if (authHeader == null && (request.getRequestURI().startsWith("/api/wallet/")
+                || (request.getRequestURI().startsWith("/api/puntos/") && request.getRequestURI().endsWith("/stream")))) {
             token = request.getParameter("token");
         }
 

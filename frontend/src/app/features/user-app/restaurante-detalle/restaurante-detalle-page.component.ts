@@ -98,7 +98,16 @@ export class RestauranteDetallePageComponent implements OnInit, OnDestroy {
   @ViewChild('tarjetaQrCanvas') tarjetaQrCanvas?: ElementRef<HTMLCanvasElement>;
 
   esFavorito = false;
+  topFans: any = null;
   cargandoFavorito = false;
+
+  cargarTopFans() {
+    if (!this.restauranteIdFromUrl) return;
+    this.restauranteService.getTopFans(this.restauranteIdFromUrl).subscribe({
+      next: (d) => this.topFans = d,
+      error: () => this.topFans = null
+    });
+  }
 
   ngOnInitFavorito() {
     this.favoritoService.mios().subscribe({
@@ -243,6 +252,15 @@ export class RestauranteDetallePageComponent implements OnInit, OnDestroy {
       }
       if (this.restauranteIdFromUrl) {
         this.ngOnInitFavorito();
+        this.cargarTopFans();
+      }
+    });
+    // Atajo: "repetir reserva" desde /u/reservas → modal con el nº de personas
+    this.route.queryParams.subscribe((q: any) => {
+      if (q['reservar']) {
+        const personas = parseInt(q['reservar'], 10);
+        this.abrirReserva();
+        if (!isNaN(personas) && personas > 0) this.reservaPersonas = personas;
       }
     });
 

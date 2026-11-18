@@ -44,11 +44,15 @@ export class AppComponent {
     }
 
     // Deep links nativos (fidelyfood:// y atajos iOS tipo fidelyfood.qr):
-    // atajos del icono de la app, enlaces compartidos y widgets.
+    // atajos del icono, enlaces compartidos, etiquetas NFC en las mesas.
     CapApp.addListener('appUrlOpen', ({ url }) => {
-      const match = /(?:fidelyfood:\/\/|fidelyfood\.)([a-z]+)/.exec(url);
+      const match = /(?:fidelyfood:\/\/|fidelyfood\.)([a-z]+)(?:\/([0-9]+))?/.exec(url);
       if (!match) return;
-      const destino = match[1].split('?')[0];
+      const [, destino, id] = match;
+      if (destino === 'restaurante' && id) {
+        this.router.navigate(['/u/restaurante', id]);
+        return;
+      }
       const rutasValidas = ['qr', 'reservas', 'recompensas', 'mapa', 'historial'];
       if (rutasValidas.includes(destino)) {
         this.router.navigate([`/u/${destino}`]);

@@ -54,4 +54,33 @@ export class PuntosService {
   }): Observable<any> {
     return this.http.post(`${this.apiUrl}/puntos`, payload);
   }
+
+
+  /** Stream SSE del saldo: emite {puntos} cada vez que cambia (compra registrada, canje…). */
+  streamPuntos(usuarioId: number, token: string, onDelta: (delta: number) => void, onError?: () => void): EventSource {
+    const source = new EventSource(`${environment.apiUrl}/api/puntos/${usuarioId}/stream?token=${encodeURIComponent(token)}`);
+    let previo: number | null = null;
+    source.addEventListener('puntos', (ev: MessageEvent) => {
+      try {
+        const data = JSON.parse(ev.data);
+        const puntos = Number(data.puntos);
+        if (previo !== null && puntos !== previo) onDelta(puntos - previo);
+        previo = puntos;
+      } catch { /* evento ilegible: ignorar */ }
+    });
+    source.onerror = () => { onError?.(); };
+    return source;
+  }
+
+  sorpresaDelDia(): Observable<{premio: number; puntos: number}> {
+    return this.http.post<{premio: number; puntos: number}>(`${this.apiUrl}/puntos/sorpresa`, {});
+  }
+
+  reclamarPasaporte(usuarioId: number): Observable<{premio: number; puntos: number}> {
+    return this.http.post<{premio: number; puntos: number}>(`${this.apiUrl}/puntos/${usuarioId}/pasaporte/reclamar`, {});
+  }
+
+  getRecomendacion(usuarioId: number, lat: number, lng: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/puntos/${usuarioId}/recomendacion?lat=${lat}&lng=${lng}`);
+  }
 }

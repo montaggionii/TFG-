@@ -281,5 +281,13 @@
   "restaurant.share.label": "Compartir",
   "restaurant.share.value": "Invita a tus amigos a este local",
   "profile.biometria.title": "Desbloqueo con biometría",
-  "profile.biometria.subtitle": "Abrir la app con Face ID / huella (o tu PIN)"
+  "profile.biometria.subtitle": "Abrir la app con Face ID / huella (o tu PIN)",
+  "home.pagar": "PAGAR / GANAR PUNTOS",
+  "home.sorpresa": "Sorpresa del día",
+  "home.sorpresa.girando": "Girando…",
+  "home.sorpresa.ganado": "¡Has ganado {{premio}} puntos!",
+  "home.pasaporte": "Pasaporte: {{visitados}}/{{objetivo}} locales",
+  "home.reclamarPasaporte": "Reclamar +25 pts",
+  "home.gastoMes": "€ este mes",
+  "reservas.repetir": "Repetir"
 }

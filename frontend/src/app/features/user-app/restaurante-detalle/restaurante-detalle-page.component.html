@@ -79,6 +79,20 @@
           {{ 'reservas.botón' | ffTranslate }}
         </ion-button>
       </div>
+
+      <!-- Top fans: los clientes más fieles del local -->
+      <div class="top-fans-card" *ngIf="topFans && (topFans.top || []).length > 0">
+        <div class="fans-head">
+          <ion-icon name="trophy-outline" color="warning"></ion-icon>
+          <h3>Top fans de {{ restaurante.nombre }}</h3>
+        </div>
+        <div class="fan" *ngFor="let f of topFans.top">
+          <span class="puesto" [class.oro]="f.puesto === 1" [class.plata]="f.puesto === 2" [class.bronce]="f.puesto === 3">{{ f.puesto }}</span>
+          <strong>{{ f.nombre }}</strong>
+          <small>{{ f.visitas }} visitas</small>
+        </div>
+        <p class="mi-puesto" *ngIf="topFans.miPuesto">Tu puesto: <strong>#{{ topFans.miPuesto }}</strong> de {{ topFans.clientesTotales }}</p>
+      </div>
       <ion-modal [isOpen]="isTarjetaQrOpen" (didDismiss)="isTarjetaQrOpen = false">
         <ng-template>
           <div class="tarjeta-qr-wrap">

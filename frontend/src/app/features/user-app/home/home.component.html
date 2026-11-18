@@ -27,9 +27,40 @@
           <div class="actividad-stats">
             <div><strong>+{{ resumen.ganadosMes }}</strong><small>{{ 'home.ganadosMes' | ffTranslate }}</small></div>
             <div><strong>{{ resumen.localesVisitados }}</strong><small>{{ 'home.locales' | ffTranslate }}</small></div>
+            <div *ngIf="resumen.gastoMes > 0"><strong>{{ resumen.gastoMes | number:'1.0-0' }}€</strong><small>{{ 'home.gastoMes' | ffTranslate }}</small></div>
             <div *ngIf="resumen.puntosParaSiguiente > 0"><strong>{{ resumen.puntosParaSiguiente }}</strong><small>{{ 'home.paraSiguiente' | ffTranslate }}</small></div>
           </div>
+
+          <!-- Pasaporte de sabor: 3 locales distintos → premio -->
+          <div class="pasaporte" *ngIf="resumen.pasaporte">
+            <div class="pasaporte-bar">
+              <span *ngFor="let i of [1,2,3]" class="sello" [class.marcado]="resumen.pasaporte.visitados >= i">🌍</span>
+              <small>{{ 'home.pasaporte' | ffTranslate:{ visitados: resumen.pasaporte.visitados, objetivo: resumen.pasaporte.objetivo } }}</small>
+            </div>
+            <ion-button *ngIf="resumen.pasaporte.completado && !resumen.pasaporte.premioReclamado"
+                        size="small" color="success" (click)="reclamarPasaporte()">
+              🎁 {{ 'home.reclamarPasaporte' | ffTranslate }}
+            </ion-button>
+          </div>
         </section>
+
+        <!-- 1c. ACCIONES RÁPIDAS: pagar y sorpresa del día -->
+        <div class="acciones-rapidas">
+          <ion-button expand="block" size="large" class="boton-gigante" routerLink="/u/qr">
+            <ion-icon name="qr-code-outline" slot="start"></ion-icon>
+            {{ 'home.pagar' | ffTranslate }}
+          </ion-button>
+          <button class="sorpresa-btn" (click)="abrirSorpresa()" [disabled]="sorpresaCargando || ruletaGirando">
+            <span class="ruleta" [class.girando]="ruletaGirando">🎁</span>
+            <span>{{ ruletaGirando ? ('home.sorpresa.girando' | ffTranslate) : ('home.sorpresa' | ffTranslate) }}</span>
+          </button>
+        </div>
+
+        <!-- Resultado de la sorpresa -->
+        <div class="sorpresa-resultado" *ngIf="sorpresaGanada">
+          🎉 {{ 'home.sorpresa.ganado' | ffTranslate:{ premio: sorpresaGanada } }}
+          <ion-button fill="clear" size="small" (click)="sorpresaGanada = null">OK</ion-button>
+        </div>
 
         <!-- 2. BANNERS PROMOCIONALES (NUEVO) -->
         <section class="section-container animate__animated animate__fadeInUp" *ngIf="promotionalBanners && promotionalBanners.length > 0">

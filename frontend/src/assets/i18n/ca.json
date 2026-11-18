@@ -281,5 +281,13 @@
   "restaurant.share.label": "Compartir",
   "restaurant.share.value": "Convida els teus amics a aquest local",
   "profile.biometria.title": "Desbloqueig biomètric",
-  "profile.biometria.subtitle": "Obre l'app amb Face ID / petjada (o el teu PIN)"
+  "profile.biometria.subtitle": "Obre l'app amb Face ID / petjada (o el teu PIN)",
+  "home.pagar": "PAGAR / GUANYAR PUNTS",
+  "home.sorpresa": "Sorpresa del dia",
+  "home.sorpresa.girando": "Girant…",
+  "home.sorpresa.ganado": "Has guanyat {{premio}} punts!",
+  "home.pasaporte": "Passaport: {{visitados}}/{{objetivo}} locals",
+  "home.reclamarPasaporte": "Reclamar +25 pts",
+  "home.gastoMes": "€ aquest mes",
+  "reservas.repetir": "Repetir"
 }
