@@ -7,8 +7,7 @@ import { adminRoutes } from './features/admin-app/admin.routes';
 export const routes: Routes = [
   {
     path: '',
-    redirectTo: 'login',
-    pathMatch: 'full',
+    loadComponent: () => import('./features/public/landing/landing.component').then(m => m.LandingComponent),
   },
   {
     path: 'login',
