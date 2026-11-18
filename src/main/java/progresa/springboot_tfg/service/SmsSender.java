@@ -24,9 +24,19 @@ import java.util.concurrent.ConcurrentHashMap;
  * app.sms.provider:
  *  - "twilio": envía de verdad con TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN /
  *    TWILIO_FROM_NUMBER.
- *  - vacío (desarrollo): no envía SMS; el código se registra en el log del
- *    servidor y se devuelve en la respuesta marcado como devCodigo, para
- *    poder probar el flujo completo sin coste.
+ *  - vacío (sin proveedor): no se envía ningún SMS real; el código solo se
+ *    registra en el log del servidor. Para probar el flujo completo sin
+ *    coste en local, hay que además activar explícitamente
+ *    app.sms.dev-expose-code=true (nunca en producción): solo entonces el
+ *    código vuelve en claro en la respuesta HTTP como devCodigo.
+ *
+ * Que falte el proveedor NUNCA debe, por sí solo, hacer que el código viaje
+ * en la respuesta: si Twilio no está configurado en producción (por ejemplo,
+ * porque nadie ha pagado todavía la cuenta), cualquiera podría entrar como
+ * cualquier usuario llamando a POST /api/auth/otp/send y leyendo el código
+ * de la propia respuesta — exactamente el mismo tipo de "valor por defecto
+ * inseguro cuando falta la configuración" ya corregido en AuthController
+ * (contraseña de admin, AGT-008/FID-anterior).
  */
 @Service
 public class SmsSender {
@@ -36,6 +46,9 @@ public class SmsSender {
 
     @Value("${app.sms.provider:}")
     private String provider;
+
+    @Value("${app.sms.dev-expose-code:false}")
+    private boolean devExposeCode;
 
     @Value("${twilio.account-sid:}")
     private String twilioAccountSid;
@@ -49,13 +62,14 @@ public class SmsSender {
     private final RestClient restClient = RestClient.create();
 
     /**
-     * Envía el código por SMS. Devuelve true si hubo que usar el modo
-     * desarrollo (el llamador decide si exponer el código en la respuesta).
+     * Envía el código por SMS. Devuelve true solo cuando es seguro que el
+     * llamador exponga el código en la respuesta (sin proveedor configurado
+     * Y app.sms.dev-expose-code=true, activado a propósito en local).
      */
     public boolean enviar(String telefono, String mensaje) {
         if (!"twilio".equalsIgnoreCase(provider)) {
             log.info("[SMS-DEV] Proveedor de SMS no configurado. Código para {}: {}", telefono, mensaje);
-            return true;
+            return devExposeCode;
         }
         try {
             MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
