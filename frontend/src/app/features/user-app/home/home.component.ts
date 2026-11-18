@@ -53,6 +53,8 @@ export class HomeComponent implements OnInit, OnDestroy {
   private restauranteService = inject(RestauranteService);
   private geoService = inject(GeolocationService);
   private puntosService = inject(PuntosService);
+  // Gamificación: nivel, racha y resumen del mes
+  resumen: any = null;
   private globalState = inject(GlobalStateService);
   private toastCtrl = inject(ToastController);
   private modalCtrl = inject(ModalController);
@@ -322,6 +324,10 @@ export class HomeComponent implements OnInit, OnDestroy {
 
     this.usuarioService.getUsuarioById(userId).subscribe({
       next: (data) => {
+        this.puntosService.getResumenFidelidad(userId).subscribe({
+          next: (r) => this.resumen = r,
+          error: () => this.resumen = null
+        });
         // Cargar el total global real desde la tabla por restaurante
         this.puntosService.getTotalPuntos(userId).subscribe({
           next: (res) => {

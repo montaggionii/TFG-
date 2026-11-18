@@ -649,3 +649,19 @@
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
+
+// Tarjeta de actividad: nivel, racha y resumen del mes
+.actividad-card {
+  margin-top: 12px;
+  .actividad-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .nivel-badge {
+    padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 800; letter-spacing: .4px;
+    background: #cd7f32; color: #fff;
+    &.plata { background: #9ea7b3; }
+    &.oro { background: linear-gradient(90deg, #f2b01e, #ff7a00); }
+  }
+  .racha { font-size: 13px; color: var(--ion-color-warning); font-weight: 600; }
+  .actividad-stats { display: flex; gap: 12px; text-align: center;
+    div { flex: 1; background: var(--ion-color-light); border-radius: 12px; padding: 10px 6px;
+      strong { display: block; font-size: 18px; } small { font-size: 11px; color: var(--ion-color-medium); } } }
+}

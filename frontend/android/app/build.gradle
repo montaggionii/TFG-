@@ -4,7 +4,21 @@ def releaseStoreFile = System.getenv("FIDELYFOOD_UPLOAD_STORE_FILE")
 def releaseStorePassword = System.getenv("FIDELYFOOD_UPLOAD_STORE_PASSWORD")
 def releaseKeyAlias = System.getenv("FIDELYFOOD_UPLOAD_KEY_ALIAS")
 def releaseKeyPassword = System.getenv("FIDELYFOOD_UPLOAD_KEY_PASSWORD")
+
+def localKeyProps = new Properties()
+def keyPropsFile = rootProject.file("app/key.properties")
+if (keyPropsFile.exists()) {
+    keyPropsFile.withInputStream { localKeyProps.load(it) }
+}
+
 def hasReleaseSigning = releaseStoreFile && releaseStorePassword && releaseKeyAlias && releaseKeyPassword
+if (!hasReleaseSigning && localKeyProps.storeFile && localKeyProps.storePassword) {
+    releaseStoreFile = localKeyProps.storeFile
+    releaseStorePassword = localKeyProps.storePassword
+    releaseKeyAlias = localKeyProps.keyAlias
+    releaseKeyPassword = localKeyProps.keyPassword
+    hasReleaseSigning = true
+}
 
 android {
     namespace = "com.fidelyfood.app"
@@ -14,7 +28,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "1.0"
+        versionName "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

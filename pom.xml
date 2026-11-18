@@ -92,6 +92,30 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Verificación de id_token de Google/Apple (login social, JWKS) -->
+        <dependency>
+            <groupId>com.nimbusds</groupId>
+            <artifactId>nimbus-jose-jwt</artifactId>
+            <version>9.41.1</version>
+        </dependency>
+
+        <!-- Apple Wallet: generación y firma de pases .pkpass -->
+        <dependency>
+            <groupId>de.brendamour</groupId>
+            <artifactId>jpasskit</artifactId>
+            <version>0.3.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk18on</artifactId>
+            <version>1.78.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcpkix-jdk18on</artifactId>
+            <version>1.78.1</version>
+        </dependency>
+
     </dependencies>
 
     <build>

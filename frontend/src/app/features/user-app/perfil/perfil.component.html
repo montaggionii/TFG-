@@ -33,7 +33,8 @@
         <input type="file" #fileInput accept="image/*" (change)="onFileSelected($event)" style="display: none;">
 
         <div class="user-info">
-          <p>{{ user.email }}</p>
+          <p *ngIf="!esEmailInterno(user.email)">{{ user.email }}</p>
+          <p *ngIf="esEmailInterno(user.email)">Cuenta por SMS · añade tu email en Editar perfil</p>
         </div>
       </div>
     </div>
@@ -336,6 +337,10 @@
       <button class="btn-destructive tap-effect" (click)="logout()">
         <ion-icon [icon]="icons.logOutOutline"></ion-icon>
         <span>{{ 'actions.logout' | ffTranslate }}</span>
+      </button>
+      <button class="btn-destructive tap-effect btn-delete-account" (click)="eliminarCuenta()">
+        <ion-icon [icon]="icons.trashOutline || icons.logOutOutline"></ion-icon>
+        <span>{{ 'profile.deleteAccount.button' | ffTranslate }}</span>
       </button>
     </div>
 

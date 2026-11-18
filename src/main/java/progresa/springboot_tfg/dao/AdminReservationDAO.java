@@ -8,4 +8,8 @@ import java.util.List;
 public interface AdminReservationDAO extends JpaRepository<AdminReservation, Long> {
 
     List<AdminReservation> findByDeletedFalseOrderByDateDesc();
+
+    List<AdminReservation> findByUsuarioIdAndDeletedFalseOrderByDateDesc(Long usuarioId);
+
+    List<AdminReservation> findByRestauranteIdAndDeletedFalseOrderByDateDesc(Long restauranteId);
 }

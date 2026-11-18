@@ -26,7 +26,7 @@ class AuthControllerAdminLoginTest {
     private final JwtUtil jwtUtil = mock(JwtUtil.class);
 
     private AuthController controller(String adminPassword) {
-        return new AuthController(mock(UsuarioService.class), mock(RestauranteService.class), jwtUtil, adminPassword);
+        return new AuthController(mock(UsuarioService.class), mock(RestauranteService.class), mock(progresa.springboot_tfg.service.SocialAuthService.class), mock(progresa.springboot_tfg.service.OtpAuthService.class), jwtUtil, adminPassword);
     }
 
     private LoginRequestDTO request(String email, String password) {
