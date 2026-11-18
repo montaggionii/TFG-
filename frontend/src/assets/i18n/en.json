@@ -289,5 +289,16 @@
   "home.pasaporte": "Passport: {{visitados}}/{{objetivo}} places",
   "home.reclamarPasaporte": "Claim +25 pts",
   "home.gastoMes": "€ this month",
-  "reservas.repetir": "Repeat"
+  "reservas.repetir": "Repeat",
+  "descarga.titulo": "Download the FidelyFood app",
+  "descarga.subtitulo": "Take your loyalty points everywhere",
+  "descarga.boton": "Download APK for Android",
+  "descarga.version": "Version 1.0.0 · 9.6 MB · Android 6.0+",
+  "descarga.comoInstalar": "How to install",
+  "descarga.paso1": "Download the APK file with the button above.",
+  "descarga.paso2": "Open the downloaded file and accept \"Install anyway\" or \"Allow from this source\" if your phone warns you (normal for apps outside Play Store).",
+  "descarga.paso3": "Done! Open FidelyFood and create your account.",
+  "descarga.aviso": "The APK is signed by the FidelyFood team. Google Play Protect may show an informational notice because it is not from Play Store: tap \"Install anyway\".",
+  "descarga.ios": "To install FidelyFood on iPhone: open this site in Safari and tap Share → \"Add to Home Screen\". It works like an app, nothing to download.",
+  "descarga.volver": "Go to the web app"
 }

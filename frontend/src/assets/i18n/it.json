@@ -289,5 +289,16 @@
   "home.pasaporte": "Passaporto: {{visitados}}/{{objetivo}} locali",
   "home.reclamarPasaporte": "Riscatta +25 pts",
   "home.gastoMes": "€ questo mese",
-  "reservas.repetir": "Ripeti"
+  "reservas.repetir": "Ripeti",
+  "descarga.titulo": "Scarica l'app di FidelyFood",
+  "descarga.subtitulo": "Porta i tuoi punti fedeltà sempre con te",
+  "descarga.boton": "Scarica APK per Android",
+  "descarga.version": "Versione 1.0.0 · 9,6 MB · Android 6.0 o superiore",
+  "descarga.comoInstalar": "Come installarlo",
+  "descarga.paso1": "Scarica il file APK con il pulsante qui sopra.",
+  "descarga.paso2": "Apri il file scaricato e accetta \"Installa comunque\" o \"Consenti da questa fonte\" se il telefono ti avvisa (normale fuori da Play Store).",
+  "descarga.paso3": "Fatto! Apri FidelyFood e crea il tuo account.",
+  "descarga.aviso": "L'APK è firmato dal team FidelyFood. Google Play Protect può mostrare un avviso informativo perché non viene da Play Store: tocca \"Installa comunque\".",
+  "descarga.ios": "Per installare FidelyFood su iPhone: apri questo sito in Safari e tocca Condividi → \"Aggiungi alla schermata Home\". Funziona come un'app, senza scaricare nulla.",
+  "descarga.volver": "Vai all'app web"
 }

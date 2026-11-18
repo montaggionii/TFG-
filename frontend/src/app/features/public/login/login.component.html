@@ -145,6 +145,10 @@
           ¿Quieres sumar tu negocio? <a routerLink="/register-restaurant"> REGISTRATE</a>
         </p>
 
+        <p *ngIf="!isRestaurantMode" class="register-text apk-link">
+          <a routerLink="/descargar">📥 Descargar app Android (APK)</a>
+        </p>
+
         <a class="forgot-link">¿Olvidaste tu contraseña?</a>
       </div>
 
