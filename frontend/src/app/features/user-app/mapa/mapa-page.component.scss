@@ -674,3 +674,12 @@ ion-content.map-page-content::part(scroll) {
   background: rgba(255,255,255,.9); border-radius: 999px;
   padding: 2px 7px; font-size: 13px; line-height: 1.4;
 }
+
+// Chips de tipo de comida
+.tipo-chips { display: flex; gap: 8px; margin-top: 10px; overflow-x: auto; padding-bottom: 2px;
+  .tipo-chip {
+    flex: 0 0 auto; padding: 5px 14px; border-radius: 999px; font-size: 13px; font-weight: 600;
+    background: rgba(255,255,255,.92); color: #333; border: 1px solid rgba(0,0,0,.06);
+    &.active { background: var(--ion-color-primary); color: #fff; }
+  }
+}

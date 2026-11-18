@@ -272,5 +272,10 @@
   "home.racha": "settimane di fila",
   "home.ganadosMes": "pts questo mese",
   "home.locales": "locali visitati",
-  "home.paraSiguiente": "per salire di livello"
+  "home.paraSiguiente": "per salire di livello",
+  "history.filtro.todos": "Tutti",
+  "history.filtro.ganados": "Guadagnati",
+  "history.filtro.canjeados": "Spesi",
+  "history.estaSemana": "questa settimana",
+  "qr.instrucciones": "Mostralo al cameriere per pagare e guadagnare punti"
 }

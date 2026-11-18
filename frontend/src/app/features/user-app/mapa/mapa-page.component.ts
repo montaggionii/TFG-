@@ -52,6 +52,7 @@ export class MapaPageComponent implements OnInit, OnDestroy {
   // Filtros
   radioKm: number = 10;
   searchQuery = '';
+  tipoSeleccionado = '';
   isLoading = false;
 
   // UI
@@ -174,7 +175,8 @@ export class MapaPageComponent implements OnInit, OnDestroy {
     const filtrados = this.restaurantesOriginales.filter(r => {
       const isInsideRadius = r.distanciaNum <= this.radioKm;
       const matchesSearch = !query || this.restaurantMatchesSearch(r, query);
-      return isInsideRadius && matchesSearch;
+      const matchesTipo = !this.tipoSeleccionado || (r.tipo || 'Gourmet') === this.tipoSeleccionado;
+      return isInsideRadius && matchesSearch && matchesTipo;
     });
 
     this.restaurantesFiltrados = this.ordenarPorFavoritos(filtrados);
@@ -183,6 +185,15 @@ export class MapaPageComponent implements OnInit, OnDestroy {
   }
 
   onSearchChange() {
+    this.filtrarPorDistancia();
+  }
+
+  get tiposDisponibles(): string[] {
+    return [...new Set(this.restaurantesOriginales.map(r => r.tipo || 'Gourmet'))];
+  }
+
+  cambiarTipo(tipo: string) {
+    this.tipoSeleccionado = this.tipoSeleccionado === tipo ? '' : tipo;
     this.filtrarPorDistancia();
   }
 

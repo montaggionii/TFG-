@@ -3,6 +3,7 @@ import { Router, NavigationStart, NavigationError, NavigationCancel } from '@ang
 import { IonApp, IonRouterOutlet } from '@ionic/angular/standalone';
 import { filter } from 'rxjs/operators';
 import { ThemeService } from './core/theme/theme.service';
+import { App as CapApp } from '@capacitor/app';
 
 @Component({
   selector: 'app-root',
@@ -28,5 +29,17 @@ export class AppComponent {
     });
 
     console.log('[AppComponent] Listener de navegación global activo.');
+
+    // Deep links nativos (fidelyfood:// y atajos iOS tipo fidelyfood.qr):
+    // atajos del icono de la app, enlaces compartidos y widgets.
+    CapApp.addListener('appUrlOpen', ({ url }) => {
+      const match = /(?:fidelyfood:\/\/|fidelyfood\.)([a-z]+)/.exec(url);
+      if (!match) return;
+      const destino = match[1].split('?')[0];
+      const rutasValidas = ['qr', 'reservas', 'recompensas', 'mapa', 'historial'];
+      if (rutasValidas.includes(destino)) {
+        this.router.navigate([`/u/${destino}`]);
+      }
+    });
   }
 }

@@ -272,5 +272,10 @@
   "home.racha": "setmanes seguides",
   "home.ganadosMes": "pts aquest mes",
   "home.locales": "locals visitats",
-  "home.paraSiguiente": "per pujar de nivell"
+  "home.paraSiguiente": "per pujar de nivell",
+  "history.filtro.todos": "Tots",
+  "history.filtro.ganados": "Guanyats",
+  "history.filtro.canjeados": "Canviats",
+  "history.estaSemana": "aquesta setmana",
+  "qr.instrucciones": "Ensenya'l al cambrer per pagar i sumar punts"
 }

@@ -37,6 +37,13 @@
             <ion-icon name="close-circle-outline"></ion-icon>
           </button>
         </div>
+
+        <!-- Chips de tipo de comida -->
+        <div class="tipo-chips" *ngIf="tiposDisponibles.length > 1">
+          <button type="button" *ngFor="let t of tiposDisponibles"
+                  class="tipo-chip" [class.active]="tipoSeleccionado === t"
+                  (click)="cambiarTipo(t)">{{ t }}</button>
+        </div>
       </div>
 
       <!-- Estado de la ubicación del usuario -->

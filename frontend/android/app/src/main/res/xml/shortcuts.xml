@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Atajos de pulsación larga sobre el icono de la app. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="qr"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_qr">
+        <intent android:action="android.intent.action.VIEW"
+                android:data="fidelyfood://qr"
+                android:targetPackage="com.fidelyfood.app"
+                android:targetClass="com.fidelyfood.app.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="reservas"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_reservas">
+        <intent android:action="android.intent.action.VIEW"
+                android:data="fidelyfood://reservas"
+                android:targetPackage="com.fidelyfood.app"
+                android:targetClass="com.fidelyfood.app.MainActivity" />
+    </shortcut>
+</shortcuts>

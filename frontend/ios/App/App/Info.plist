@@ -35,6 +35,33 @@
 	<string>FidelyFood accede a tus fotos solo si eliges una imagen para tu perfil.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- Atajos nativos (pulsación larga sobre el icono) + deep links fidelyfood:// -->
+	<key>UIApplicationShortcutItems</key>
+	<array>
+		<dict>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>Mi QR</string>
+			<key>UIApplicationShortcutItemType</key>
+			<string>fidelyfood.qr</string>
+		</dict>
+		<dict>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>Mis reservas</string>
+			<key>UIApplicationShortcutItemType</key>
+			<string>fidelyfood.reservas</string>
+		</dict>
+	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.fidelyfood.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>fidelyfood</string>
+			</array>
+		</dict>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

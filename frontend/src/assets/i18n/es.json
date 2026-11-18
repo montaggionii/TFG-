@@ -272,5 +272,10 @@
   "home.racha": "semanas seguidas",
   "home.ganadosMes": "pts este mes",
   "home.locales": "locales visitados",
-  "home.paraSiguiente": "para subir de nivel"
+  "home.paraSiguiente": "para subir de nivel",
+  "history.filtro.todos": "Todos",
+  "history.filtro.ganados": "Ganados",
+  "history.filtro.canjeados": "Canjeados",
+  "history.estaSemana": "esta semana",
+  "qr.instrucciones": "Enséñalo al camarero para pagar y sumar puntos"
 }

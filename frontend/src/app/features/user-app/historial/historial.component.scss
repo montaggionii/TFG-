@@ -387,3 +387,7 @@ ion-toolbar {
     }
   }
 }
+
+// Filtros y resumen semanal
+.filtro-segment { margin: 10px 0 14px; border-radius: 999px; --background: rgba(128,128,128,.08); }
+.semana-chip { font-size: 12px; font-weight: 700; color: var(--ion-color-success); }

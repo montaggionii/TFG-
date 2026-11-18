@@ -272,5 +272,10 @@
   "home.racha": "weeks in a row",
   "home.ganadosMes": "pts this month",
   "home.locales": "places visited",
-  "home.paraSiguiente": "to level up"
+  "home.paraSiguiente": "to level up",
+  "history.filtro.todos": "All",
+  "history.filtro.ganados": "Earned",
+  "history.filtro.canjeados": "Redeemed",
+  "history.estaSemana": "this week",
+  "qr.instrucciones": "Show it to the waiter to pay and earn points"
 }

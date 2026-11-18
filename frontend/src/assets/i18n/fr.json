@@ -272,5 +272,10 @@
   "home.racha": "semaines d'affilée",
   "home.ganadosMes": "pts ce mois",
   "home.locales": "lieux visités",
-  "home.paraSiguiente": "pour monter de niveau"
+  "home.paraSiguiente": "pour monter de niveau",
+  "history.filtro.todos": "Tout",
+  "history.filtro.ganados": "Gagnés",
+  "history.filtro.canjeados": "Échangés",
+  "history.estaSemana": "cette semaine",
+  "qr.instrucciones": "Montrez-le au serveur pour payer et gagner des points"
 }
