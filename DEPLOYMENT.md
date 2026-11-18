@@ -1,6 +1,27 @@
 # Despliegue — FidelyFood
 
-Estado real a fecha de hoy. **El proyecto todavía NO está desplegado en Internet** — esta sección documenta lo que ya está preparado en el código y lo que falta por hacer manualmente en las plataformas elegidas.
+Estado real a fecha de hoy: **DESPLEGADO Y VERIFICADO (18/11/2026)**.
+
+## Producción en marcha
+
+- **Frontend**: https://fidelyfoodapp.vercel.app (Vercel, plan Hobby gratis, deploy automático desde `main`)
+  - Landing pública en `/`, página de descarga del APK en `/descargar`, APK en `/apk/fidelyfood-v1.0.0.apk`
+- **Backend**: https://fidelyfood-backend-api.onrender.com (Render, plan Free, Docker, rama `main`)
+  - `GET /ping` → `pong`; registro y login verificados en producción
+- **Base de datos**: MySQL Free-1-1gb en **Aiven** (`fidelyfood-db-fidelyfood.b.aivencloud.com:19621/defaultdb`, DigitalOcean Ámsterdam)
+  - El seeder del backend creó las tablas y 3 restaurantes demo
+
+## Variables del servicio Render (Environment)
+
+`SPRING_PROFILES_ACTIVE=prod`, `APP_BASE_URL=https://fidelyfood-backend-api.onrender.com`,
+`APP_CORS_ORIGINS=https://fidelyfoodapp.vercel.app`, `APP_JWT_SECRET` (generado, secreto),
+`FIDELYFOOD_ADMIN_PASSWORD` (definida por el dueño), `DB_URL` / `DB_USERNAME=avnadmin` / `DB_PASSWORD` (Aiven).
+
+## Avisos operativos (gratis = comportamiento raro pero normal)
+
+- **Render Free**: la instancia se apaga por inactividad; la primera petición tarda ~50 s en despertar.
+- **Aiven Free**: si la cuenta entra en inactividad, el servicio se puede quedar "Powered off" → Power on en el panel (el host se conserva; basta con redeployar Render si DNS falló durante el apagón).
+- **Importante**: el plan Free de MySQL de Aiven se **retira el 21/12/2026**. Antes de esa fecha migrar la BD (p. ej. Clever Cloud MySQL, o Supabase/Neon con PostgreSQL ajustando driver y dialecto en `application.properties` + `pom.xml`).
 
 ## Arquitectura de producción elegida
 
