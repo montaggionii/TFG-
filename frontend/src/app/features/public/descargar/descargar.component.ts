@@ -15,7 +15,7 @@ import { CustomerTranslatePipe } from '../../../core/i18n/customer-translate.pip
         <h1>{{ 'descarga.titulo' | ffTranslate }}</h1>
         <p class="sub">{{ 'descarga.subtitulo' | ffTranslate }}</p>
 
-        <a class="btn-apk" href="/apk/fidelyfood-v1.0.0.apk" download>
+        <a class="btn-apk" href="/apk/fidelyfood-v1.0.1.apk" download>
           <ion-icon name="download-outline"></ion-icon>
           {{ 'descarga.boton' | ffTranslate }}
         </a>
