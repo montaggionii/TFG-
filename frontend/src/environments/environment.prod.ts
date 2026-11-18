@@ -1,6 +1,6 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://fidelyfood-backend.onrender.com',
+  apiUrl: 'https://fidelyfood-backend-api.onrender.com',
   googleMapsApiKey: 'AIzaSyCVYz7OkGpstVq0gMnAAMSDw0iHbRMSl-8',
   googleGeolocationKey: '',
   googlePlacesKey: '',
