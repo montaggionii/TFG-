@@ -53,6 +53,71 @@
         </div>
       </div>
 
+      <!-- Tarjeta de fidelidad: progreso hacia la próxima recompensa -->
+      <div class="loyalty-progress-card" *ngIf="!isRestaurantBalanceLoading && promoProxima">
+        <div class="loyalty-head">
+          <ion-icon name="gift-outline" color="primary"></ion-icon>
+          <div class="loyalty-copy">
+            <p class="goal" *ngIf="faltanPuntos > 0">{{ 'restaurant.loyalty.progressText' | ffTranslate:{ reward: promoProxima.titulo, missing: faltanPuntos } }}</p>
+            <p class="goal reached" *ngIf="faltanPuntos <= 0">{{ 'restaurant.loyalty.goalReached' | ffTranslate:{ reward: promoProxima.titulo } }}</p>
+          </div>
+        </div>
+        <div class="bar-bg" role="progressbar" [attr.aria-valuenow]="progresoPct" aria-valuemin="0" aria-valuemax="100">
+          <div class="bar-fill" [style.width.%]="progresoPct"></div>
+        </div>
+        <span class="pct">{{ progresoPct }}%</span>
+        <ion-button expand="block" class="show-qr-btn" (click)="abrirTarjetaQr()">
+          <ion-icon name="qr-code-outline" slot="start"></ion-icon>
+          {{ 'restaurant.loyalty.showQr' | ffTranslate }}
+        </ion-button>
+        <ion-button expand="block" fill="outline" (click)="abrirReserva()">
+          <ion-icon name="calendar-outline" slot="start"></ion-icon>
+          {{ 'reservas.botón' | ffTranslate }}
+        </ion-button>
+      </div>
+      <ion-modal [isOpen]="isTarjetaQrOpen" (didDismiss)="isTarjetaQrOpen = false">
+        <ng-template>
+          <div class="tarjeta-qr-wrap">
+            <h2>{{ restaurante.nombre }}</h2>
+            <p>Tu tarjeta de fidelidad</p>
+            <canvas #tarjetaQrCanvas></canvas>
+            <ion-button expand="block" fill="outline" (click)="isTarjetaQrOpen = false">Cerrar</ion-button>
+          </div>
+        </ng-template>
+      </ion-modal>
+
+      <!-- Modal de reserva de mesa -->
+      <ion-modal [isOpen]="isReservaOpen" (didDismiss)="isReservaOpen = false" class="reserva-modal">
+        <ng-template>
+          <div class="reserva-wrap">
+            <h2>{{ 'reservas.tituloModal' | ffTranslate }}</h2>
+            <p class="sub">{{ restaurante.nombre }}</p>
+
+            <ion-item>
+              <ion-label position="stacked">{{ 'reservas.fecha' | ffTranslate }}</ion-label>
+              <ion-input type="datetime-local" [(ngModel)]="reservaFecha" [min]="hoyISO"></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">{{ 'reservas.personas' | ffTranslate }}</ion-label>
+              <ion-select [(ngModel)]="reservaPersonas" interface="popover">
+                <ion-select-option *ngFor="let n of [1,2,3,4,5,6,7,8,10,12,15,20]" [value]="n">{{ n }}</ion-select-option>
+              </ion-select>
+            </ion-item>
+            <ion-item>
+              <ion-label position="stacked">{{ 'reservas.notas' | ffTranslate }}</ion-label>
+              <ion-textarea [(ngModel)]="reservaNotas" rows="2" [placeholder]="'reservas.notasPh' | ffTranslate"></ion-textarea>
+            </ion-item>
+
+            <ion-button expand="block" (click)="enviarReserva()" [disabled]="enviandoReserva || !reservaFecha">
+              {{ 'reservas.confirmar' | ffTranslate }}
+            </ion-button>
+            <ion-button expand="block" fill="clear" color="medium" (click)="isReservaOpen = false">
+              {{ 'common.cancel' | ffTranslate }}
+            </ion-button>
+          </div>
+        </ng-template>
+      </ion-modal>
+
       <div class="info-grid">
         <div class="info-item" (click)="abrirMaps()">
           <ion-icon name="location-outline" color="primary"></ion-icon>

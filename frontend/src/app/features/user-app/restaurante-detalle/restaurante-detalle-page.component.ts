@@ -1,7 +1,9 @@
 import { Component, OnInit, OnDestroy, inject, ViewChild, ElementRef, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { IonicModule, ToastController, LoadingController, AlertController, ModalController } from '@ionic/angular';
+import { ReservaService } from '../../../core/services/reserva.service';
 import { RestauranteService } from '../../../core/services/restaurante.service';
 import { PromocionService } from '../../../core/services/promocion.service';
 import { PuntosService } from '../../../core/services/puntos.service';
@@ -40,7 +42,7 @@ import {
   templateUrl: './restaurante-detalle-page.component.html',
   styleUrls: ['./restaurante-detalle-page.component.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule, CustomerTranslatePipe, SafeRestaurantImageDirective]
+  imports: [IonicModule, CommonModule, FormsModule, CustomerTranslatePipe, SafeRestaurantImageDirective]
 })
 export class RestauranteDetallePageComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
@@ -52,6 +54,7 @@ export class RestauranteDetallePageComponent implements OnInit, OnDestroy {
   private toastCtrl = inject(ToastController);
   private loadingCtrl = inject(LoadingController);
   private alertCtrl = inject(AlertController);
+  private reservaService = inject(ReservaService);
   private cdr = inject(ChangeDetectorRef);
   private ngZone = inject(NgZone);
   private modalCtrl = inject(ModalController);
@@ -85,6 +88,93 @@ export class RestauranteDetallePageComponent implements OnInit, OnDestroy {
   errorMessage: string = '';
   redemptionDate: string = '';
   previousPoints: number = 0;
+
+  // Tarjeta de fidelidad: progreso hacia la próxima recompensa
+  isTarjetaQrOpen = false;
+  @ViewChild('tarjetaQrCanvas') tarjetaQrCanvas?: ElementRef<HTMLCanvasElement>;
+
+  // Reserva de mesa
+  isReservaOpen = false;
+  reservaFecha = '';
+  reservaPersonas = 2;
+  reservaNotas = '';
+  enviandoReserva = false;
+
+  get hoyISO(): string {
+    return new Date().toISOString().slice(0, 16);
+  }
+
+  abrirReserva() {
+    const d = new Date(Date.now() + 3600_000);
+    d.setMinutes(0, 0, 0);
+    this.reservaFecha = d.toISOString().slice(0, 16);
+    this.reservaPersonas = 2;
+    this.reservaNotas = '';
+    this.isReservaOpen = true;
+  }
+
+  enviarReserva() {
+    if (!this.restauranteIdFromUrl || !this.reservaFecha || this.enviandoReserva) return;
+    this.enviandoReserva = true;
+    this.reservaService.crear({
+      restauranteId: this.restauranteIdFromUrl,
+      fecha: new Date(this.reservaFecha).toISOString(),
+      personas: this.reservaPersonas,
+      notas: this.reservaNotas || undefined
+    }).subscribe({
+      next: async () => {
+        this.enviandoReserva = false;
+        this.isReservaOpen = false;
+        const toast = await this.toastCtrl.create({
+          message: this.i18n.instant('reservas.creada'),
+          duration: 3000, color: 'success', position: 'top'
+        });
+        toast.present();
+      },
+      error: async (err) => {
+        this.enviandoReserva = false;
+        const toast = await this.toastCtrl.create({
+          message: err.error?.message || this.i18n.instant('reservas.errorCrear'),
+          duration: 3000, color: 'danger', position: 'top'
+        });
+        toast.present();
+      }
+    });
+  }
+
+  get promosCanjear(): any[] {
+    return this.promociones.filter(p => this.isRedeemPromotion(p));
+  }
+
+  get promoProxima(): any | null {
+    if (this.promosCanjear.length === 0) return null;
+    return [...this.promosCanjear].sort((a, b) =>
+      (a.puntosNecesarios || a.puntos || 0) - (b.puntosNecesarios || b.puntos || 0))[0];
+  }
+
+  get costeProxima(): number {
+    return this.promoProxima ? (this.promoProxima.puntosNecesarios || this.promoProxima.puntos || 0) : 0;
+  }
+
+  get faltanPuntos(): number {
+    return Math.max(0, this.costeProxima - (this.ptsRestaurante || 0));
+  }
+
+  get progresoPct(): number {
+    if (this.costeProxima <= 0) return 0;
+    return Math.min(100, Math.round(((this.ptsRestaurante || 0) / this.costeProxima) * 100));
+  }
+
+  abrirTarjetaQr() {
+    this.isTarjetaQrOpen = true;
+    setTimeout(() => {
+      if (this.user && this.tarjetaQrCanvas) {
+        QRCode.toCanvas(this.tarjetaQrCanvas.nativeElement, `FIDELITY_ID:${this.user.id}`, {
+          margin: 2, width: 240, color: { dark: '#050505', light: '#ffffff' }
+        }).catch(err => console.error('QR Error', err));
+      }
+    }, 300);
+  }
   
   private restauranteIdFromUrl: number | null = null;
   private userStateSub: Subscription | null = null;
