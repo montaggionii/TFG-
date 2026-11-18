@@ -74,10 +74,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/recompensas/*/canjear").hasAuthority("ROLE_USER")
                         .requestMatchers("/api/recompensas/**").hasAuthority("ROLE_ADMIN")
 
-                        .requestMatchers(HttpMethod.GET, "/api/restaurantes/**").hasAnyAuthority("ROLE_USER", "ROLE_RESTAURANT", "ROLE_ADMIN")
+                        // Ver catálogo de locales y promos: público (modo invitado).
+                        // Es información de catálogo, sin datos personales.
+                        .requestMatchers(HttpMethod.GET, "/api/restaurantes/**", "/api/promociones/**").permitAll()
                         .requestMatchers("/api/restaurantes/**").hasAuthority("ROLE_RESTAURANT")
 
-                        .requestMatchers(HttpMethod.GET, "/api/promociones/**").hasAnyAuthority("ROLE_USER", "ROLE_RESTAURANT", "ROLE_ADMIN")
                         .requestMatchers("/api/promociones/**").hasAuthority("ROLE_RESTAURANT")
                         .requestMatchers(HttpMethod.POST, "/api/canjes").hasAuthority("ROLE_USER")
                         .requestMatchers("/api/compras/**").hasAuthority("ROLE_RESTAURANT")

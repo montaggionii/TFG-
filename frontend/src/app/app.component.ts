@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { Router, NavigationStart, NavigationError, NavigationCancel } from '@angular/router';
 import { IonApp, IonRouterOutlet } from '@ionic/angular/standalone';
+import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { filter } from 'rxjs/operators';
 import { Capacitor } from '@capacitor/core';
 import { addIcons } from 'ionicons';
@@ -13,6 +14,7 @@ import { App as CapApp } from '@capacitor/app';
   selector: 'app-root',
   templateUrl: 'app.component.html',
   imports: [IonApp, IonRouterOutlet],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
 export class AppComponent {
   private router = inject(Router);

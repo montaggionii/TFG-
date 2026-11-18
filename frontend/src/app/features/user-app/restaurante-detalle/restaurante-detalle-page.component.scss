@@ -1299,3 +1299,13 @@
     small { color: var(--ion-color-medium); } }
   .mi-puesto { margin: 8px 0 0; font-size: 13px; color: var(--app-text-secondary); }
 }
+
+// CTA de registro para invitados
+.guest-cta {
+  margin: 12px 0; padding: 16px; border-radius: 16px; text-align: center;
+  background: linear-gradient(135deg, rgba(255,122,0,.10), rgba(255,197,51,.10));
+  border: 1px solid rgba(255,122,0,.25);
+  p { margin: 0 0 4px; font-weight: 700; }
+  .muted { font-size: 13px; font-weight: 400; color: var(--app-text-secondary); }
+  ion-button { margin-top: 10px; }
+}

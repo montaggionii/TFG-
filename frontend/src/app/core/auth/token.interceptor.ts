@@ -61,6 +61,12 @@ export const tokenInterceptor: HttpInterceptorFn = (req, next) => {
            return throwError(() => error);
         }
 
+        // Modo invitado: sin token una petición de datos personales da 401;
+        // no hay sesión que cerrar ni a dónde redirigir.
+        if (!localStorage.getItem('token')) {
+          return throwError(() => error);
+        }
+
         // Un 401 solo significa "sesión inválida" si el token que teníamos
         // realmente ha caducado o ya no existe. Un endpoint que rechaza este
         // rol por permisos (p.ej. /api/recompensas solo para ROLE_USER
@@ -74,11 +80,14 @@ export const tokenInterceptor: HttpInterceptorFn = (req, next) => {
 
       if (error.status === 403) {
         console.error(`[AUTH ERROR] 403 detectado en ${req.url}`);
-        const role = authService.getRoleSync();
-        if (role === 'ROLE_ADMIN') router.navigate(['/admin/dashboard']);
-        else if (role === 'ROLE_RESTAURANT') router.navigate(['/r/dashboard']);
-        else if (role === 'ROLE_USER') router.navigate(['/u/home']);
-        else router.navigate(['/login']);
+        // Invitado: 403 solo significa "esto requiere cuenta", sin redirección.
+        if (localStorage.getItem('token')) {
+          const role = authService.getRoleSync();
+          if (role === 'ROLE_ADMIN') router.navigate(['/admin/dashboard']);
+          else if (role === 'ROLE_RESTAURANT') router.navigate(['/r/dashboard']);
+          else if (role === 'ROLE_USER') router.navigate(['/u/home']);
+          else router.navigate(['/login']);
+        }
       }
       return throwError(() => error);
     })

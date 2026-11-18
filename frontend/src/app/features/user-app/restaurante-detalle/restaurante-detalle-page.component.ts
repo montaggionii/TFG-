@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, inject, ViewChild, ElementRef, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { IonicModule, ToastController, LoadingController, AlertController, ModalController } from '@ionic/angular';
 import { ReservaService } from '../../../core/services/reserva.service';
 import { FavoritoService } from '../../../core/services/favorito.service';
@@ -45,7 +45,7 @@ import {
   templateUrl: './restaurante-detalle-page.component.html',
   styleUrls: ['./restaurante-detalle-page.component.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule, FormsModule, CustomerTranslatePipe, SafeRestaurantImageDirective]
+  imports: [IonicModule, CommonModule, FormsModule, RouterLink, CustomerTranslatePipe, SafeRestaurantImageDirective]
 })
 export class RestauranteDetallePageComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
@@ -99,6 +99,7 @@ export class RestauranteDetallePageComponent implements OnInit, OnDestroy {
 
   esFavorito = false;
   topFans: any = null;
+  get esInvitado(): boolean { return !this.user?.id; }
   cargandoFavorito = false;
 
   cargarTopFans() {
@@ -252,7 +253,7 @@ export class RestauranteDetallePageComponent implements OnInit, OnDestroy {
       }
       if (this.restauranteIdFromUrl) {
         this.ngOnInitFavorito();
-        this.cargarTopFans();
+        if (this.user?.id) this.cargarTopFans(); // top-fans requiere sesión
       }
     });
     // Atajo: "repetir reserva" desde /u/reservas → modal con el nº de personas
