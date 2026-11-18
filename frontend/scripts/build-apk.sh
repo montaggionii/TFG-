@@ -26,6 +26,10 @@ echo "==> Copiado a $DEST ($(du -h "$DEST" | cut -f1 | sed 's/ //g'))"
 sed -i '' "s|/apk/fidelyfood-v[0-9.]*\\.apk|/apk/fidelyfood-v$VERSION.apk|g" \
   src/app/features/public/descargar/descargar.component.ts
 
+# version.json: la web publica la versión mínima requerida; la app nativa
+# se bloquea y pide actualizar si la instalada es anterior (obligatoria).
+printf '{\n  "latestVersion": "%s",\n  "minVersion": "%s",\n  "web": "https://fidelyfoodapp.vercel.app/descargar"\n}\n' "$VERSION" "$VERSION" > public/apk/version.json
+
 # Muestra la firma para confirmar que es el APK correcto
 $ANDROID_HOME/build-tools/36.0.0/apksigner verify --print-certs "$APK" | head -1
 echo "==> Listo. Recuerda: git add public/apk y commit."

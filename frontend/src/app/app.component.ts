@@ -23,6 +23,9 @@ export class AppComponent {
   /** Bloqueo biométrico opcional (solo app nativa, lo activa el usuario en Perfil). */
   bloqueado = signal(false);
 
+  /** Actualización obligatoria: versión instalada < minVersion de la web. */
+  actualizacionObligatoria = signal(false);
+
   constructor() {
     addIcons({ fingerPrintOutline });
     // RASTREO GLOBAL DE REDIRECCIONES - DEBUGGING EXTREMO
@@ -45,6 +48,11 @@ export class AppComponent {
       void this.autenticarAlArrancar();
     }
 
+    // Comprobación de actualización obligatoria (solo app nativa).
+    if (Capacitor.isNativePlatform()) {
+      void this.comprobarActualizacion();
+    }
+
     // Deep links nativos (fidelyfood:// y atajos iOS tipo fidelyfood.qr):
     // atajos del icono, enlaces compartidos, etiquetas NFC en las mesas.
     CapApp.addListener('appUrlOpen', ({ url }) => {
@@ -60,6 +68,40 @@ export class AppComponent {
         this.router.navigate([`/u/${destino}`]);
       }
     });
+  }
+
+  /**
+   * Lee version.json de la web y bloquea la app si la instalada es
+   * anterior a minVersion (actualización obligatoria).
+   */
+  private async comprobarActualizacion(): Promise<void> {
+    try {
+      const res = await fetch('https://fidelyfoodapp.vercel.app/apk/version.json', { cache: 'no-store' });
+      if (!res.ok) return;
+      const info = await res.json();
+      const instalada = (await CapApp.getInfo()).version; // versionName
+      if (this.compararVersiones(instalada, String(info.minVersion)) < 0) {
+        this.actualizacionObligatoria.set(true);
+      }
+    } catch {
+      // Sin red o web caída: no bloqueamos por un fallo de comprobación
+    }
+  }
+
+  /** -1 si a < b, 0 si iguales, 1 si a > b. */
+  private compararVersiones(a: string, b: string): number {
+    const pa = a.split('.').map(n => parseInt(n, 10) || 0);
+    const pb = b.split('.').map(n => parseInt(n, 10) || 0);
+    for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+      const d = (pa[i] ?? 0) - (pb[i] ?? 0);
+      if (d !== 0) return d;
+    }
+    return 0;
+  }
+
+  /** Abre la página de descarga en el navegador del sistema. */
+  irADescargar(): void {
+    window.open('https://fidelyfoodapp.vercel.app/descargar', '_system');
   }
 
   private async autenticarAlArrancar(): Promise<void> {
