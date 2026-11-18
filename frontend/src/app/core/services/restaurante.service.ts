@@ -24,6 +24,11 @@ export class RestauranteService {
     return this.http.get<any>(`${this.apiUrl}/${id}/stats?t=${t}`);
   }
 
+  getInsights(id: number): Observable<any> {
+    const t = new Date().getTime();
+    return this.http.get<any>(`${this.apiUrl}/${id}/insights?t=${t}`);
+  }
+
   getAdvancedStats(id: number): Observable<any> {
     const t = new Date().getTime();
     return this.http.get<any>(`${this.apiUrl}/${id}/stats-avanzadas?t=${t}`);

@@ -277,5 +277,7 @@
   "history.filtro.ganados": "Gagnés",
   "history.filtro.canjeados": "Échangés",
   "history.estaSemana": "cette semaine",
-  "qr.instrucciones": "Montrez-le au serveur pour payer et gagner des points"
+  "qr.instrucciones": "Montrez-le au serveur pour payer et gagner des points",
+  "restaurant.share.label": "Partager",
+  "restaurant.share.value": "Invitez vos amis dans ce lieu"
 }

@@ -277,5 +277,7 @@
   "history.filtro.ganados": "Earned",
   "history.filtro.canjeados": "Redeemed",
   "history.estaSemana": "this week",
-  "qr.instrucciones": "Show it to the waiter to pay and earn points"
+  "qr.instrucciones": "Show it to the waiter to pay and earn points",
+  "restaurant.share.label": "Share",
+  "restaurant.share.value": "Invite your friends to this place"
 }

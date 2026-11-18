@@ -277,5 +277,7 @@
   "history.filtro.ganados": "Guanyats",
   "history.filtro.canjeados": "Canviats",
   "history.estaSemana": "aquesta setmana",
-  "qr.instrucciones": "Ensenya'l al cambrer per pagar i sumar punts"
+  "qr.instrucciones": "Ensenya'l al cambrer per pagar i sumar punts",
+  "restaurant.share.label": "Compartir",
+  "restaurant.share.value": "Convida els teus amics a aquest local"
 }

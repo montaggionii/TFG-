@@ -611,6 +611,19 @@ export class RestauranteDetallePageComponent implements OnInit, OnDestroy {
     }
   }
 
+  async compartir() {
+    const url = `${location.origin}/u/restaurante/${this.restauranteIdFromUrl}`;
+    const nombre = this.restaurante?.nombre || 'FidelyFood';
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: nombre, text: this.restaurante?.descripcion || 'Mira este restaurante en FidelyFood', url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        this.mostrarToast('Enlace copiado', 'success');
+      }
+    } catch { /* el usuario cerró el diálogo */ }
+  }
+
   abrirMaps() {
     if (!this.restaurante?.direccion) return;
     window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(this.restaurante.direccion)}`, '_blank');

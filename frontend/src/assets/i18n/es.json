@@ -277,5 +277,7 @@
   "history.filtro.ganados": "Ganados",
   "history.filtro.canjeados": "Canjeados",
   "history.estaSemana": "esta semana",
-  "qr.instrucciones": "Enséñalo al camarero para pagar y sumar puntos"
+  "qr.instrucciones": "Enséñalo al camarero para pagar y sumar puntos",
+  "restaurant.share.label": "Compartir",
+  "restaurant.share.value": "Invita a tus amigos a este local"
 }

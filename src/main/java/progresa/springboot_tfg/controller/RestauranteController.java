@@ -20,6 +20,7 @@ import progresa.springboot_tfg.dto.RestauranteAdvancedStatsDTO;
 import progresa.springboot_tfg.dto.RestauranteDTO;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/restaurantes")
@@ -28,9 +29,12 @@ import java.util.List;
 public class RestauranteController {
 
     private final RestauranteService restauranteService;
+    private final progresa.springboot_tfg.service.InsightRestauranteService insightRestauranteService;
 
-    public RestauranteController(RestauranteService restauranteService) {
+    public RestauranteController(RestauranteService restauranteService,
+                                 progresa.springboot_tfg.service.InsightRestauranteService insightRestauranteService) {
         this.restauranteService = restauranteService;
+        this.insightRestauranteService = insightRestauranteService;
     }
 
     @Operation(
@@ -79,6 +83,19 @@ public class RestauranteController {
             @PathVariable Long id,
             Authentication authentication) {
         return ResponseEntity.ok(restauranteService.obtenerStats(id, SecurityUtils.email(authentication)));
+    }
+
+    @Operation(
+            summary = "Insights de fidelidad del restaurante",
+            description = "Clientes inactivos (≥3 semanas sin volver), recurrentes, ganados/canjeados del mes, " +
+                    "promo más canjeada y una sugerencia de acción"
+    )
+    @GetMapping("/{id}/insights")
+    public ResponseEntity<Map<String, Object>> obtenerInsights(
+            @PathVariable Long id,
+            Authentication authentication) {
+        restauranteService.obtenerStats(id, SecurityUtils.email(authentication)); // ownership + rol
+        return ResponseEntity.ok(insightRestauranteService.insights(id));
     }
 
     @Operation(

@@ -132,6 +132,15 @@
           <ion-icon name="navigate-outline" class="nav-icon" color="primary"></ion-icon>
         </div>
 
+        <div class="info-item" (click)="compartir()">
+          <ion-icon name="share-social-outline" color="primary"></ion-icon>
+          <div class="text">
+            <p class="label">{{ 'restaurant.share.label' | ffTranslate }}</p>
+            <p class="value">{{ 'restaurant.share.value' | ffTranslate }}</p>
+          </div>
+          <ion-icon name="chevron-forward-outline" class="nav-icon"></ion-icon>
+        </div>
+
         <div class="info-item" *ngIf="restaurante.telefono">
           <ion-icon name="call-outline" color="success"></ion-icon>
           <div class="text">
