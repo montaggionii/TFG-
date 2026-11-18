@@ -142,6 +142,13 @@ public class SocialAuthService {
         if (email == null || email.isBlank()) {
             throw new SecurityException("El proveedor no devolvió un email verificable");
         }
+        if (!emailVerificado(claims)) {
+            // Sin esta comprobación, cualquiera que controle una cuenta de Google/Apple con un
+            // email_verified=false que coincida con el email de un cliente ya existente en
+            // FidelyFood entraría directamente en SU cuenta (puntos, historial, etc.) solo con
+            // "confirmar" ese email sin que el proveedor lo haya verificado de verdad.
+            throw new SecurityException("El proveedor no ha verificado este email");
+        }
         String emailFinal = email.trim().toLowerCase();
 
         // Apple entrega el nombre fuera del id_token y solo en el primer
@@ -178,6 +185,23 @@ public class SocialAuthService {
                 usuario.getPuntos(),
                 token
         );
+    }
+
+    /**
+     * Google manda {@code email_verified} como booleano JSON; algunas versiones del SDK de
+     * Apple lo mandan como el string "true"/"false". Cualquier otra forma (o ausencia del
+     * claim) se trata como no verificado: mejor rechazar un login legítimo por error de
+     * formato que confiar un email sin que el proveedor lo garantice.
+     */
+    private static boolean emailVerificado(JWTClaimsSet claims) {
+        Object valor = claims.getClaim("email_verified");
+        if (valor instanceof Boolean b) {
+            return b;
+        }
+        if (valor instanceof String s) {
+            return "true".equalsIgnoreCase(s);
+        }
+        return false;
     }
 
     private String hashAleatorio() {

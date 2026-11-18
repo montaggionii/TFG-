@@ -67,36 +67,33 @@
 - [x] **`CompraController` sin ningún test propio (AGT-035)** — 2026-10-30: rama ya al día con `main` (0 commits de diferencia); sin PR nuevo que auditar. Repasado el backlog `AGT-xxx` completo, mismo resultado que AGT-034: solo AGT-007/AGT-016 en `TODO`, ambas bloqueadas por decisión humana. Se repitió el tipo de auditoría ya usado en AGT-017/019/020/021/033 (controladores sin test propio): de los que quedaban, se eligió `CompraController` por ser el más pequeño (un único endpoint, `POST /api/compras`). Añadido `CompraControllerTest` (4 tests): fija que `registrarCompra` exige `ROLE_RESTAURANT` (comprobado en el controlador, no en `CompraService`) y que el email que recibe puntos es siempre el autenticado, nunca uno del body. **Verificado en este entorno**: `mvn test -Dtest=CompraControllerTest` → 4/4; `mvn test` completo → 155 tests, 0 failures, 1 error (el mismo de siempre, `contextLoads`, requiere MySQL real), sin regresión en los 151 preexistentes. No se tocó frontend/`agent`/`access-center`. Quedan sin cobertura de controlador: `RestauranteController`, `UsuarioController`, `MovimientoPuntosController` y el resto de `AdminController` (negocios/clientes/borrado) — para una futura sesión. Detalle completo en `AGENT_TASKS.md` (AGT-035, estado `REVIEW`).
 - [x] **`UsuarioController` sin ningún test propio (AGT-036)** — 2026-10-30, sesión concurrente a AGT-035: `identificarQr` comprueba `ROLE_RESTAURANT` en el controlador (defensa en profundidad, `SecurityConfig` ya exige el rol a nivel de filtro), no en `UsuarioService`. Añadido `UsuarioControllerTest` (8 tests). `RestauranteController`/`MovimientoPuntosController` se reconfirmaron como pura delegación en su servicio, sin hallazgo. Detalle completo en `AGENT_TASKS.md` (AGT-036, estado `REVIEW`).
 - [x] **`PUT /api/restaurantes/{id}` podía cambiar la contraseña sin pedir la actual (AGT-038)** — 2026-10-31: al releer `RestauranteService.java` línea por línea (en vez de solo confirmar, como AGT-033/036, que el controlador delega su autorización en el servicio), se encontró el mismo patrón ya corregido en `UsuarioService` por AGT-032: `actualizar()` aplicaba `actualizado.getPassword()` del cuerpo sin pedir la contraseña actual — y, a diferencia de `UsuarioController`, `RestauranteController` no tiene ningún endpoint dedicado de cambio de contraseña que sustituya esa vía, así que era el único camino posible. Corregido quitando esa rama del método (ya no lee `password` del cuerpo en absoluto); confirmado que el frontend real (`SettingsComponent`) nunca envía ese campo. Test nuevo `actualizarNuncaCambiaLaPasswordAunqueElCuerpoIncluyaUnaNueva` en `RestauranteServiceTest`. Renumerada de AGT-037 a AGT-038 al fusionar con una sesión concurrente que ya había usado ese número para un hallazgo distinto (`follow-redirects`, ver sección "Pendiente" más abajo). **Verificado**: `mvn test -Dtest=RestauranteServiceTest` → 17/17; `mvn test` completo → 164 tests, 1 error (el mismo de siempre, `contextLoads`, sin MySQL real), 0 regresiones. Detalle completo en `AGENT_TASKS.md` (AGT-038, estado `REVIEW`).
-- [x] **Bypass completo de autenticación en el login SMS/OTP si Twilio no está configurado (AGT-052)** — 2026-11-18: `agent/fidelyfood-autonomous` estaba 19 commits por detrás de `main` (le faltaban login social Google/Apple, acceso por SMS/OTP, canje por QR temporal, reservas y Apple Wallet, fusionados directamente a `main`); `git merge origin/main` con 2 conflictos reales (una sección añadida solo en `main` en `perfil.component.ts`, y dos bloques de tests nuevos insertados en el mismo punto de `UsuarioServiceTest.java` por ambas ramas) — resueltos conservando el contenido de las dos partes, sin descartar nada. El merge rompió además la compilación de `CanjeControllerTest.java` (`CanjeController` cambió de constructor en `main`); corregido actualizando el test. Auditado el código nuevo de login (nunca revisado hasta ahora, mismo criterio que FID-017/018/022): `SocialAuthService` (Google/Apple) verifica de verdad la firma RS256 contra el JWKS del proveedor, el emisor y la audiencia — sólido. El login por SMS/OTP no: `SmsSender.enviar()` decidía si el código viajaba en claro en la respuesta de `POST /api/auth/otp/send` (endpoint público, parte del propio flujo de login) mirando solo si `app.sms.provider == "twilio"`. `render.yaml` no define ninguna variable de Twilio, así que si Render no las tiene puestas a mano en el dashboard (no se puede comprobar desde este sandbox), producción ejecuta hoy la rama "sin proveedor" — cualquiera, sin autenticarse, podía pedir un código para el teléfono de cualquier persona, leerlo en su propia respuesta y entrar con el JWT de esa cuenta (o crear una nueva). Mismo patrón que la contraseña de admin por defecto ya corregida (AGT-008). Corregido con una propiedad explícita nueva (`app.sms.dev-expose-code`, por defecto `false`, independiente de si hay proveedor configurado): solo expone el código cuando no hay proveedor **y** esta propiedad se activó a propósito en local. `SmsSenderTest` nuevo (3 tests). **Verificado**: `mvn test -Dtest=SmsSenderTest,OtpServiceTest` → 8/8; `mvn test` completo tras el merge → 239/240 (mismo único fallo de siempre, `contextLoads`, sin MySQL real). Detalle completo en `AGENT_TASKS.md` (AGT-052, estado `REVIEW`) y `SECURITY.md` (#30).
+- [x] **Login social no comprobaba `email_verified`: toma de cuenta ajena (AGT-052)** — 2026-11-18, sesión concurrente a la de abajo: `SocialAuthService.provisionar()` confiaba el claim `email` del id_token sin comprobar el claim OIDC `email_verified`, permitiendo tomar la cuenta de otro cliente por email con una cuenta de Google/Apple cuyo email no está realmente verificado — sin evidencia de explotación (login social sigue deshabilitado en producción: `GOOGLE_CLIENT_ID`/`APPLE_CLIENT_IDS` sin configurar). Corregido rechazando (`SecurityException`, antes de tocar `usuarioDAO`) cualquier `email_verified` que no sea exactamente `true`. 3 tests nuevos en `SocialAuthServiceTest` (8/8). Detalle completo en `AGENT_TASKS.md` (AGT-052, estado `REVIEW`) y `SECURITY.md` (#30).
+- [x] **Bypass completo de autenticación en el login SMS/OTP si Twilio no está configurado (AGT-053, renumerada desde AGT-052 al chocar con la sesión concurrente de arriba)** — 2026-11-18: `agent/fidelyfood-autonomous` estaba 19 commits por detrás de `main` (le faltaban login social Google/Apple, acceso por SMS/OTP, canje por QR temporal, reservas y Apple Wallet, fusionados directamente a `main`); `git merge origin/main` con 2 conflictos reales (una sección añadida solo en `main` en `perfil.component.ts`, y dos bloques de tests nuevos insertados en el mismo punto de `UsuarioServiceTest.java` por ambas ramas) — resueltos conservando el contenido de las dos partes, sin descartar nada. El merge rompió además la compilación de `CanjeControllerTest.java` (`CanjeController` cambió de constructor en `main`); corregido actualizando el test. Auditado el código nuevo de login (nunca revisado hasta ahora, mismo criterio que FID-017/018/022): `SocialAuthService` (Google/Apple) verifica de verdad la firma RS256 contra el JWKS del proveedor, el emisor y la audiencia — sólido (el hallazgo de `email_verified` de arriba lo encontró la sesión concurrente, no esta). El login por SMS/OTP no: `SmsSender.enviar()` decidía si el código viajaba en claro en la respuesta de `POST /api/auth/otp/send` (endpoint público, parte del propio flujo de login) mirando solo si `app.sms.provider == "twilio"`. `render.yaml` no define ninguna variable de Twilio, así que si Render no las tiene puestas a mano en el dashboard (no se puede comprobar desde este sandbox), producción ejecuta hoy la rama "sin proveedor" — cualquiera, sin autenticarse, podía pedir un código para el teléfono de cualquier persona, leerlo en su propia respuesta y entrar con el JWT de esa cuenta (o crear una nueva). Mismo patrón que la contraseña de admin por defecto ya corregida (AGT-008). Corregido con una propiedad explícita nueva (`app.sms.dev-expose-code`, por defecto `false`, independiente de si hay proveedor configurado): solo expone el código cuando no hay proveedor **y** esta propiedad se activó a propósito en local. `SmsSenderTest` nuevo (3 tests). **Verificado**: `mvn test -Dtest=SmsSenderTest,OtpServiceTest` → 8/8; `mvn test` completo tras el merge de ambas sesiones → 239/240 (mismo único fallo de siempre, `contextLoads`, sin MySQL real). Detalle completo en `AGENT_TASKS.md` (AGT-053, estado `REVIEW`) y `SECURITY.md` (#31).
 
 ## Pendiente (por prioridad) — actualizado 2026-11-18
 
-**⚠️ Aviso de esta sesión (2026-11-18): el PR #51 sigue sin revisión humana, y acaba de crecer con una vulnerabilidad crítica más.**
-`main` recibió varias features grandes directamente (sin pasar por este PR): login social, SMS/OTP, canje
-por QR, reservas, Apple Wallet. Al fusionarlas en esta rama se encontró AGT-052: con Twilio sin configurar
-(el estado de `render.yaml`), el login por SMS devolvía el código OTP real en la propia respuesta HTTP —
-bypass completo de autenticación, explotable ahora mismo si nadie ha añadido las credenciales de Twilio a
-mano en el dashboard de Render. Ya corregido en esta rama, igual que el resto de vulnerabilidades reales
-que siguen esperando desde hace más de un mes. **Recomendación fuerte**: revisar y fusionar el PR #51 ya,
-no esperar a que se acumule más.
+**🚨 Aviso de esta sesión (2026-11-18): el PR #51 sigue sin revisarse (más de un mes abierto) y ahora lleva dos vulnerabilidades reales de seguridad más, sin fusionar.**
+El PR #51 (`agent/fidelyfood-autonomous` → `main`) sigue abierto desde 2026-10-08. Desde el último aviso
+(2026-11-16), `main` recibió un conjunto grande de features nuevas directamente (sin pasar por este PR):
+login por SMS/OTP, login social Google/Apple, Apple Wallet, reservas de mesa, canje con QR temporal,
+gamificación. Dos ejecuciones concurrentes de esta misma rutina fusionaron esa historia y la auditaron
+por primera vez hoy, cada una con un hallazgo real distinto en el mismo código de login, nunca revisado
+hasta ahora:
+- **AGT-052**: `SocialAuthService` (login "Continuar con Google/Apple") nunca comprobaba el claim OIDC
+  `email_verified` antes de loguear en una cuenta ya existente por email — permite tomar la cuenta de
+  otro cliente sin su contraseña. Sin evidencia de explotación: el login social sigue deshabilitado en
+  producción mientras `GOOGLE_CLIENT_ID`/`APPLE_CLIENT_IDS` no estén configurados.
+- **AGT-053**: con Twilio sin configurar (el estado de `render.yaml`), el login por SMS devolvía el
+  código OTP real en la propia respuesta HTTP de `POST /api/auth/otp/send` — bypass completo de
+  autenticación, explotable ahora mismo si nadie ha añadido las credenciales de Twilio a mano en el
+  dashboard de Render.
 
-**Aviso de la sesión anterior (2026-11-16): el PR #51 sigue necesitando revisión humana — sin cambios desde el aviso de 2026-11-09.**
-El PR #51 (`agent/fidelyfood-autonomous` → `main`) lleva abierto desde 2026-10-08 (más de un mes) y ha
-acumulado 41 tareas (AGT-011 a AGT-051, 61 commits, ~6000 líneas) sin que nadie lo revise ni fusione
-todavía — CI en verde (`mergeable_state: clean`), sin conflictos con `main` (confirmado que el único
-merge humano desde entonces, PR #52, ya estaba integrado en esta rama). Entre esas 41 tareas hay
-**vulnerabilidades de seguridad reales ya corregidas en el PR pero todavía activas en producción**
-mientras siga sin fusionarse: mass assignment que permitía a un cliente autoasignarse puntos de
-fidelidad arbitrarios (AGT-028), cambio de contraseña de usuario/restaurante sin pedir la contraseña
-actual (AGT-032/AGT-038), CSRF real en `POST /api/jarvis/run` del access-center (AGT-015), fuga del
-token XSRF en el `HttpClient` de Angular (AGT-023) y una vulnerabilidad crítica en las dependencias
-nativas de Capacitor (AGT-011). Esta sesión solo añadió una tarea nueva y acotada (AGT-051: 2 avisos
-moderados nuevos de `hono`/`@hono/node-server` en `agent/`, corregidos con `npm audit fix` sin tocar
-`package.json`) porque apareció entre la última comprobación (2026-11-03/08) y hoy — no se ha reabierto
-el resto del backlog ni se ha intentado abarcar nada más grande: seguir ampliando un PR de este tamaño
-sin que ninguna de las 50 tareas ya en `REVIEW` se cierre no ayuda. Lo que hace falta ahora es que una
-persona revise y fusione (o rechace) el PR #51, no más código. Las únicas dos tareas en `TODO` real
-(AGT-007, AGT-016) siguen bloqueadas por la misma decisión humana de siempre, sin cambios.
+Ambas ya corregidas en esta rama, igual que el resto de vulnerabilidades reales que siguen esperando
+desde hace más de un mes: mass assignment de puntos (AGT-028), cambio de contraseña sin pedir la actual
+(AGT-032/AGT-038), CSRF en `POST /api/jarvis/run` (AGT-015), fuga del token XSRF (AGT-023) y la
+vulnerabilidad crítica de Capacitor (AGT-011). El PR ya acumula 43 tareas. Lo que hace falta ahora es que
+una persona lo revise y fusione (o rechace), no más código. Las dos tareas en `TODO` real (AGT-007,
+AGT-016) siguen bloqueadas por la misma decisión humana de siempre, sin cambios.
 
 **Fuente de verdad del backlog técnico: el bloque `AGT-xxx` de `AGENT_TASKS.md`** (estado, dependencias,
 criterios de aceptación, verificación real y lo que falta por verificar de cada tarea). Esta lista solo
@@ -128,13 +125,18 @@ estado en `AGENT_TASKS.md`, nunca aquí.
   regresión. `access-center/` sigue en 0; `frontend/` sigue con las mismas 7 moderadas de siempre,
   bloqueadas por la misma decisión humana de Angular 21/22. Detalle completo en `AGENT_TASKS.md`
   (AGT-051) y `SECURITY.md` (#29).
-- **AGT-052** (P0, security) · `REVIEW` desde 2026-11-18 — **la más grave de todas las tareas en `REVIEW`
-  de este PR**: bypass completo de autenticación en el login por SMS/OTP si Twilio no está configurado
-  (cualquiera podía entrar como cualquier teléfono, o crear una cuenta nueva, leyendo el código de su
-  propia respuesta en `POST /api/auth/otp/send`). Encontrada al auditar el login social/SMS/OTP recién
-  fusionado a `main` (nunca revisado hasta ahora). Corregida con una propiedad explícita nueva que separa
-  "no hay proveedor de SMS" de "es seguro exponer el código" — por defecto, segura. Ver `AGENT_TASKS.md`
-  (AGT-052) y `SECURITY.md` (#30).
+- **AGT-052** (P0, security) · `REVIEW` desde 2026-11-18 — login social ("Continuar con Google/Apple")
+  nunca comprobaba el claim OIDC `email_verified` antes de loguear en una cuenta ya existente por email,
+  permitiendo tomar la cuenta de otro cliente sin su contraseña. Encontrada por una sesión concurrente de
+  esta rutina al auditar el mismo código de login nuevo. Sin evidencia de explotación (login social
+  deshabilitado en producción sin `GOOGLE_CLIENT_ID`/`APPLE_CLIENT_IDS`). Ver `AGENT_TASKS.md` (AGT-052) y
+  `SECURITY.md` (#30).
+- **AGT-053** (P0, security) · `REVIEW` desde 2026-11-18 — **la segunda vulnerabilidad real encontrada en
+  el mismo código de login nuevo**: bypass completo de autenticación en el login por SMS/OTP si Twilio no
+  está configurado (cualquiera podía entrar como cualquier teléfono, o crear una cuenta nueva, leyendo el
+  código de su propia respuesta en `POST /api/auth/otp/send`). Corregida con una propiedad explícita nueva
+  que separa "no hay proveedor de SMS" de "es seguro exponer el código" — por defecto, segura. Ver
+  `AGENT_TASKS.md` (AGT-053) y `SECURITY.md` (#31).
 - **AGT-034** (P2, maintenance) · `REVIEW` desde 2026-10-29 — `npm audit` en `frontend/` bajó de 6 a 5
   vulnerabilidades (0 altas, antes 2): `webpack-dev-middleware` (path-traversal) ya tenía parche dentro de
   su propia serie 7.x, sin exigir el salto de major a Angular 21/22 que la bloqueaba desde AGT-023/025/026.
