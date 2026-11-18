@@ -279,5 +279,7 @@
   "history.estaSemana": "questa settimana",
   "qr.instrucciones": "Mostralo al cameriere per pagare e guadagnare punti",
   "restaurant.share.label": "Condividi",
-  "restaurant.share.value": "Invita i tuoi amici in questo locale"
+  "restaurant.share.value": "Invita i tuoi amici in questo locale",
+  "profile.biometria.title": "Sblocco biometrico",
+  "profile.biometria.subtitle": "Apri l'app con Face ID / impronta (o il tuo PIN)"
 }

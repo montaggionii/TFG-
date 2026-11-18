@@ -173,6 +173,13 @@
           </div>
           <div class="modal-body">
             <ion-list lines="full">
+              <ion-item lines="full" *ngIf="biometriaDisponible">
+                <ion-label>
+                  <h2>{{ 'profile.biometria.title' | ffTranslate }}</h2>
+                  <p>{{ 'profile.biometria.subtitle' | ffTranslate }}</p>
+                </ion-label>
+                <ion-toggle [(ngModel)]="biometriaActiva" (ionChange)="guardarBiometria()" color="primary"></ion-toggle>
+              </ion-item>
               <ion-item lines="full">
                 <ion-label>
                   <h2>{{ 'profile.notifications.push.title' | ffTranslate }}</h2>

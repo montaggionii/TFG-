@@ -279,5 +279,7 @@
   "history.estaSemana": "aquesta setmana",
   "qr.instrucciones": "Ensenya'l al cambrer per pagar i sumar punts",
   "restaurant.share.label": "Compartir",
-  "restaurant.share.value": "Convida els teus amics a aquest local"
+  "restaurant.share.value": "Convida els teus amics a aquest local",
+  "profile.biometria.title": "Desbloqueig biomètric",
+  "profile.biometria.subtitle": "Obre l'app amb Face ID / petjada (o el teu PIN)"
 }

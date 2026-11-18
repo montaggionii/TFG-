@@ -635,3 +635,42 @@ body.scanner-active {
     background: #FFFFFF;
   }
 }
+
+/* ============ ACCESIBILIDAD ============ */
+/* Respeto a la preferencia de reducir movimiento (vestibular, iOS/Android/OS) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* En pantallas táctiles, quitar estados hover falsos */
+@media (hover: none) {
+  .hover-lift:hover { transform: none !important; box-shadow: none !important; }
+}
+
+/* Foco visible por teclado (navegación con teclado / switch access) */
+:focus-visible {
+  outline: 3px solid var(--app-focus-ring, #FFC533);
+  outline-offset: 2px;
+}
+
+/* Escala de texto del sistema (Dynamic Type / font size de Android) */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Bloqueo biométrico al arrancar */
+.app-lock {
+  position: fixed; inset: 0; z-index: 99999;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  background: linear-gradient(160deg, #1c1c1e, #3a2a1c); color: #fff;
+  ion-icon { font-size: 72px; }
+  p { font-size: 18px; font-weight: 600; }
+  button { padding: 12px 28px; border-radius: 999px; border: none; font-weight: 700;
+    background: #FF7A00; color: #fff; font-size: 16px; }
+}

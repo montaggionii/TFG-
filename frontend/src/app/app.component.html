@@ -1,3 +1,12 @@
 <ion-app>
   <ion-router-outlet></ion-router-outlet>
 </ion-app>
+
+<!-- Bloqueo biométrico opcional: se activa en Perfil → Seguridad -->
+@if (bloqueado()) {
+  <div class="app-lock">
+    <ion-icon name="finger-print-outline"></ion-icon>
+    <p>FidelyFood está bloqueado</p>
+    <button (click)="autenticar()">Desbloquear</button>
+  </div>
+}

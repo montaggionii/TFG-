@@ -1,7 +1,11 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { Router, NavigationStart, NavigationError, NavigationCancel } from '@angular/router';
 import { IonApp, IonRouterOutlet } from '@ionic/angular/standalone';
 import { filter } from 'rxjs/operators';
+import { Capacitor } from '@capacitor/core';
+import { addIcons } from 'ionicons';
+import { fingerPrintOutline } from 'ionicons/icons';
+import { BiometricAuth } from '@aparajita/capacitor-biometric-auth';
 import { ThemeService } from './core/theme/theme.service';
 import { App as CapApp } from '@capacitor/app';
 
@@ -14,7 +18,11 @@ export class AppComponent {
   private router = inject(Router);
   private themeService = inject(ThemeService);
 
+  /** Bloqueo biométrico opcional (solo app nativa, lo activa el usuario en Perfil). */
+  bloqueado = signal(false);
+
   constructor() {
+    addIcons({ fingerPrintOutline });
     // RASTREO GLOBAL DE REDIRECCIONES - DEBUGGING EXTREMO
     this.router.events.subscribe((event) => {
       if (event instanceof NavigationStart) {
@@ -30,6 +38,11 @@ export class AppComponent {
 
     console.log('[AppComponent] Listener de navegación global activo.');
 
+    // Bloqueo biométrico al arrancar la app nativa (Face ID / huella / PIN).
+    if (Capacitor.isNativePlatform() && localStorage.getItem('biometria') === '1') {
+      void this.autenticarAlArrancar();
+    }
+
     // Deep links nativos (fidelyfood:// y atajos iOS tipo fidelyfood.qr):
     // atajos del icono de la app, enlaces compartidos y widgets.
     CapApp.addListener('appUrlOpen', ({ url }) => {
@@ -41,5 +54,29 @@ export class AppComponent {
         this.router.navigate([`/u/${destino}`]);
       }
     });
+  }
+
+  private async autenticarAlArrancar(): Promise<void> {
+    try {
+      const biometria = await BiometricAuth.checkBiometry();
+      if (!biometria.isAvailable) return; // sin biometría enrolada: no bloquea
+      this.bloqueado.set(true);
+      await this.autenticar();
+    } catch {
+      // Cualquier error de comprobación no debe dejar la app inutilizable
+      this.bloqueado.set(false);
+    }
+  }
+
+  async autenticar(): Promise<void> {
+    try {
+      await BiometricAuth.authenticate({
+        allowDeviceCredential: true, // respaldo: PIN/patrón del dispositivo
+        reason: 'Desbloquea FidelyFood para ver tus puntos',
+      });
+      this.bloqueado.set(false);
+    } catch {
+      this.bloqueado.set(true); // reintenta desde el botón del overlay
+    }
   }
 }

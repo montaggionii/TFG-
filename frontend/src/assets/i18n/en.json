@@ -279,5 +279,7 @@
   "history.estaSemana": "this week",
   "qr.instrucciones": "Show it to the waiter to pay and earn points",
   "restaurant.share.label": "Share",
-  "restaurant.share.value": "Invite your friends to this place"
+  "restaurant.share.value": "Invite your friends to this place",
+  "profile.biometria.title": "Biometric unlock",
+  "profile.biometria.subtitle": "Open the app with Face ID / fingerprint (or your PIN)"
 }
