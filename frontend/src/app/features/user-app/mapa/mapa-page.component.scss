@@ -667,3 +667,10 @@ ion-content.map-page-content::part(scroll) {
     font-size: 1.1rem;
   }
 }
+
+// Marca de favorito en la tarjeta del mapa
+.card-fav {
+  position: absolute; top: 8px; left: 8px;
+  background: rgba(255,255,255,.9); border-radius: 999px;
+  padding: 2px 7px; font-size: 13px; line-height: 1.4;
+}

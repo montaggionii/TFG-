@@ -7,6 +7,10 @@
     </ion-buttons>
     <ion-title>{{ restaurante?.nombre || ('restaurant.fallbackTitle' | ffTranslate) }}</ion-title>
     <ion-buttons slot="end">
+      <ion-button class="fav-btn" (click)="alternarFavorito()" aria-label="Favorito">
+        <ion-icon slot="icon-only" [name]="esFavorito ? 'heart' : 'heart-outline'" [color]="esFavorito ? 'danger' : 'light'">
+        </ion-icon>
+      </ion-button>
       <div class="points-badge" *ngIf="ptsRestaurante !== undefined">
         <ion-icon name="star"></ion-icon>
         <span>{{ ptsRestaurante }} {{ 'common.pts' | ffTranslate }}</span>

@@ -6,6 +6,7 @@ import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { MapComponent } from '../../../shared/components/map/map.component';
 import { RestauranteService } from '../../../core/services/restaurante.service';
+import { FavoritoService } from '../../../core/services/favorito.service';
 import { GeolocationService, GeoStatus } from '../../../core/services/geolocation.service';
 import { addIcons } from 'ionicons';
 import { 
@@ -27,8 +28,10 @@ import { SafeRestaurantImageDirective } from '../../../shared/directives/safe-re
   imports: [IonicModule, CommonModule, MapComponent, FormsModule, RouterModule, CustomerTranslatePipe, SafeRestaurantImageDirective]
 })
 export class MapaPageComponent implements OnInit, OnDestroy {
+  favoritos: number[] = [];
   private router = inject(Router);
   private restauranteService = inject(RestauranteService);
+  private favoritoService = inject(FavoritoService);
   private toastCtrl = inject(ToastController);
   private geoService = inject(GeolocationService);
   private apiUrl = environment.apiUrl;
@@ -68,6 +71,13 @@ export class MapaPageComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    this.favoritoService.mios().subscribe({
+      next: (res) => {
+        this.favoritos = res.restaurantes;
+        this.ordenarPorFavoritos();
+      },
+      error: () => {}
+    });
     this.statusSub = this.geoService.status$.subscribe(status => {
       const becameActive = status === 'active' && this.geoStatus !== 'active';
       this.geoStatus = status;
@@ -152,6 +162,11 @@ export class MapaPageComponent implements OnInit, OnDestroy {
     });
   }
 
+  ordenarPorFavoritos(lista: any[] = this.restaurantesFiltrados): any[] {
+    return [...lista].sort((a, b) =>
+      Number(this.favoritos.includes(b.id)) - Number(this.favoritos.includes(a.id)));
+  }
+
   filtrarPorDistancia() {
     if (!this.userLocation) return;
 
@@ -162,7 +177,7 @@ export class MapaPageComponent implements OnInit, OnDestroy {
       return isInsideRadius && matchesSearch;
     });
 
-    this.restaurantesFiltrados = filtrados;
+    this.restaurantesFiltrados = this.ordenarPorFavoritos(filtrados);
 
     this.actualizarMarcadores();
   }

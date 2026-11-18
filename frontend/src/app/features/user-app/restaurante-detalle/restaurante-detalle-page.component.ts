@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { IonicModule, ToastController, LoadingController, AlertController, ModalController } from '@ionic/angular';
 import { ReservaService } from '../../../core/services/reserva.service';
+import { FavoritoService } from '../../../core/services/favorito.service';
 import { RestauranteService } from '../../../core/services/restaurante.service';
 import { PromocionService } from '../../../core/services/promocion.service';
 import { PuntosService } from '../../../core/services/puntos.service';
@@ -19,6 +20,8 @@ import {
   locationOutline, 
   restaurantOutline, 
   star, 
+  heart,
+  heartOutline,
   informationCircleOutline, 
   giftOutline, 
   navigateOutline, 
@@ -55,6 +58,7 @@ export class RestauranteDetallePageComponent implements OnInit, OnDestroy {
   private loadingCtrl = inject(LoadingController);
   private alertCtrl = inject(AlertController);
   private reservaService = inject(ReservaService);
+  private favoritoService = inject(FavoritoService);
   private cdr = inject(ChangeDetectorRef);
   private ngZone = inject(NgZone);
   private modalCtrl = inject(ModalController);
@@ -92,6 +96,25 @@ export class RestauranteDetallePageComponent implements OnInit, OnDestroy {
   // Tarjeta de fidelidad: progreso hacia la próxima recompensa
   isTarjetaQrOpen = false;
   @ViewChild('tarjetaQrCanvas') tarjetaQrCanvas?: ElementRef<HTMLCanvasElement>;
+
+  esFavorito = false;
+  cargandoFavorito = false;
+
+  ngOnInitFavorito() {
+    this.favoritoService.mios().subscribe({
+      next: (res) => this.esFavorito = res.restaurantes.includes(this.restauranteIdFromUrl || -1),
+      error: () => {}
+    });
+  }
+
+  alternarFavorito() {
+    if (this.cargandoFavorito || !this.restauranteIdFromUrl) return;
+    this.cargandoFavorito = true;
+    this.favoritoService.alternar(this.restauranteIdFromUrl).subscribe({
+      next: (res) => { this.esFavorito = res.favorito; this.cargandoFavorito = false; },
+      error: () => { this.cargandoFavorito = false; }
+    });
+  }
 
   // Reserva de mesa
   isReservaOpen = false;
@@ -186,6 +209,8 @@ export class RestauranteDetallePageComponent implements OnInit, OnDestroy {
   constructor() {
     addIcons({ 
       locationOutline, 
+      heart,
+      heartOutline,
       restaurantOutline, 
       star, 
       informationCircleOutline, 
@@ -215,6 +240,9 @@ export class RestauranteDetallePageComponent implements OnInit, OnDestroy {
       
       if (this.user && this.restauranteIdFromUrl) {
         this.sincronizarPuntos();
+      }
+      if (this.restauranteIdFromUrl) {
+        this.ngOnInitFavorito();
       }
     });
 

@@ -161,6 +161,7 @@
               <ion-icon name="location"></ion-icon>
               {{ formatDistancia(r.distanciaNum) }}
             </div>
+            <div class="card-fav" *ngIf="favoritos.includes(r.id)">❤️</div>
           </div>
           
           <div class="card-content-box">
