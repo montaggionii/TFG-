@@ -113,7 +113,10 @@ public class SecurityConfig {
                 "http://localhost:8100",
                 "http://127.0.0.1:8100",
                 "capacitor://localhost",
-                "ionic://localhost"
+                "ionic://localhost",
+                // WebView de Capacitor en Android usa https://localhost como origen
+                "https://localhost",
+                "http://localhost"
         ));
         if (extraCorsOrigins != null && !extraCorsOrigins.isBlank()) {
             for (String origin : extraCorsOrigins.split(",")) {
