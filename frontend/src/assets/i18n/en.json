@@ -242,5 +242,8 @@
   "profile.deleteAccount.message": "You will lose your points and your history will be anonymized. This action cannot be undone.",
   "profile.deleteAccount.confirm": "Delete permanently",
   "profile.deleteAccount.done": "Your account has been deleted. Thank you for being part of it.",
-  "profile.deleteAccount.error": "Could not delete the account. Please try again."
+  "profile.deleteAccount.error": "Could not delete the account. Please try again.",
+  "rewards.canje.validado": "Redemption validated! Enjoy",
+  "rewards.canje.devuelto": "Not validated in time: points refunded",
+  "rewards.canje.error": "Could not cancel the redemption"
 }

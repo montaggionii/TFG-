@@ -242,5 +242,8 @@
   "profile.deleteAccount.message": "Vous perdrez vos points et votre historique sera anonymisé. Cette action est irréversible.",
   "profile.deleteAccount.confirm": "Supprimer définitivement",
   "profile.deleteAccount.done": "Votre compte a été supprimé. Merci d'avoir fait partie de l'aventure.",
-  "profile.deleteAccount.error": "Impossible de supprimer le compte. Réessaie."
+  "profile.deleteAccount.error": "Impossible de supprimer le compte. Réessaie.",
+  "rewards.canje.validado": "Échange validé ! Profitez-en",
+  "rewards.canje.devuelto": "Non validé à temps : points remboursés",
+  "rewards.canje.error": "Impossible d'annuler l'échange"
 }

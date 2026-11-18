@@ -105,4 +105,20 @@
       </div>
     </div>
   </ng-template>
+
+  <!-- Modal del QR temporal de canje: lo escanea el camarero en caja -->
+  <ion-modal [isOpen]="!!canjeEnCurso" (didDismiss)="cerrarModalCanje()" class="canje-qr-modal">
+    <ng-template>
+      <div class="canje-qr-wrap" *ngIf="canjeEnCurso">
+        <h2>{{ canjeEnCurso.titulo }}</h2>
+        <p class="canje-puntos">-{{ canjeEnCurso.puntosGastados }} pts</p>
+        <img *ngIf="canjeEnCurso.qrDataUrl" [src]="canjeEnCurso.qrDataUrl" alt="QR de canje">
+        <p class="canje-aviso">Enséñaselo al camarero. Caduca en
+          <strong>{{ canjeEnCurso.segundosRestantes }}s</strong> y es de un solo uso.</p>
+        <ion-button expand="block" fill="outline" color="medium" (click)="cancelarCanjeEnCurso()">
+          Cancelar y devolver puntos
+        </ion-button>
+      </div>
+    </ng-template>
+  </ion-modal>
 </ion-content>
