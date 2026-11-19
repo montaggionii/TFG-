@@ -129,7 +129,31 @@ describe('tokenInterceptor', () => {
     req.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
   });
 
+  it('modo invitado: un 401 sin token nunca cierra sesion (no hay ninguna que cerrar)', (done) => {
+    httpClient.get(`${environment.apiUrl}/api/puntos/mio`).subscribe({
+      error: (err) => {
+        expect(err.status).toBe(401);
+        expect(authService.logout).not.toHaveBeenCalled();
+        done();
+      }
+    });
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/api/puntos/mio`);
+    req.flush('Unauthorized', { status: 401, statusText: 'Unauthorized' });
+  });
+
+  it('modo invitado: un 403 sin token nunca redirige (solo significa "esto requiere cuenta")', () => {
+    httpClient.get(`${environment.apiUrl}/api/favoritos`).subscribe({ error: () => {} });
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/api/favoritos`);
+    req.flush('Forbidden', { status: 403, statusText: 'Forbidden' });
+
+    expect(router.navigate).not.toHaveBeenCalled();
+  });
+
   it('un 403 redirige segun el rol actual (restaurante entrando a un endpoint de admin)', () => {
+    localStorage.setItem('token', 'real-token');
+    authService.isTokenExpired.and.returnValue(false);
     authService.getRoleSync.and.returnValue('ROLE_RESTAURANT');
 
     httpClient.get(`${environment.apiUrl}/api/admin/businesses`).subscribe({ error: () => {} });

@@ -50,12 +50,17 @@ class PuntosControllerTest {
     private RestauranteDAO restauranteDAO;
     @Mock
     private MovimientoPuntosDAO movimientoPuntosDAO;
+    @Mock
+    private progresa.springboot_tfg.dao.PromocionDAO promocionDAO;
+    @Mock
+    private progresa.springboot_tfg.service.PuntosStreamService puntosStreamService;
 
     private PuntosController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new PuntosController(usuarioDAO, restauranteDAO, movimientoPuntosDAO);
+        controller = new PuntosController(usuarioDAO, restauranteDAO, movimientoPuntosDAO,
+                promocionDAO, puntosStreamService);
     }
 
     private Authentication authAs(String email, String role) {

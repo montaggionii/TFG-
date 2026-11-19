@@ -42,11 +42,24 @@ class RestauranteControllerTest {
     @Mock
     private RestauranteService restauranteService;
 
+    @Mock
+    private progresa.springboot_tfg.service.InsightRestauranteService insightRestauranteService;
+
+    @Mock
+    private progresa.springboot_tfg.dao.MovimientoPuntosDAO movimientoPuntosDAO;
+
+    @Mock
+    private progresa.springboot_tfg.dao.UsuarioDAO usuarioDAO;
+
+    @Mock
+    private progresa.springboot_tfg.dao.RestauranteDAO restauranteDAO;
+
     private RestauranteController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new RestauranteController(restauranteService);
+        controller = new RestauranteController(restauranteService, insightRestauranteService,
+                movimientoPuntosDAO, usuarioDAO, restauranteDAO);
     }
 
     private Authentication authAs(String email) {
