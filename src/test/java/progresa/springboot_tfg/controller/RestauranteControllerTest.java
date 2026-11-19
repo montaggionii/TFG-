@@ -15,6 +15,10 @@ import progresa.springboot_tfg.dto.EstadisticasComparativasDTO;
 import progresa.springboot_tfg.dto.RestauranteAdvancedStatsDTO;
 import progresa.springboot_tfg.dto.RestauranteDTO;
 import progresa.springboot_tfg.entity.Restaurante;
+import progresa.springboot_tfg.dao.MovimientoPuntosDAO;
+import progresa.springboot_tfg.dao.RestauranteDAO;
+import progresa.springboot_tfg.dao.UsuarioDAO;
+import progresa.springboot_tfg.service.InsightRestauranteService;
 import progresa.springboot_tfg.service.RestauranteService;
 
 import java.util.List;
@@ -42,11 +46,24 @@ class RestauranteControllerTest {
     @Mock
     private RestauranteService restauranteService;
 
+    @Mock
+    private InsightRestauranteService insightRestauranteService;
+
+    @Mock
+    private MovimientoPuntosDAO movimientoPuntosDAO;
+
+    @Mock
+    private UsuarioDAO usuarioDAO;
+
+    @Mock
+    private RestauranteDAO restauranteDAO;
+
     private RestauranteController controller;
 
     @BeforeEach
     void setUp() {
-        controller = new RestauranteController(restauranteService);
+        controller = new RestauranteController(restauranteService, insightRestauranteService,
+                movimientoPuntosDAO, usuarioDAO, restauranteDAO);
     }
 
     private Authentication authAs(String email) {
