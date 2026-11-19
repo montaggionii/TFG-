@@ -7,6 +7,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -14,7 +16,9 @@ import progresa.springboot_tfg.dto.DashboardStatsDTO;
 import progresa.springboot_tfg.dto.EstadisticasComparativasDTO;
 import progresa.springboot_tfg.dto.RestauranteAdvancedStatsDTO;
 import progresa.springboot_tfg.dto.RestauranteDTO;
+import progresa.springboot_tfg.entity.MovimientoPuntos;
 import progresa.springboot_tfg.entity.Restaurante;
+import progresa.springboot_tfg.entity.Usuario;
 import progresa.springboot_tfg.dao.MovimientoPuntosDAO;
 import progresa.springboot_tfg.dao.RestauranteDAO;
 import progresa.springboot_tfg.dao.UsuarioDAO;
@@ -22,10 +26,14 @@ import progresa.springboot_tfg.service.InsightRestauranteService;
 import progresa.springboot_tfg.service.RestauranteService;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -173,6 +181,40 @@ class RestauranteControllerTest {
 
         assertEquals(200, res.getStatusCode().value());
         verify(restauranteService).subirImagen(1L, file, "resto@test.com");
+    }
+
+    @Test
+    void topFansRechazaAUnInvitadoAnonimoSinConsultarNingunDAO() {
+        Authentication anonimo = new AnonymousAuthenticationToken(
+                "key", "anonymousUser", List.of(new SimpleGrantedAuthority("ROLE_ANONYMOUS")));
+
+        assertThrows(AccessDeniedException.class, () -> controller.topFans(1L, anonimo));
+
+        verifyNoInteractions(restauranteDAO, movimientoPuntosDAO, usuarioDAO);
+    }
+
+    @Test
+    void topFansDeUnClienteAutenticadoDevuelveElRanking() {
+        Restaurante restaurante = new Restaurante();
+        restaurante.setId(1L);
+        when(restauranteDAO.findById(1L)).thenReturn(java.util.Optional.of(restaurante));
+
+        Usuario fan = new Usuario("Ana García", "ana@test.com", "hash", 0);
+        fan.setId(10L);
+        MovimientoPuntos visita = new MovimientoPuntos();
+        visita.setPuntos(5);
+        visita.setUsuario(fan);
+        when(movimientoPuntosDAO.findByRestauranteId(1L)).thenReturn(List.of(visita));
+        when(usuarioDAO.findById(10L)).thenReturn(Optional.of(fan));
+        when(usuarioDAO.findByEmail("cliente@test.com")).thenReturn(Optional.empty());
+
+        ResponseEntity<Map<String, Object>> res = controller.topFans(1L, authAs("cliente@test.com"));
+
+        assertEquals(200, res.getStatusCode().value());
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> top = (List<Map<String, Object>>) res.getBody().get("top");
+        assertEquals(1, top.size());
+        assertEquals("Ana", top.get(0).get("nombre"));
     }
 
     @Test

@@ -68,43 +68,49 @@
 - [x] **`UsuarioController` sin ningún test propio (AGT-036)** — 2026-10-30, sesión concurrente a AGT-035: `identificarQr` comprueba `ROLE_RESTAURANT` en el controlador (defensa en profundidad, `SecurityConfig` ya exige el rol a nivel de filtro), no en `UsuarioService`. Añadido `UsuarioControllerTest` (8 tests). `RestauranteController`/`MovimientoPuntosController` se reconfirmaron como pura delegación en su servicio, sin hallazgo. Detalle completo en `AGENT_TASKS.md` (AGT-036, estado `REVIEW`).
 - [x] **`PUT /api/restaurantes/{id}` podía cambiar la contraseña sin pedir la actual (AGT-038)** — 2026-10-31: al releer `RestauranteService.java` línea por línea (en vez de solo confirmar, como AGT-033/036, que el controlador delega su autorización en el servicio), se encontró el mismo patrón ya corregido en `UsuarioService` por AGT-032: `actualizar()` aplicaba `actualizado.getPassword()` del cuerpo sin pedir la contraseña actual — y, a diferencia de `UsuarioController`, `RestauranteController` no tiene ningún endpoint dedicado de cambio de contraseña que sustituya esa vía, así que era el único camino posible. Corregido quitando esa rama del método (ya no lee `password` del cuerpo en absoluto); confirmado que el frontend real (`SettingsComponent`) nunca envía ese campo. Test nuevo `actualizarNuncaCambiaLaPasswordAunqueElCuerpoIncluyaUnaNueva` en `RestauranteServiceTest`. Renumerada de AGT-037 a AGT-038 al fusionar con una sesión concurrente que ya había usado ese número para un hallazgo distinto (`follow-redirects`, ver sección "Pendiente" más abajo). **Verificado**: `mvn test -Dtest=RestauranteServiceTest` → 17/17; `mvn test` completo → 164 tests, 1 error (el mismo de siempre, `contextLoads`, sin MySQL real), 0 regresiones. Detalle completo en `AGENT_TASKS.md` (AGT-038, estado `REVIEW`).
 - [x] **Login social no comprobaba `email_verified`: toma de cuenta ajena (AGT-052)** — 2026-11-18, sesión concurrente a la de abajo: `SocialAuthService.provisionar()` confiaba el claim `email` del id_token sin comprobar el claim OIDC `email_verified`, permitiendo tomar la cuenta de otro cliente por email con una cuenta de Google/Apple cuyo email no está realmente verificado — sin evidencia de explotación (login social sigue deshabilitado en producción: `GOOGLE_CLIENT_ID`/`APPLE_CLIENT_IDS` sin configurar). Corregido rechazando (`SecurityException`, antes de tocar `usuarioDAO`) cualquier `email_verified` que no sea exactamente `true`. 3 tests nuevos en `SocialAuthServiceTest` (8/8). Detalle completo en `AGENT_TASKS.md` (AGT-052, estado `REVIEW`) y `SECURITY.md` (#30).
-- [x] **`tokenInterceptor`: regresión real tras el merge del "modo invitado" — dejaba de cerrar sesión cuando el token desaparecía entre el envío y la respuesta de error (AGT-054)** — 2026-11-19: la rama estaba 19 commits por detrás de `main` (le faltaban las 8 features del lote de mejoras del 18/11, incluido "modo invitado"); `git merge origin/main` con 4 conflictos (`.agent/memory.jsonl`, `DEPLOYMENT.md`, `frontend/package.json`/`package-lock.json` — este último regenerado con `npm install` tras fijar `@capacitor/android`/`@capacitor/ios` a `8.5.3` exacto, único modo de resolver un conflicto real de peer-dependencies con `@capacitor/core`). El merge rompió la compilación de `RestauranteControllerTest`/`PuntosControllerTest` (constructores cambiados en `main` por las features de insights/SSE); corregido añadiendo los mocks nuevos. Al correr `ng test` tras el merge, 2 de 143 tests fallaron de verdad: el "modo invitado" de `main` decidía si un 401/403 cerraba sesión/redirigía mirando el `localStorage` **actual**, no el token con el que se envió la petición — rompía el caso real (de esta rama) de "el token desaparece mientras la respuesta está en vuelo = sesión terminada, hay que llamar a `logout()`". Corregido usando la variable `token` ya capturada al enviar la petición en vez de releer `localStorage` dentro del `catchError`. 2 tests nuevos cierran el hueco de cobertura que "modo invitado" trajo sin ningún test propio. **Verificado**: `ng test --watch=false` → 145/145 (143+2, reproducido el fallo real antes del fix); `tsc --noEmit`/`ng build --configuration production`/`playwright test --list` (27/27) sin regresiones; `mvn test` → 243 (1 nuevo), 242 passed, mismo único fallo de siempre (`contextLoads`, sin MySQL real). Detalle completo en `AGENT_TASKS.md` (AGT-054, estado `REVIEW`) y `SECURITY.md` (#32).
+- [x] **`tokenInterceptor`: regresión real tras el merge del "modo invitado" — dejaba de cerrar sesión cuando el token desaparecía entre el envío y la respuesta de error (AGT-055, renumerada desde AGT-054 al chocar con la sesión concurrente de abajo, que llegó de forma independiente a otro hallazgo real distinto en el mismo lote de features — fuga de `top-fans` a invitados)** — 2026-11-19: la rama estaba 19 commits por detrás de `main` (le faltaban las 8 features del lote de mejoras del 18/11, incluido "modo invitado"); `git merge origin/main` con 4 conflictos (`.agent/memory.jsonl`, `DEPLOYMENT.md`, `frontend/package.json`/`package-lock.json` — este último regenerado con `npm install` tras fijar `@capacitor/android`/`@capacitor/ios` a `8.5.3` exacto, único modo de resolver un conflicto real de peer-dependencies con `@capacitor/core`). El merge rompió la compilación de `RestauranteControllerTest`/`PuntosControllerTest` (constructores cambiados en `main` por las features de insights/SSE); corregido añadiendo los mocks nuevos. Al correr `ng test` tras el merge, 2 de 143 tests fallaron de verdad: el "modo invitado" de `main` decidía si un 401/403 cerraba sesión/redirigía mirando el `localStorage` **actual**, no el token con el que se envió la petición — rompía el caso real (de esta rama) de "el token desaparece mientras la respuesta está en vuelo = sesión terminada, hay que llamar a `logout()`". Corregido usando la variable `token` ya capturada al enviar la petición en vez de releer `localStorage` dentro del `catchError`. 2 tests nuevos cierran el hueco de cobertura que "modo invitado" trajo sin ningún test propio. **Verificado**: `ng test --watch=false` → 145/145 (143+2, reproducido el fallo real antes del fix); `tsc --noEmit`/`ng build --configuration production`/`playwright test --list` (27/27) sin regresiones; `mvn test` → 243 (1 nuevo), 242 passed, mismo único fallo de siempre (`contextLoads`, sin MySQL real); re-verificado a 249/248 tras fusionar también la sesión concurrente de AGT-054. Detalle completo en `AGENT_TASKS.md` (AGT-055, estado `REVIEW`) y `SECURITY.md` (#33).
 - [x] **Bypass completo de autenticación en el login SMS/OTP si Twilio no está configurado (AGT-053, renumerada desde AGT-052 al chocar con la sesión concurrente de arriba)** — 2026-11-18: `agent/fidelyfood-autonomous` estaba 19 commits por detrás de `main` (le faltaban login social Google/Apple, acceso por SMS/OTP, canje por QR temporal, reservas y Apple Wallet, fusionados directamente a `main`); `git merge origin/main` con 2 conflictos reales (una sección añadida solo en `main` en `perfil.component.ts`, y dos bloques de tests nuevos insertados en el mismo punto de `UsuarioServiceTest.java` por ambas ramas) — resueltos conservando el contenido de las dos partes, sin descartar nada. El merge rompió además la compilación de `CanjeControllerTest.java` (`CanjeController` cambió de constructor en `main`); corregido actualizando el test. Auditado el código nuevo de login (nunca revisado hasta ahora, mismo criterio que FID-017/018/022): `SocialAuthService` (Google/Apple) verifica de verdad la firma RS256 contra el JWKS del proveedor, el emisor y la audiencia — sólido (el hallazgo de `email_verified` de arriba lo encontró la sesión concurrente, no esta). El login por SMS/OTP no: `SmsSender.enviar()` decidía si el código viajaba en claro en la respuesta de `POST /api/auth/otp/send` (endpoint público, parte del propio flujo de login) mirando solo si `app.sms.provider == "twilio"`. `render.yaml` no define ninguna variable de Twilio, así que si Render no las tiene puestas a mano en el dashboard (no se puede comprobar desde este sandbox), producción ejecuta hoy la rama "sin proveedor" — cualquiera, sin autenticarse, podía pedir un código para el teléfono de cualquier persona, leerlo en su propia respuesta y entrar con el JWT de esa cuenta (o crear una nueva). Mismo patrón que la contraseña de admin por defecto ya corregida (AGT-008). Corregido con una propiedad explícita nueva (`app.sms.dev-expose-code`, por defecto `false`, independiente de si hay proveedor configurado): solo expone el código cuando no hay proveedor **y** esta propiedad se activó a propósito en local. `SmsSenderTest` nuevo (3 tests). **Verificado**: `mvn test -Dtest=SmsSenderTest,OtpServiceTest` → 8/8; `mvn test` completo tras el merge de ambas sesiones → 239/240 (mismo único fallo de siempre, `contextLoads`, sin MySQL real). Detalle completo en `AGENT_TASKS.md` (AGT-053, estado `REVIEW`) y `SECURITY.md` (#31).
 
 ## Pendiente (por prioridad) — actualizado 2026-11-19
 
-**🚨 Aviso de esta sesión (2026-11-19): el PR #51 sigue sin revisarse (más de un mes abierto, ahora 44 tareas).**
+**🚨 Aviso de esta sesión (2026-11-19): el PR #51 sigue sin revisarse (más de un mes abierto, ahora 55 tareas) y dos sesiones concurrentes encontraron dos hallazgos reales más en el mismo lote de features.**
 La rama estaba 19 commits por detrás de `main` otra vez (lote de mejoras de producto del 18/11: canje
-QR, reservas, gamificación, favoritos, insights, deep links, biometría, modo invitado). Al fusionar y
-correr la suite de frontend completa (nunca antes se había tenido ocasión de hacerlo con todas estas
-features juntas), 2 tests fallaron de verdad: una regresión real en `tokenInterceptor` donde el "modo
-invitado" nuevo rompía el cierre de sesión cuando el token desaparecía en vuelo (AGT-054, detalle abajo).
-Corregida con un cambio de una línea en cada rama del interceptor, sin tocar ninguna otra lógica.
+QR, reservas, gamificación, favoritos, insights, deep links, biometría, modo invitado, landing pública +
+descarga de APK, fix de CORS para el WebView de Android). `git merge origin/main` tuvo 4 conflictos
+reales (no solo de formato): `.agent/memory.jsonl` (ambos lados añadieron entradas, se conservaron las
+dos), `DEPLOYMENT.md` (se fusionó conservando lo más nuevo de cada sección), `frontend/package.json`/
+`package-lock.json` (versión de Angular de esta rama + la dependencia nueva de biometría de `main`;
+`@capacitor/android`/`@capacitor/ios` tuvieron que fijarse a `8.5.3` exacto —no `^8.5.3`— para resolver
+un conflicto real de peer-dependencies con `@capacitor/core`) — y dos tests de controlador de esta rama
+(`RestauranteControllerTest`/`PuntosControllerTest`) que dejaron de compilar porque sus controladores
+ganaron parámetros nuevos (insights, SSE) en `main`.
 
-**Aviso de la sesión anterior (2026-11-18): el PR #51 ya llevaba dos vulnerabilidades reales de seguridad más, sin fusionar.**
-El PR #51 (`agent/fidelyfood-autonomous` → `main`) sigue abierto desde 2026-10-08. Desde el último aviso
-(2026-11-16), `main` recibió un conjunto grande de features nuevas directamente (sin pasar por este PR):
-login por SMS/OTP, login social Google/Apple, Apple Wallet, reservas de mesa, canje con QR temporal,
-gamificación. Dos ejecuciones concurrentes de esta misma rutina fusionaron esa historia y la auditaron
-por primera vez hoy, cada una con un hallazgo real distinto en el mismo código de login, nunca revisado
-hasta ahora:
-- **AGT-052**: `SocialAuthService` (login "Continuar con Google/Apple") nunca comprobaba el claim OIDC
-  `email_verified` antes de loguear en una cuenta ya existente por email — permite tomar la cuenta de
-  otro cliente sin su contraseña. Sin evidencia de explotación: el login social sigue deshabilitado en
-  producción mientras `GOOGLE_CLIENT_ID`/`APPLE_CLIENT_IDS` no estén configurados.
-- **AGT-053**: con Twilio sin configurar (el estado de `render.yaml`), el login por SMS devolvía el
-  código OTP real en la propia respuesta HTTP de `POST /api/auth/otp/send` — bypass completo de
-  autenticación, explotable ahora mismo si nadie ha añadido las credenciales de Twilio a mano en el
-  dashboard de Render.
+Dos ejecuciones concurrentes de esta misma rutina auditaron ese lote por su lado y encontraron, cada una,
+un hallazgo real distinto, sin solapamiento de archivos salvo el mismo arreglo de compilación de los dos
+tests de controlador de arriba:
+- **AGT-054**: el modo invitado recién fusionado (`permitAll` nuevo de catálogo, justo el tipo de cambio
+  que ya rompió algo antes — ver FID-017/AGT-002) dejaba `GET /api/restaurantes/{id}/top-fans` accesible
+  sin ninguna sesión (nombres + nº de visitas de clientes reales), contradiciendo su propia descripción
+  ("Solo primer nombre") y la nota ya registrada aquí mismo ("Requiere sesión"); de paso, `POST
+  /api/puntos/sorpresa` tampoco comprobaba el rol en el código, a diferencia de sus hermanos. Corregido
+  con `SecurityUtils.requireAuthenticated` + matchers explícitos nuevos en `SecurityConfig`, junto con un
+  bug colateral real de 500 (`Map.of` con `miPuesto` nulo) encontrado al escribir el test.
+- **AGT-055** (renumerada desde AGT-054 al chocar con la de arriba): el mismo modo invitado rompía el
+  cierre de sesión real en `tokenInterceptor` cuando el token desaparecía entre el envío de una petición
+  y la respuesta de error — detectado por la propia suite de tests (`ng test` → 141/143) al fusionar
+  `main`, no por auditoría manual. Corregido usando la variable `token` ya capturada al enviar la
+  petición en vez de releer `localStorage` dentro del `catchError`, con 2 tests nuevos que cierran el
+  hueco de cobertura que "modo invitado" trajo sin ningún test propio.
 
-Todas ya corregidas en esta rama, igual que el resto de vulnerabilidades reales que siguen esperando
-desde hace más de un mes: mass assignment de puntos (AGT-028), cambio de contraseña sin pedir la actual
-(AGT-032/AGT-038), CSRF en `POST /api/jarvis/run` (AGT-015), fuga del token XSRF (AGT-023) y la
-vulnerabilidad crítica de Capacitor (AGT-011). El PR ya acumula 44 tareas. Lo que hace falta ahora es que
-una persona lo revise y fusione (o rechace), no más código — esta sesión solo añadió AGT-054 porque era
-una regresión real detectada por la propia suite de tests al fusionar `main`, no un hallazgo buscado a
-propósito. Las dos tareas en `TODO` real (AGT-007, AGT-016) siguen bloqueadas por la misma decisión
-humana de siempre, sin cambios.
+Ambas ya corregidas en esta rama, igual que el resto de vulnerabilidades reales que siguen esperando desde
+hace más de un mes: mass assignment de puntos (AGT-028), cambio de contraseña sin pedir la actual
+(AGT-032/AGT-038), CSRF en `POST /api/jarvis/run` (AGT-015), fuga del token XSRF (AGT-023), la
+vulnerabilidad crítica de Capacitor (AGT-011), `email_verified` ausente en login social (AGT-052) y el
+bypass de OTP por SMS (AGT-053). El PR ya acumula 55 tareas. Lo que hace falta ahora es que una persona lo
+revise y fusione (o rechace), no más código — ninguno de los dos hallazgos de hoy se buscó a propósito:
+uno lo encontró una auditoría del código nuevo recién fusionado, el otro la propia suite de tests al
+fallar. Las dos tareas en `TODO` real (AGT-007, AGT-016) siguen bloqueadas por la misma decisión humana de
+siempre, sin cambios.
 
 **Fuente de verdad del backlog técnico: el bloque `AGT-xxx` de `AGENT_TASKS.md`** (estado, dependencias,
 criterios de aceptación, verificación real y lo que falta por verificar de cada tarea). Esta lista solo
@@ -136,14 +142,21 @@ estado en `AGENT_TASKS.md`, nunca aquí.
   regresión. `access-center/` sigue en 0; `frontend/` sigue con las mismas 7 moderadas de siempre,
   bloqueadas por la misma decisión humana de Angular 21/22. Detalle completo en `AGENT_TASKS.md`
   (AGT-051) y `SECURITY.md` (#29).
-- **AGT-054** (P1, security/correctness) · `REVIEW` desde 2026-11-19 — regresión real en
-  `tokenInterceptor`: el "modo invitado" fusionado desde `main` decidía si un 401/403 cerraba sesión o
-  redirigía mirando el `localStorage` actual en vez del token con el que se envió la petición, rompiendo
-  el caso real de "el token desaparece mientras la respuesta está en vuelo = sesión terminada". Detectada
-  por la propia suite de tests (`ng test` → 141/143 tras el merge), no por auditoría manual. Corregida
-  usando la variable `token` ya capturada al enviar la petición; 2 tests nuevos cierran el hueco de
-  cobertura que "modo invitado" trajo sin ningún test propio. Ver `AGENT_TASKS.md` (AGT-054) y
-  `SECURITY.md` (#32).
+- **AGT-054** (P1, security) · `REVIEW` desde 2026-11-19 — el modo invitado recién fusionado desde `main`
+  (`permitAll` de catálogo) dejaba `GET /api/restaurantes/{id}/top-fans` accesible sin ninguna sesión
+  (nombres + nº de visitas de clientes reales), contradiciendo su propia descripción y la nota ya
+  registrada en memoria ("Requiere sesión"); de paso, `POST /api/puntos/sorpresa` tampoco comprobaba el
+  rol en el código. Encontrada por una sesión concurrente de esta rutina al auditar el mismo lote de
+  features. Corregida con `SecurityUtils.requireAuthenticated` + matchers explícitos nuevos en
+  `SecurityConfig`, más un bug colateral de 500 (`Map.of` con `miPuesto` nulo). Ver `AGENT_TASKS.md`
+  (AGT-054) y `SECURITY.md` (#32).
+- **AGT-055** (P1, security/correctness) · `REVIEW` desde 2026-11-19 — regresión real en
+  `tokenInterceptor`: el mismo "modo invitado" decidía si un 401/403 cerraba sesión o redirigía mirando
+  el `localStorage` actual en vez del token con el que se envió la petición, rompiendo el caso real de
+  "el token desaparece mientras la respuesta está en vuelo = sesión terminada". Detectada por la propia
+  suite de tests (`ng test` → 141/143 tras el merge), no por auditoría manual. Corregida usando la
+  variable `token` ya capturada al enviar la petición; 2 tests nuevos cierran el hueco de cobertura que
+  "modo invitado" trajo sin ningún test propio. Ver `AGENT_TASKS.md` (AGT-055) y `SECURITY.md` (#33).
 - **AGT-052** (P0, security) · `REVIEW` desde 2026-11-18 — login social ("Continuar con Google/Apple")
   nunca comprobaba el claim OIDC `email_verified` antes de loguear en una cuenta ya existente por email,
   permitiendo tomar la cuenta de otro cliente sin su contraseña. Encontrada por una sesión concurrente de

@@ -187,6 +187,7 @@ public class PuntosController {
                     "queda registrada con motivo interno RULETA_DIA")
     @PostMapping("/sorpresa")
     public ResponseEntity<Map<String, Object>> sorpresaDelDia(Authentication authentication) {
+        SecurityUtils.requireRole(authentication, "ROLE_USER");
         Usuario usuario = usuarioDAO.findByEmail(SecurityUtils.email(authentication))
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
 
