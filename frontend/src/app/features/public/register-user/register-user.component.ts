@@ -54,9 +54,13 @@ export class RegisterUserComponent {
       },
       error: async (err: any) => {
         await loading.dismiss();
+        // Render Free duerme el backend: status 0 suele ser el arranque en frío
+        const mensaje = err.status === 0
+          ? 'No hay respuesta del servidor (puede estar despertando). Espera un minuto y vuelve a intentarlo.'
+          : err.error?.message || 'Hubo un error al registrar el usuario.';
         const toast = await this.toastCtrl.create({
-          message: err.error?.message || 'Hubo un error al registrar el usuario.',
-          duration: 3000,
+          message: mensaje,
+          duration: 4500,
           color: 'danger',
           position: 'bottom'
         });

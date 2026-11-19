@@ -1,6 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
+import { FormsModule } from '@angular/forms';
 import { MovimientoService } from '../../../core/services/movimiento.service';
 import { GlobalStateService } from '../../../core/state/global-state.service';
 import { PuntosService } from '../../../core/services/puntos.service';
@@ -29,7 +30,7 @@ export interface MovimientoPuntosDTO {
   templateUrl: './historial.component.html',
   styleUrls: ['./historial.component.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule, CustomerTranslatePipe]
+  imports: [IonicModule, CommonModule, FormsModule, CustomerTranslatePipe]
 })
 export class HistorialComponent implements OnInit {
   private movimientoService = inject(MovimientoService);
@@ -38,6 +39,21 @@ export class HistorialComponent implements OnInit {
 
   historial: MovimientoPuntosDTO[] = [];
   isLoading = true;
+  filtroActivo: 'todos' | 'ganados' | 'canjeados' = 'todos';
+
+  get historialFiltrado(): MovimientoPuntosDTO[] {
+    if (this.filtroActivo === 'ganados') return this.historial.filter(m => this.esGanancia(m.tipo));
+    if (this.filtroActivo === 'canjeados') return this.historial.filter(m => this.esCanje(m.tipo));
+    return this.historial;
+  }
+
+  ganadosEstaSemana(): number {
+    const hace = new Date(Date.now() - 7 * 86400_000);
+    return this.historial
+      .filter(m => this.esGanancia(m.tipo) && new Date(m.fecha) >= hace)
+      .reduce((s, m) => s + m.puntos, 0);
+  }
+
   balanceServidor: number | null = null;
 
   constructor() {

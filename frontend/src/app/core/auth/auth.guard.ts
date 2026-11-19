@@ -6,7 +6,16 @@ import { AuthService } from './auth.service';
  * AUTH GUARD SÍNCRONO (INGENIERÍA SENIOR)
  * Evita parpadeos y desincronizaciones de estado al arranque.
  */
+// Rutas navegables sin cuenta (modo invitado): el registro se pide solo
+// al hacer una acción que lo requiere (compra, canje, reserva…).
+const RUTAS_INVITADO = ['/u/mapa', '/u/restaurante/'];
+
 export const authGuard: CanActivateFn = (route, state) => {
+  // Modo invitado: mapa y ficha de restaurante sin sesión
+  if (RUTAS_INVITADO.some(r => state.url.startsWith(r))) {
+    return true;
+  }
+
   const router = inject(Router);
   const authService = inject(AuthService);
   const token = localStorage.getItem('token');

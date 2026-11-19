@@ -17,6 +17,8 @@ import * as icons from 'ionicons/icons';
 import { CustomerI18nService, CustomerLanguage } from '../../../core/i18n/customer-i18n.service';
 import { CustomerTranslatePipe } from '../../../core/i18n/customer-translate.pipe';
 import { ThemePreference, ThemeService } from '../../../core/theme/theme.service';
+import { Capacitor } from '@capacitor/core';
+import { BiometricAuth } from '@aparajita/capacitor-biometric-auth';
 
 @Component({
   selector: 'app-perfil',
@@ -30,6 +32,8 @@ export class PerfilComponent implements OnInit {
   public i18n = inject(CustomerI18nService);
   public languageOptions = this.i18n.languages;
   public themeService = inject(ThemeService);
+  biometriaDisponible = false;
+  biometriaActiva = localStorage.getItem('biometria') === '1';
   public themeOptions = this.themeService.options;
   user: any = null;
   isLoading = true;
@@ -140,7 +144,15 @@ export class PerfilComponent implements OnInit {
     return icons.contrastOutline;
   }
 
-  ngOnInit() {
+  async ngOnInit() {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const bio = await BiometricAuth.checkBiometry();
+        this.biometriaDisponible = bio.isAvailable;
+        if (!bio.isAvailable) localStorage.removeItem('biometria');
+      } catch { this.biometriaDisponible = false; }
+    }
+
     this.cargarDatos();
     this.loadNotifPrefs();
   }
@@ -189,6 +201,11 @@ export class PerfilComponent implements OnInit {
         });
       }
     });
+  }
+
+  guardarBiometria() {
+    if (this.biometriaActiva) localStorage.setItem('biometria', '1');
+    else localStorage.removeItem('biometria');
   }
 
   logout() {

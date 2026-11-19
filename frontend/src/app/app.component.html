@@ -1,3 +1,25 @@
 <ion-app>
   <ion-router-outlet></ion-router-outlet>
 </ion-app>
+
+<!-- Bloqueo biométrico opcional: se activa en Perfil → Seguridad -->
+@if (bloqueado()) {
+  <div class="app-lock">
+    <ion-icon name="finger-print-outline"></ion-icon>
+    <p>FidelyFood está bloqueado</p>
+    <button (click)="autenticar()">Desbloquear</button>
+  </div>
+}
+
+<!-- Actualización obligatoria: bloquea la app hasta instalar la versión nueva -->
+@if (actualizacionObligatoria()) {
+  <div class="app-lock actualizacion">
+    <div class="app-lock-card">
+      <span class="icono">🚀</span>
+      <h2>Nueva versión disponible</h2>
+      <p>Tienes una versión antigua de FidelyFood y es obligatorio actualizar para seguir usándola.</p>
+      <button class="btn-actualizar" (click)="irADescargar()">Actualizar ahora</button>
+      <p class="mini">Se abrirá tu navegador para descargar la última versión.<br>Desinstala la actual e instala la nueva.</p>
+    </div>
+  </div>
+}

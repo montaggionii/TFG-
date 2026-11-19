@@ -4,4 +4,6 @@
     <string name="title_activity_main">FidelyFood</string>
     <string name="package_name">com.fidelyfood.app</string>
     <string name="custom_url_scheme">com.fidelyfood.app</string>
+    <string name="shortcut_qr">Mi QR</string>
+    <string name="shortcut_reservas">Mis reservas</string>
 </resources>

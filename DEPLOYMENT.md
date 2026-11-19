@@ -1,22 +1,35 @@
 # Despliegue — FidelyFood
 
-Estado real a fecha de hoy. **El proyecto ya está desplegado en Internet** desde el 2026-09-24 — esta
-sección documenta la arquitectura real en marcha, no un plan. (Nota histórica: este documento describió
-durante un tiempo un plan de despliegue en Railway que nunca llegó a ejecutarse; se sustituyó por Render
-+ Vercel + Aiven, que es lo que corre hoy. El plan de Railway queda solo en el historial de git.)
+Estado real a fecha de hoy: **DESPLEGADO Y VERIFICADO (18/11/2026)**. (Nota histórica: este documento
+describió durante un tiempo un plan de despliegue en Railway que nunca llegó a ejecutarse; se sustituyó
+por Render + Vercel + Aiven, que es lo que corre hoy. El plan de Railway queda solo en el historial de git.)
 
-## Arquitectura de producción real
+## Producción en marcha
 
-- **Backend**: [Render](https://dashboard.render.com) (plan free, Docker — usa el `Dockerfile` y
-  `render.yaml` del repo). URL pública: `https://fidelyfood-backend.onrender.com`. Healthcheck en `/ping`.
-- **Base de datos**: MySQL en [Aiven](https://console.aiven.io) (plan gratuito `Free-1-1gb`).
-- **Frontend**: [Vercel](https://vercel.com) (plan Hobby, build estático de `frontend/www` vía
-  `frontend/vercel.json`). Proyecto actual: `fidelyfoodapp` → `https://fidelyfoodapp.vercel.app`
-  (login de admin en `/admin/login`). El proyecto original (`tfg-glf5` → `https://tfg-glf5.vercel.app`)
-  quedó en un estado corrupto en Vercel el 2026-09-24 y se abandonó sin borrar — sigue respondiendo, pero
-  no es el que se mantiene activo; no usarlo como referencia para enlaces nuevos.
+- **Frontend**: https://fidelyfoodapp.vercel.app (Vercel, plan Hobby gratis, deploy automático desde `main`)
+  - Landing pública en `/`, página de descarga del APK en `/descargar`, APK en `/apk/fidelyfood-v1.0.0.apk`
+  - Proyecto original (`tfg-glf5` → `https://tfg-glf5.vercel.app`) quedó en un estado corrupto en Vercel
+    el 2026-09-24 y se abandonó sin borrar — sigue respondiendo, pero no es el que se mantiene activo; no
+    usarlo como referencia para enlaces nuevos.
+- **Backend**: https://fidelyfood-backend-api.onrender.com (Render, plan Free, Docker, rama `main`,
+  `render.yaml` + `Dockerfile` del repo)
+  - `GET /ping` → `pong`; registro y login verificados en producción
+- **Base de datos**: MySQL Free-1-1gb en **Aiven** (`fidelyfood-db-fidelyfood.b.aivencloud.com:19621/defaultdb`, DigitalOcean Ámsterdam)
+  - El seeder del backend creó las tablas y 3 restaurantes demo
 - **Dominio**: sin dominio propio — el usuario decidió quedarse con los subdominios gratuitos de
   Render/Vercel (ver `.agent/decisions.md` y `.agent/tasks.md`).
+
+## Variables del servicio Render (Environment)
+
+`SPRING_PROFILES_ACTIVE=prod`, `APP_BASE_URL=https://fidelyfood-backend-api.onrender.com`,
+`APP_CORS_ORIGINS=https://fidelyfoodapp.vercel.app`, `APP_JWT_SECRET` (generado, secreto),
+`FIDELYFOOD_ADMIN_PASSWORD` (definida por el dueño), `DB_URL` / `DB_USERNAME=avnadmin` / `DB_PASSWORD` (Aiven).
+
+## Avisos operativos (gratis = comportamiento raro pero normal)
+
+- **Render Free**: la instancia se apaga por inactividad; la primera petición tarda ~50 s en despertar.
+- **Aiven Free**: si la cuenta entra en inactividad, el servicio se puede quedar "Powered off" → Power on en el panel (el host se conserva; basta con redeployar Render si DNS falló durante el apagón).
+- **Importante**: el plan Free de MySQL de Aiven se **retira el 21/12/2026**. Antes de esa fecha migrar la BD (p. ej. Clever Cloud MySQL, o Supabase/Neon con PostgreSQL ajustando driver y dialecto en `application.properties` + `pom.xml`).
 
 ## Ya preparado en el código
 
