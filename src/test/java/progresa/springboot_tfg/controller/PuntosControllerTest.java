@@ -12,6 +12,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import progresa.springboot_tfg.dao.MovimientoPuntosDAO;
+import progresa.springboot_tfg.dao.PromocionDAO;
 import progresa.springboot_tfg.dao.RestauranteDAO;
 import progresa.springboot_tfg.dao.UsuarioDAO;
 import progresa.springboot_tfg.entity.MovimientoPuntos;
@@ -19,6 +20,7 @@ import progresa.springboot_tfg.entity.Restaurante;
 import progresa.springboot_tfg.entity.Usuario;
 import progresa.springboot_tfg.exception.BadRequestException;
 import progresa.springboot_tfg.exception.ResourceNotFoundException;
+import progresa.springboot_tfg.service.PuntosStreamService;
 
 import java.util.List;
 import java.util.Map;
@@ -51,9 +53,9 @@ class PuntosControllerTest {
     @Mock
     private MovimientoPuntosDAO movimientoPuntosDAO;
     @Mock
-    private progresa.springboot_tfg.dao.PromocionDAO promocionDAO;
+    private PromocionDAO promocionDAO;
     @Mock
-    private progresa.springboot_tfg.service.PuntosStreamService puntosStreamService;
+    private PuntosStreamService puntosStreamService;
 
     private PuntosController controller;
 

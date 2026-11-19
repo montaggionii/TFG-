@@ -11,10 +11,16 @@ durante un tiempo un plan de despliegue en Railway que nunca llegó a ejecutarse
 
 - **Frontend**: https://fidelyfoodapp.vercel.app (Vercel, plan Hobby gratis, deploy automático desde `main`)
   - Landing pública en `/`, página de descarga del APK en `/descargar`, APK en `/apk/fidelyfood-v1.0.0.apk`
-- **Backend**: https://fidelyfood-backend-api.onrender.com (Render, plan Free, Docker, rama `main`)
+  - Proyecto original (`tfg-glf5` → `https://tfg-glf5.vercel.app`) quedó en un estado corrupto en Vercel
+    el 2026-09-24 y se abandonó sin borrar — sigue respondiendo, pero no es el que se mantiene activo; no
+    usarlo como referencia para enlaces nuevos.
+- **Backend**: https://fidelyfood-backend-api.onrender.com (Render, plan Free, Docker, rama `main`,
+  `render.yaml` + `Dockerfile` del repo)
   - `GET /ping` → `pong`; registro y login verificados en producción
 - **Base de datos**: MySQL Free-1-1gb en **Aiven** (`fidelyfood-db-fidelyfood.b.aivencloud.com:19621/defaultdb`, DigitalOcean Ámsterdam)
   - El seeder del backend creó las tablas y 3 restaurantes demo
+- **Dominio**: sin dominio propio — el usuario decidió quedarse con los subdominios gratuitos de
+  Render/Vercel (ver `.agent/decisions.md` y `.agent/tasks.md`).
 
 ## Variables del servicio Render (Environment)
 
@@ -28,26 +34,14 @@ durante un tiempo un plan de despliegue en Railway que nunca llegó a ejecutarse
 - **Aiven Free**: si la cuenta entra en inactividad, el servicio se puede quedar "Powered off" → Power on en el panel (el host se conserva; basta con redeployar Render si DNS falló durante el apagón).
 - **Importante**: el plan Free de MySQL de Aiven se **retira el 21/12/2026**. Antes de esa fecha migrar la BD (p. ej. Clever Cloud MySQL, o Supabase/Neon con PostgreSQL ajustando driver y dialecto en `application.properties` + `pom.xml`).
 
-> **Nota de inconsistencia (sin resolver en esta sesión)**: esta sección usa
+> **Nota de inconsistencia (sin resolver todavía)**: las secciones de arriba usan
 > `fidelyfood-backend-api.onrender.com` (coincide con `frontend/src/environments/environment.prod.ts`,
-> el `apiUrl` real que compila el frontend), pero el resto de este documento más abajo, y la rutina
-> programada que mantiene esta rama, siguen usando `fidelyfood-backend.onrender.com` (sin `-api`). No se
-> ha podido determinar aquí cuál de los dos *hosts* de Render responde hoy sin hacer una petición de red
-> real; revisar en el dashboard de Render qué servicio está activo y unificar el nombre en todo el
-> documento.
-
-## Arquitectura de producción real
-
-- **Backend**: [Render](https://dashboard.render.com) (plan free, Docker — usa el `Dockerfile` y
-  `render.yaml` del repo). URL pública: `https://fidelyfood-backend.onrender.com`. Healthcheck en `/ping`.
-- **Base de datos**: MySQL en [Aiven](https://console.aiven.io) (plan gratuito `Free-1-1gb`).
-- **Frontend**: [Vercel](https://vercel.com) (plan Hobby, build estático de `frontend/www` vía
-  `frontend/vercel.json`). Proyecto actual: `fidelyfoodapp` → `https://fidelyfoodapp.vercel.app`
-  (login de admin en `/admin/login`). El proyecto original (`tfg-glf5` → `https://tfg-glf5.vercel.app`)
-  quedó en un estado corrupto en Vercel el 2026-09-24 y se abandonó sin borrar — sigue respondiendo, pero
-  no es el que se mantiene activo; no usarlo como referencia para enlaces nuevos.
-- **Dominio**: sin dominio propio — el usuario decidió quedarse con los subdominios gratuitos de
-  Render/Vercel (ver `.agent/decisions.md` y `.agent/tasks.md`).
+> el `apiUrl` real que compila el frontend), pero el resto de este documento más abajo (ejemplos de
+> `curl`/scripts, procedimiento de recuperación de Aiven) sigue usando `fidelyfood-backend.onrender.com`
+> (sin `-api`), igual que la rutina programada que mantiene esta rama. No se ha podido determinar aquí
+> cuál de los dos *hosts* de Render responde hoy sin hacer una petición de red real; revisar en el
+> dashboard de Render qué servicio está activo y unificar el nombre en todo el documento (y en el prompt
+> de la rutina, si procede).
 
 ## Ya preparado en el código
 
