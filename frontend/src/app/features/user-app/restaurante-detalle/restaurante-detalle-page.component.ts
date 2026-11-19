@@ -1,9 +1,10 @@
 import { Component, OnInit, OnDestroy, inject, ViewChild, ElementRef, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { IonicModule, ToastController, LoadingController, AlertController, ModalController } from '@ionic/angular';
 import { ReservaService } from '../../../core/services/reserva.service';
+import { FavoritoService } from '../../../core/services/favorito.service';
 import { RestauranteService } from '../../../core/services/restaurante.service';
 import { PromocionService } from '../../../core/services/promocion.service';
 import { PuntosService } from '../../../core/services/puntos.service';
@@ -19,6 +20,8 @@ import {
   locationOutline, 
   restaurantOutline, 
   star, 
+  heart,
+  heartOutline,
   informationCircleOutline, 
   giftOutline, 
   navigateOutline, 
@@ -42,7 +45,7 @@ import {
   templateUrl: './restaurante-detalle-page.component.html',
   styleUrls: ['./restaurante-detalle-page.component.scss'],
   standalone: true,
-  imports: [IonicModule, CommonModule, FormsModule, CustomerTranslatePipe, SafeRestaurantImageDirective]
+  imports: [IonicModule, CommonModule, FormsModule, RouterLink, CustomerTranslatePipe, SafeRestaurantImageDirective]
 })
 export class RestauranteDetallePageComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
@@ -55,6 +58,7 @@ export class RestauranteDetallePageComponent implements OnInit, OnDestroy {
   private loadingCtrl = inject(LoadingController);
   private alertCtrl = inject(AlertController);
   private reservaService = inject(ReservaService);
+  private favoritoService = inject(FavoritoService);
   private cdr = inject(ChangeDetectorRef);
   private ngZone = inject(NgZone);
   private modalCtrl = inject(ModalController);
@@ -92,6 +96,35 @@ export class RestauranteDetallePageComponent implements OnInit, OnDestroy {
   // Tarjeta de fidelidad: progreso hacia la próxima recompensa
   isTarjetaQrOpen = false;
   @ViewChild('tarjetaQrCanvas') tarjetaQrCanvas?: ElementRef<HTMLCanvasElement>;
+
+  esFavorito = false;
+  topFans: any = null;
+  get esInvitado(): boolean { return !this.user?.id; }
+  cargandoFavorito = false;
+
+  cargarTopFans() {
+    if (!this.restauranteIdFromUrl) return;
+    this.restauranteService.getTopFans(this.restauranteIdFromUrl).subscribe({
+      next: (d) => this.topFans = d,
+      error: () => this.topFans = null
+    });
+  }
+
+  ngOnInitFavorito() {
+    this.favoritoService.mios().subscribe({
+      next: (res) => this.esFavorito = res.restaurantes.includes(this.restauranteIdFromUrl || -1),
+      error: () => {}
+    });
+  }
+
+  alternarFavorito() {
+    if (this.cargandoFavorito || !this.restauranteIdFromUrl) return;
+    this.cargandoFavorito = true;
+    this.favoritoService.alternar(this.restauranteIdFromUrl).subscribe({
+      next: (res) => { this.esFavorito = res.favorito; this.cargandoFavorito = false; },
+      error: () => { this.cargandoFavorito = false; }
+    });
+  }
 
   // Reserva de mesa
   isReservaOpen = false;
@@ -186,6 +219,8 @@ export class RestauranteDetallePageComponent implements OnInit, OnDestroy {
   constructor() {
     addIcons({ 
       locationOutline, 
+      heart,
+      heartOutline,
       restaurantOutline, 
       star, 
       informationCircleOutline, 
@@ -215,6 +250,18 @@ export class RestauranteDetallePageComponent implements OnInit, OnDestroy {
       
       if (this.user && this.restauranteIdFromUrl) {
         this.sincronizarPuntos();
+      }
+      if (this.restauranteIdFromUrl) {
+        this.ngOnInitFavorito();
+        if (this.user?.id) this.cargarTopFans(); // top-fans requiere sesión
+      }
+    });
+    // Atajo: "repetir reserva" desde /u/reservas → modal con el nº de personas
+    this.route.queryParams.subscribe((q: any) => {
+      if (q['reservar']) {
+        const personas = parseInt(q['reservar'], 10);
+        this.abrirReserva();
+        if (!isNaN(personas) && personas > 0) this.reservaPersonas = personas;
       }
     });
 
@@ -581,6 +628,19 @@ export class RestauranteDetallePageComponent implements OnInit, OnDestroy {
     } catch (err) {
       console.error('QR Error', err);
     }
+  }
+
+  async compartir() {
+    const url = `${location.origin}/u/restaurante/${this.restauranteIdFromUrl}`;
+    const nombre = this.restaurante?.nombre || 'FidelyFood';
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: nombre, text: this.restaurante?.descripcion || 'Mira este restaurante en FidelyFood', url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        this.mostrarToast('Enlace copiado', 'success');
+      }
+    } catch { /* el usuario cerró el diálogo */ }
   }
 
   abrirMaps() {

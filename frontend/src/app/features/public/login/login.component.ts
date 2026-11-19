@@ -234,7 +234,8 @@ export class LoginComponent implements OnInit {
     let errorMessage = 'Error inesperado. Inténtalo de nuevo.';
 
     if (err.status === 0) {
-      errorMessage = '❌ Servidor no disponible. Verifica tu conexión a internet o la IP del backend.';
+      // Render Free duerme el backend: suele ser el arranque en frío, no la red del usuario
+      errorMessage = 'El servidor está despertando (primera conexión del día). Espera un minuto y vuelve a intentarlo.';
       console.error('[NETWORK ERROR] No se pudo alcanzar el backend:', err);
     } else if (err.status === 401 || err.status === 403) {
       errorMessage = '🔑 Credenciales incorrectas. Revisa tu email o teléfono y contraseña.';

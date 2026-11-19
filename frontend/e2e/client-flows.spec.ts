@@ -55,7 +55,7 @@ test.describe('Cliente', () => {
     await authenticateAs(page, session, '/u/perfil');
 
     await expect(page).toHaveURL(/\/u\/perfil/);
-    await page.locator('.btn-destructive').click();
+    await page.locator('.btn-destructive:not(.btn-delete-account)').click();
 
     await expect(page).toHaveURL(/\/login/, { timeout: 10000 });
     const token = await page.evaluate(() => localStorage.getItem('token'));

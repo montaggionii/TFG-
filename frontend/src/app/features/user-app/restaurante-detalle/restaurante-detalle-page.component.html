@@ -7,6 +7,10 @@
     </ion-buttons>
     <ion-title>{{ restaurante?.nombre || ('restaurant.fallbackTitle' | ffTranslate) }}</ion-title>
     <ion-buttons slot="end">
+      <ion-button class="fav-btn" (click)="alternarFavorito()" aria-label="Favorito">
+        <ion-icon slot="icon-only" [name]="esFavorito ? 'heart' : 'heart-outline'" [color]="esFavorito ? 'danger' : 'light'">
+        </ion-icon>
+      </ion-button>
       <div class="points-badge" *ngIf="ptsRestaurante !== undefined">
         <ion-icon name="star"></ion-icon>
         <span>{{ ptsRestaurante }} {{ 'common.pts' | ffTranslate }}</span>
@@ -38,7 +42,14 @@
         </div>
       </div>
 
-      <div class="restaurant-points-context" aria-live="polite">
+      <!-- CTA para invitados: explora sin cuenta, únete al llegar a la caja -->
+      <div class="guest-cta" *ngIf="esInvitado">
+        <p>Estás explorando como invitado 🎉</p>
+        <p class="muted">Crea tu cuenta gratis (email o solo tu móvil) para acumular y canjear puntos aquí.</p>
+        <ion-button expand="block" routerLink="/login">Crear cuenta</ion-button>
+      </div>
+
+      <div class="restaurant-points-context" aria-live="polite" *ngIf="!esInvitado">
         <div class="points-icon">
           <ion-icon name="star"></ion-icon>
         </div>
@@ -54,7 +65,7 @@
       </div>
 
       <!-- Tarjeta de fidelidad: progreso hacia la próxima recompensa -->
-      <div class="loyalty-progress-card" *ngIf="!isRestaurantBalanceLoading && promoProxima">
+      <div class="loyalty-progress-card" *ngIf="!esInvitado && !isRestaurantBalanceLoading && promoProxima">
         <div class="loyalty-head">
           <ion-icon name="gift-outline" color="primary"></ion-icon>
           <div class="loyalty-copy">
@@ -74,6 +85,20 @@
           <ion-icon name="calendar-outline" slot="start"></ion-icon>
           {{ 'reservas.botón' | ffTranslate }}
         </ion-button>
+      </div>
+
+      <!-- Top fans: los clientes más fieles del local -->
+      <div class="top-fans-card" *ngIf="topFans && (topFans.top || []).length > 0">
+        <div class="fans-head">
+          <ion-icon name="trophy-outline" color="warning"></ion-icon>
+          <h3>Top fans de {{ restaurante.nombre }}</h3>
+        </div>
+        <div class="fan" *ngFor="let f of topFans.top">
+          <span class="puesto" [class.oro]="f.puesto === 1" [class.plata]="f.puesto === 2" [class.bronce]="f.puesto === 3">{{ f.puesto }}</span>
+          <strong>{{ f.nombre }}</strong>
+          <small>{{ f.visitas }} visitas</small>
+        </div>
+        <p class="mi-puesto" *ngIf="topFans.miPuesto">Tu puesto: <strong>#{{ topFans.miPuesto }}</strong> de {{ topFans.clientesTotales }}</p>
       </div>
       <ion-modal [isOpen]="isTarjetaQrOpen" (didDismiss)="isTarjetaQrOpen = false">
         <ng-template>
@@ -126,6 +151,15 @@
             <p class="value">{{ restaurante.direccion || 'Valencia, España' }}</p>
           </div>
           <ion-icon name="navigate-outline" class="nav-icon" color="primary"></ion-icon>
+        </div>
+
+        <div class="info-item" (click)="compartir()">
+          <ion-icon name="share-social-outline" color="primary"></ion-icon>
+          <div class="text">
+            <p class="label">{{ 'restaurant.share.label' | ffTranslate }}</p>
+            <p class="value">{{ 'restaurant.share.value' | ffTranslate }}</p>
+          </div>
+          <ion-icon name="chevron-forward-outline" class="nav-icon"></ion-icon>
         </div>
 
         <div class="info-item" *ngIf="restaurante.telefono">

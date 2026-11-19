@@ -6,6 +6,9 @@ import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { MapComponent } from '../../../shared/components/map/map.component';
 import { RestauranteService } from '../../../core/services/restaurante.service';
+import { FavoritoService } from '../../../core/services/favorito.service';
+import { PuntosService } from '../../../core/services/puntos.service';
+import { GlobalStateService } from '../../../core/state/global-state.service';
 import { GeolocationService, GeoStatus } from '../../../core/services/geolocation.service';
 import { addIcons } from 'ionicons';
 import { 
@@ -27,8 +30,13 @@ import { SafeRestaurantImageDirective } from '../../../shared/directives/safe-re
   imports: [IonicModule, CommonModule, MapComponent, FormsModule, RouterModule, CustomerTranslatePipe, SafeRestaurantImageDirective]
 })
 export class MapaPageComponent implements OnInit, OnDestroy {
+  favoritos: number[] = [];
   private router = inject(Router);
   private restauranteService = inject(RestauranteService);
+  private favoritoService = inject(FavoritoService);
+  private puntosService = inject(PuntosService);
+  private globalState = inject(GlobalStateService);
+  recomendacion: any = null;
   private toastCtrl = inject(ToastController);
   private geoService = inject(GeolocationService);
   private apiUrl = environment.apiUrl;
@@ -49,6 +57,7 @@ export class MapaPageComponent implements OnInit, OnDestroy {
   // Filtros
   radioKm: number = 10;
   searchQuery = '';
+  tipoSeleccionado = '';
   isLoading = false;
 
   // UI
@@ -68,6 +77,13 @@ export class MapaPageComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    this.favoritoService.mios().subscribe({
+      next: (res) => {
+        this.favoritos = res.restaurantes;
+        this.ordenarPorFavoritos();
+      },
+      error: () => {}
+    });
     this.statusSub = this.geoService.status$.subscribe(status => {
       const becameActive = status === 'active' && this.geoStatus !== 'active';
       this.geoStatus = status;
@@ -102,12 +118,23 @@ export class MapaPageComponent implements OnInit, OnDestroy {
     this.geoService.stopWatching();
   }
 
+  /** Sugerencia contextual: local cercano donde faltan pocos puntos para una recompensa. */
+  private calcularRecomendacion() {
+    const user = this.globalState.getState();
+    if (!user?.id) return;
+    this.puntosService.getRecomendacion(user.id, this.userLocation!.lat, this.userLocation!.lng).subscribe({
+      next: (r) => this.recomendacion = r || null,
+      error: () => this.recomendacion = null
+    });
+  }
+
   reintentarUbicacion() {
     this.geoService.retry();
   }
 
   cargarRestaurantes() {
     if (!this.userLocation) return;
+    this.calcularRecomendacion();
     
     this.isLoading = true;
 
@@ -152,6 +179,11 @@ export class MapaPageComponent implements OnInit, OnDestroy {
     });
   }
 
+  ordenarPorFavoritos(lista: any[] = this.restaurantesFiltrados): any[] {
+    return [...lista].sort((a, b) =>
+      Number(this.favoritos.includes(b.id)) - Number(this.favoritos.includes(a.id)));
+  }
+
   filtrarPorDistancia() {
     if (!this.userLocation) return;
 
@@ -159,15 +191,25 @@ export class MapaPageComponent implements OnInit, OnDestroy {
     const filtrados = this.restaurantesOriginales.filter(r => {
       const isInsideRadius = r.distanciaNum <= this.radioKm;
       const matchesSearch = !query || this.restaurantMatchesSearch(r, query);
-      return isInsideRadius && matchesSearch;
+      const matchesTipo = !this.tipoSeleccionado || (r.tipo || 'Gourmet') === this.tipoSeleccionado;
+      return isInsideRadius && matchesSearch && matchesTipo;
     });
 
-    this.restaurantesFiltrados = filtrados;
+    this.restaurantesFiltrados = this.ordenarPorFavoritos(filtrados);
 
     this.actualizarMarcadores();
   }
 
   onSearchChange() {
+    this.filtrarPorDistancia();
+  }
+
+  get tiposDisponibles(): string[] {
+    return [...new Set(this.restaurantesOriginales.map(r => r.tipo || 'Gourmet'))];
+  }
+
+  cambiarTipo(tipo: string) {
+    this.tipoSeleccionado = this.tipoSeleccionado === tipo ? '' : tipo;
     this.filtrarPorDistancia();
   }
 

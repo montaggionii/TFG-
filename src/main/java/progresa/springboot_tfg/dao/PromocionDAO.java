@@ -8,4 +8,6 @@ import java.util.List;
 public interface PromocionDAO extends JpaRepository<Promocion, Long> {
 
     List<Promocion> findByRestauranteId(Long restauranteId);
+
+    List<Promocion> findByRestauranteIdAndTipoIgnoreCaseAndActivaTrue(Long restauranteId, String tipo);
 }

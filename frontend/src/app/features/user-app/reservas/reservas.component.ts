@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule, ToastController } from '@ionic/angular';
-import { RouterLink } from '@angular/router';
+import { RouterLink, Router } from '@angular/router';
 import { addIcons } from 'ionicons';
 import { calendarOutline, peopleOutline, closeCircleOutline, checkmarkCircleOutline, timeOutline } from 'ionicons/icons';
 import { ReservaService, Reserva } from '../../../core/services/reserva.service';
@@ -39,10 +39,15 @@ import { CustomerTranslatePipe } from '../../../core/i18n/customer-translate.pip
         <p><ion-icon name="time-outline"></ion-icon> {{ r.fecha | date:'EEE d MMM, HH:mm' }}</p>
         <p><ion-icon name="people-outline"></ion-icon> {{ r.personas }} {{ 'reservas.personas' | ffTranslate }}</p>
         <p *ngIf="r.notas" class="notas">"{{ r.notas }}"</p>
-        <ion-button *ngIf="r.estado === 'PENDING' || r.estado === 'CONFIRMED'"
-                    size="small" fill="clear" color="danger" (click)="cancelar(r)">
-          {{ 'reservas.cancelar' | ffTranslate }}
-        </ion-button>
+        <div class="acciones-reserva">
+          <ion-button *ngIf="r.estado === 'PENDING' || r.estado === 'CONFIRMED'"
+                      size="small" fill="clear" color="danger" (click)="cancelar(r)">
+            {{ 'reservas.cancelar' | ffTranslate }}
+          </ion-button>
+          <ion-button size="small" fill="outline" (click)="repetir(r)">
+            {{ 'reservas.repetir' | ffTranslate }}
+          </ion-button>
+        </div>
       </ion-card>
     </ion-content>
   `,
@@ -56,10 +61,12 @@ import { CustomerTranslatePipe } from '../../../core/i18n/customer-translate.pip
     p { margin: 2px 0; color: var(--ion-color-medium, gray); font-size: 14px;
       ion-icon { vertical-align: -2px; margin-right: 4px; } }
     .notas { font-style: italic; }
+    .acciones-reserva { display: flex; gap: 6px; margin-top: 4px; }
   `]
 })
 export class ReservasComponent implements OnInit {
   private reservaService = inject(ReservaService);
+  private router = inject(Router);
   private toastCtrl = inject(ToastController);
   private i18n = inject(CustomerI18nService);
 
@@ -78,6 +85,11 @@ export class ReservasComponent implements OnInit {
       next: (data) => { this.reservas = data; this.cargando = false; },
       error: () => { this.cargando = false; }
     });
+  }
+
+  repetir(r: Reserva) {
+    if (!r.restauranteId) return;
+    this.router.navigate(['/u/restaurante', r.restauranteId], { queryParams: { reservar: r.personas } });
   }
 
   async cancelar(r: Reserva) {

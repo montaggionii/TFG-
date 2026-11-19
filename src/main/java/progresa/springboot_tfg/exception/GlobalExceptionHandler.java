@@ -110,6 +110,8 @@ public class GlobalExceptionHandler {
        ========================= */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> manejarExceptionGeneral(Exception ex) {
+        org.slf4j.LoggerFactory.getLogger(GlobalExceptionHandler.class)
+                .error("Error inesperado no controlado", ex);
         return buildResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "Internal Server Error",

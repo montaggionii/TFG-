@@ -65,10 +65,17 @@
     <div class="history-list-pro animate__animated animate__fadeInUp" *ngIf="historial.length > 0">
       <div class="section-header">
         <h3 class="section-title">{{ 'history.latest' | ffTranslate }}</h3>
+        <span class="semana-chip" *ngIf="ganadosEstaSemana() > 0">+{{ ganadosEstaSemana() }} {{ 'history.estaSemana' | ffTranslate }}</span>
       </div>
 
+      <ion-segment [(ngModel)]="filtroActivo" class="filtro-segment">
+        <ion-segment-button value="todos"><ion-label>{{ 'history.filtro.todos' | ffTranslate }}</ion-label></ion-segment-button>
+        <ion-segment-button value="ganados"><ion-label>{{ 'history.filtro.ganados' | ffTranslate }}</ion-label></ion-segment-button>
+        <ion-segment-button value="canjeados"><ion-label>{{ 'history.filtro.canjeados' | ffTranslate }}</ion-label></ion-segment-button>
+      </ion-segment>
+
       <ion-list class="history-ion-list" lines="none">
-        <div class="history-group" *ngFor="let mov of historial">
+        <div class="history-group" *ngFor="let mov of historialFiltrado">
           <div class="date-header">
              <span>{{ mov.fecha | date:'d MMMM, y' }}</span>
           </div>

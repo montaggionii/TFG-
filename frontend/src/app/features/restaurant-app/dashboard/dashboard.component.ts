@@ -19,6 +19,7 @@ import {
   pricetagOutline,
   settingsOutline,
   calendarOutline,
+  analyticsOutline,
   listOutline
 } from 'ionicons/icons';
 import { RestauranteService } from '../../../core/services/restaurante.service';
@@ -66,6 +67,7 @@ export class DashboardComponent implements OnInit {
       pricetagOutline,
       settingsOutline,
       calendarOutline,
+      analyticsOutline,
       listOutline
     });
   }

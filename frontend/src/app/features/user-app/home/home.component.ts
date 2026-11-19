@@ -55,6 +55,9 @@ export class HomeComponent implements OnInit, OnDestroy {
   private puntosService = inject(PuntosService);
   // Gamificación: nivel, racha y resumen del mes
   resumen: any = null;
+  sorpresaCargando = false;
+  ruletaGirando = false;
+  sorpresaGanada: number | null = null;
   private globalState = inject(GlobalStateService);
   private toastCtrl = inject(ToastController);
   private modalCtrl = inject(ModalController);
@@ -111,6 +114,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   geoStatus: GeoStatus = 'idle';
   private geoSub?: Subscription;
   private statusSub?: Subscription;
+  private puntosSource?: EventSource;
 
   async ngOnInit() {
     // Sincronización reactiva con el estado global (Senior Engineering)
@@ -122,6 +126,7 @@ export class HomeComponent implements OnInit, OnDestroy {
           this.user = state;
           this.cargarDatosUsuario(false);
           this.inicializarMapa();
+          this.conectarStreamPuntos(state);
         } else {
           // Si es el mismo ID, solo actualizamos la referencia local sin re-disparar carga pesada
           this.user = state;
@@ -135,7 +140,87 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.cargarPromocionesReales();
   }
 
+  /** Puntos en tiempo real: SSE; si la conexión falla, silencio (el saldo
+   *  se refresca al volver a la app como siempre). */
+  private conectarStreamPuntos(state: any) {
+    this.puntosSource?.close();
+    if (!state?.id || !state?.token) return;
+    this.puntosSource = this.puntosService.streamPuntos(state.id, state.token, (delta) => {
+      if (this.user) {
+        this.globalState.setState({ ...this.user, id: this.user.id, puntos: (this.user.puntos || 0) + delta });
+      }
+      this.mostrarDelta(delta);
+      // Refrescamos el resumen (nivel/racha) tras un cambio de saldo
+      if (state?.id) {
+        this.puntosService.getResumenFidelidad(state.id).subscribe({
+          next: (r) => this.resumen = r,
+          error: () => {}
+        });
+      }
+    }, () => {
+      this.puntosSource?.close();
+      this.puntosSource = undefined;
+    });
+  }
+
+  /** Aviso flotante del cambio de puntos, el momento dopamina. */
+  private async mostrarDelta(delta: number) {
+    if (delta === 0) return;
+    const toast = await this.toastCtrl.create({
+      message: delta > 0 ? `🎉 +${delta} puntos` : `${delta} puntos`,
+      duration: 3500,
+      position: 'top',
+      cssClass: 'delta-puntos',
+      color: delta > 0 ? 'primary' : 'medium',
+      icon: delta > 0 ? 'sparkles' : 'information-circle'
+    });
+    toast.present();
+  }
+
+  async abrirSorpresa() {
+    if (this.sorpresaCargando) return;
+    this.sorpresaCargando = true;
+    this.ruletaGirando = true;
+    try {
+      const res = await this.puntosService.sorpresaDelDia().toPromise();
+      // Girar ~3s para el efecto y revelar el premio
+      await new Promise(r => setTimeout(r, 2800));
+      this.ruletaGirando = false;
+      this.sorpresaGanada = res?.premio ?? null;
+      if (this.user && res) {
+        this.globalState.setState({ ...this.user, id: this.user.id, puntos: res.puntos });
+      }
+    } catch (err: any) {
+      this.ruletaGirando = false;
+      this.toastCtrl.create({
+        message: err?.error?.message || 'La sorpresa de hoy ya la has cogido',
+        duration: 2500, color: 'warning', position: 'top'
+      }).then(t => t.present());
+    } finally {
+      this.sorpresaCargando = false;
+    }
+  }
+
+  async reclamarPasaporte() {
+    if (!this.user?.id) return;
+    try {
+      const res = await this.puntosService.reclamarPasaporte(this.user.id).toPromise();
+      this.globalState.setState({ ...this.user, id: this.user.id, puntos: res?.puntos ?? this.user.puntos });
+      this.toastCtrl.create({
+        message: '🌍 ¡Pasaporte completo! +' + (res?.premio ?? 25) + ' puntos',
+        duration: 3500, color: 'success', position: 'top'
+      }).then(t => t.present());
+      if (this.user?.id) {
+        this.puntosService.getResumenFidelidad(this.user.id).subscribe({ next: (r) => this.resumen = r });
+      }
+    } catch (err: any) {
+      this.toastCtrl.create({ message: err?.error?.message || 'No se pudo reclamar', duration: 2500, color: 'danger', position: 'top' })
+        .then(t => t.present());
+    }
+  }
+
   ngOnDestroy() {
+    this.puntosSource?.close();
     this.geoSub?.unsubscribe();
     this.statusSub?.unsubscribe();
     this.geoService.stopWatching();
