@@ -70,30 +70,37 @@
 - [x] **Login social no comprobaba `email_verified`: toma de cuenta ajena (AGT-052)** — 2026-11-18, sesión concurrente a la de abajo: `SocialAuthService.provisionar()` confiaba el claim `email` del id_token sin comprobar el claim OIDC `email_verified`, permitiendo tomar la cuenta de otro cliente por email con una cuenta de Google/Apple cuyo email no está realmente verificado — sin evidencia de explotación (login social sigue deshabilitado en producción: `GOOGLE_CLIENT_ID`/`APPLE_CLIENT_IDS` sin configurar). Corregido rechazando (`SecurityException`, antes de tocar `usuarioDAO`) cualquier `email_verified` que no sea exactamente `true`. 3 tests nuevos en `SocialAuthServiceTest` (8/8). Detalle completo en `AGENT_TASKS.md` (AGT-052, estado `REVIEW`) y `SECURITY.md` (#30).
 - [x] **Bypass completo de autenticación en el login SMS/OTP si Twilio no está configurado (AGT-053, renumerada desde AGT-052 al chocar con la sesión concurrente de arriba)** — 2026-11-18: `agent/fidelyfood-autonomous` estaba 19 commits por detrás de `main` (le faltaban login social Google/Apple, acceso por SMS/OTP, canje por QR temporal, reservas y Apple Wallet, fusionados directamente a `main`); `git merge origin/main` con 2 conflictos reales (una sección añadida solo en `main` en `perfil.component.ts`, y dos bloques de tests nuevos insertados en el mismo punto de `UsuarioServiceTest.java` por ambas ramas) — resueltos conservando el contenido de las dos partes, sin descartar nada. El merge rompió además la compilación de `CanjeControllerTest.java` (`CanjeController` cambió de constructor en `main`); corregido actualizando el test. Auditado el código nuevo de login (nunca revisado hasta ahora, mismo criterio que FID-017/018/022): `SocialAuthService` (Google/Apple) verifica de verdad la firma RS256 contra el JWKS del proveedor, el emisor y la audiencia — sólido (el hallazgo de `email_verified` de arriba lo encontró la sesión concurrente, no esta). El login por SMS/OTP no: `SmsSender.enviar()` decidía si el código viajaba en claro en la respuesta de `POST /api/auth/otp/send` (endpoint público, parte del propio flujo de login) mirando solo si `app.sms.provider == "twilio"`. `render.yaml` no define ninguna variable de Twilio, así que si Render no las tiene puestas a mano en el dashboard (no se puede comprobar desde este sandbox), producción ejecuta hoy la rama "sin proveedor" — cualquiera, sin autenticarse, podía pedir un código para el teléfono de cualquier persona, leerlo en su propia respuesta y entrar con el JWT de esa cuenta (o crear una nueva). Mismo patrón que la contraseña de admin por defecto ya corregida (AGT-008). Corregido con una propiedad explícita nueva (`app.sms.dev-expose-code`, por defecto `false`, independiente de si hay proveedor configurado): solo expone el código cuando no hay proveedor **y** esta propiedad se activó a propósito en local. `SmsSenderTest` nuevo (3 tests). **Verificado**: `mvn test -Dtest=SmsSenderTest,OtpServiceTest` → 8/8; `mvn test` completo tras el merge de ambas sesiones → 239/240 (mismo único fallo de siempre, `contextLoads`, sin MySQL real). Detalle completo en `AGENT_TASKS.md` (AGT-053, estado `REVIEW`) y `SECURITY.md` (#31).
 
-## Pendiente (por prioridad) — actualizado 2026-11-18
+## Pendiente (por prioridad) — actualizado 2026-11-19
 
-**🚨 Aviso de esta sesión (2026-11-18): el PR #51 sigue sin revisarse (más de un mes abierto) y ahora lleva dos vulnerabilidades reales de seguridad más, sin fusionar.**
-El PR #51 (`agent/fidelyfood-autonomous` → `main`) sigue abierto desde 2026-10-08. Desde el último aviso
-(2026-11-16), `main` recibió un conjunto grande de features nuevas directamente (sin pasar por este PR):
-login por SMS/OTP, login social Google/Apple, Apple Wallet, reservas de mesa, canje con QR temporal,
-gamificación. Dos ejecuciones concurrentes de esta misma rutina fusionaron esa historia y la auditaron
-por primera vez hoy, cada una con un hallazgo real distinto en el mismo código de login, nunca revisado
-hasta ahora:
-- **AGT-052**: `SocialAuthService` (login "Continuar con Google/Apple") nunca comprobaba el claim OIDC
-  `email_verified` antes de loguear en una cuenta ya existente por email — permite tomar la cuenta de
-  otro cliente sin su contraseña. Sin evidencia de explotación: el login social sigue deshabilitado en
-  producción mientras `GOOGLE_CLIENT_ID`/`APPLE_CLIENT_IDS` no estén configurados.
-- **AGT-053**: con Twilio sin configurar (el estado de `render.yaml`), el login por SMS devolvía el
-  código OTP real en la propia respuesta HTTP de `POST /api/auth/otp/send` — bypass completo de
-  autenticación, explotable ahora mismo si nadie ha añadido las credenciales de Twilio a mano en el
-  dashboard de Render.
+**🚨 Aviso de esta sesión (2026-11-19): el PR #51 sigue sin revisarse (más de un mes abierto) y ahora lleva una vulnerabilidad real de seguridad más, sin fusionar.**
+El PR #51 (`agent/fidelyfood-autonomous` → `main`) sigue abierto desde 2026-10-08. Desde el aviso anterior
+(2026-11-18), `main` recibió un lote todavía más grande de features directamente (sin pasar por este PR):
+favoritos, reservas de mesa, insights del restaurante, gamificación completa (niveles, racha, pasaporte de
+sabor, sorpresa del día, recomendación por cercanía), puntos en vivo por SSE, modo invitado (explorar mapa
+y fichas sin cuenta), Apple Wallet, deep links, biometría, landing pública + descarga de APK, y un fix de
+CORS para el WebView de Android — `git merge origin/main` tuvo 4 conflictos reales esta vez (no solo de
+formato): `.agent/memory.jsonl` (ambos lados añadieron entradas, se conservaron las dos), `DEPLOYMENT.md`
+(estado de producción desactualizado en esta rama vs. uno más reciente en `main`, se fusionó conservando lo
+más nuevo de cada sección), `frontend/package.json`/`package-lock.json` (versión de Angular + la dependencia
+nueva de biometría, se conservó la versión más reciente de Angular de esta rama más la dependencia nueva de
+`main`) — y dos tests de controlador de esta rama (`RestauranteControllerTest`/`PuntosControllerTest`) que
+dejaron de compilar porque sus controladores ganaron parámetros nuevos (insights, SSE) en `main`.
 
-Ambas ya corregidas en esta rama, igual que el resto de vulnerabilidades reales que siguen esperando
-desde hace más de un mes: mass assignment de puntos (AGT-028), cambio de contraseña sin pedir la actual
-(AGT-032/AGT-038), CSRF en `POST /api/jarvis/run` (AGT-015), fuga del token XSRF (AGT-023) y la
-vulnerabilidad crítica de Capacitor (AGT-011). El PR ya acumula 43 tareas. Lo que hace falta ahora es que
-una persona lo revise y fusione (o rechace), no más código. Las dos tareas en `TODO` real (AGT-007,
-AGT-016) siguen bloqueadas por la misma decisión humana de siempre, sin cambios.
+Auditado el modo invitado recién fusionado (el `permitAll` nuevo de catálogo es justo el tipo de cambio que
+ya rompió algo antes, ver FID-017/AGT-002): **AGT-054**, `GET /api/restaurantes/{id}/top-fans` quedó
+accesible sin ninguna sesión (nombres + nº de visitas de clientes reales) porque cae bajo el `permitAll`
+nuevo de `/api/restaurantes/**`, contradiciendo su propia descripción ("Solo primer nombre") y la nota ya
+registrada aquí mismo ("Requiere sesión"); de paso, `POST /api/puntos/sorpresa` tampoco comprobaba el rol
+en el código, a diferencia de sus hermanos. Ya corregido en esta rama (`SecurityUtils.requireAuthenticated`
++ matchers explícitos nuevos en `SecurityConfig`), junto con un bug colateral real de 500 (`Map.of` con
+`miPuesto` nulo) encontrado al escribir el test.
+
+El PR ya acumula 54 tareas, incluidas las vulnerabilidades reales que siguen esperando desde hace más de un
+mes: mass assignment de puntos (AGT-028), cambio de contraseña sin pedir la actual (AGT-032/AGT-038), CSRF
+en `POST /api/jarvis/run` (AGT-015), fuga del token XSRF (AGT-023), la vulnerabilidad crítica de Capacitor
+(AGT-011), `email_verified` ausente en login social (AGT-052) y el bypass de OTP por SMS (AGT-053). Lo que
+hace falta ahora es que una persona lo revise y fusione (o rechace), no más código. Las dos tareas en `TODO`
+real (AGT-007, AGT-016) siguen bloqueadas por la misma decisión humana de siempre, sin cambios.
 
 **Fuente de verdad del backlog técnico: el bloque `AGT-xxx` de `AGENT_TASKS.md`** (estado, dependencias,
 criterios de aceptación, verificación real y lo que falta por verificar de cada tarea). Esta lista solo

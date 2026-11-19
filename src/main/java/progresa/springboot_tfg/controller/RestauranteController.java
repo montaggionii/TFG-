@@ -93,6 +93,7 @@ public class RestauranteController {
     public ResponseEntity<Map<String, Object>> topFans(
             @PathVariable Long id,
             Authentication authentication) {
+        SecurityUtils.requireAuthenticated(authentication);
         Restaurante restaurante = restauranteDAO.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Restaurante no encontrado"));
 
@@ -126,11 +127,11 @@ public class RestauranteController {
         int idx = orden.indexOf(usuarioDAO.findByEmail(emailUsuario).map(Usuario::getId).orElse(-1L));
         if (idx >= 0) miPuesto = idx + 1;
 
-        return ResponseEntity.ok(Map.of(
-                "top", ranking,
-                "miPuesto", miPuesto,
-                "clientesTotales", visitas.size()
-        ));
+        Map<String, Object> respuesta = new java.util.LinkedHashMap<>();
+        respuesta.put("top", ranking);
+        respuesta.put("miPuesto", miPuesto);
+        respuesta.put("clientesTotales", visitas.size());
+        return ResponseEntity.ok(respuesta);
     }
 
     private String primero(String nombre) {
