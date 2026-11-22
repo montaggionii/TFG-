@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 import progresa.springboot_tfg.dao.UsuarioDAO;
 import progresa.springboot_tfg.dto.LoginResponseDTO;
@@ -32,9 +33,11 @@ class SocialAuthServiceTest {
     @Mock
     private JwtUtil jwtUtil;
 
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+
     @org.junit.jupiter.api.BeforeEach
     void setUp() {
-        service = new SocialAuthService(usuarioDAO, jwtUtil);
+        service = new SocialAuthService(usuarioDAO, jwtUtil, passwordEncoder);
     }
 
     private SocialAuthService service;
@@ -98,6 +101,14 @@ class SocialAuthServiceTest {
         assertEquals("nuevo.social@gmail.com", respuesta.getEmail());
         assertEquals("Ana Social", respuesta.getNombre());
         assertEquals("jwt", respuesta.getToken());
+
+        // Regresión: la cuenta social sin contraseña local debía guardar el
+        // valor aleatorio en claro (Base64) en vez de con el mismo
+        // BCryptPasswordEncoder que usa el login por contraseña real.
+        org.mockito.ArgumentCaptor<Usuario> captor = org.mockito.ArgumentCaptor.forClass(Usuario.class);
+        org.mockito.Mockito.verify(usuarioDAO).save(captor.capture());
+        assertTrue(!passwordEncoder.matches("cualquier-otra-cosa", captor.getValue().getPassword()));
+        assertTrue(captor.getValue().getPassword().startsWith("$2a$") || captor.getValue().getPassword().startsWith("$2b$"));
     }
 
     @Test

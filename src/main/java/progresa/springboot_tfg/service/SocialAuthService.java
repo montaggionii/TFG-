@@ -15,6 +15,7 @@ import com.nimbusds.jwt.SignedJWT;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import progresa.springboot_tfg.dao.UsuarioDAO;
 import progresa.springboot_tfg.dto.LoginResponseDTO;
@@ -51,6 +52,7 @@ public class SocialAuthService {
 
     private final UsuarioDAO usuarioDAO;
     private final JwtUtil jwtUtil;
+    private final BCryptPasswordEncoder passwordEncoder;
 
     @Value("${app.oauth.google.client-id:}")
     private String googleClientId;
@@ -59,9 +61,10 @@ public class SocialAuthService {
     @Value("${app.oauth.apple.client-ids:}")
     private String appleClientIds;
 
-    public SocialAuthService(UsuarioDAO usuarioDAO, JwtUtil jwtUtil) {
+    public SocialAuthService(UsuarioDAO usuarioDAO, JwtUtil jwtUtil, BCryptPasswordEncoder passwordEncoder) {
         this.usuarioDAO = usuarioDAO;
         this.jwtUtil = jwtUtil;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public LoginResponseDTO loginGoogle(String idToken, String nombreEnviado) {
@@ -207,6 +210,9 @@ public class SocialAuthService {
     private String hashAleatorio() {
         byte[] bytes = new byte[24];
         new SecureRandom().nextBytes(bytes);
-        return Base64.getEncoder().encodeToString(bytes);
+        // Mismo patrón que UsuarioService.eliminarPropio: el valor aleatorio se
+        // pasa por el mismo BCryptPasswordEncoder que usa el login por contraseña,
+        // nunca se guarda en claro en la columna "password".
+        return passwordEncoder.encode(Base64.getEncoder().encodeToString(bytes));
     }
 }

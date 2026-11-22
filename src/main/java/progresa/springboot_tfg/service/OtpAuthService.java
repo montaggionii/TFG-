@@ -1,5 +1,6 @@
 package progresa.springboot_tfg.service;
 
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import progresa.springboot_tfg.dao.UsuarioDAO;
 import progresa.springboot_tfg.dto.LoginResponseDTO;
@@ -30,14 +31,17 @@ public class OtpAuthService {
     private final UsuarioDAO usuarioDAO;
     private final JwtUtil jwtUtil;
     private final QrService qrService;
+    private final BCryptPasswordEncoder passwordEncoder;
 
     public OtpAuthService(OtpService otpService, UsuarioService usuarioService,
-                          UsuarioDAO usuarioDAO, JwtUtil jwtUtil, QrService qrService) {
+                          UsuarioDAO usuarioDAO, JwtUtil jwtUtil, QrService qrService,
+                          BCryptPasswordEncoder passwordEncoder) {
         this.otpService = otpService;
         this.usuarioService = usuarioService;
         this.usuarioDAO = usuarioDAO;
         this.jwtUtil = jwtUtil;
         this.qrService = qrService;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public OtpSendResponseDTO enviarCodigo(String telefono) {
@@ -74,11 +78,13 @@ public class OtpAuthService {
         Usuario nuevo = new Usuario();
         nuevo.setNombre(nombre != null && !nombre.isBlank() ? nombre.trim() : "Cliente " + tel.substring(tel.length() - 4));
         nuevo.setEmail(emailInternoPorTelefono(tel));
-        // Sin contraseña local: hash aleatorio para que ningún login por
+        // Sin contraseña local: hash aleatorio (pasado por el mismo
+        // BCryptPasswordEncoder que usa el login por contraseña, igual que
+        // UsuarioService.eliminarPropio) para que ningún login por
         // contraseña pueda entrar en esta cuenta.
         byte[] bytes = new byte[24];
         new SecureRandom().nextBytes(bytes);
-        nuevo.setPassword(Base64.getEncoder().encodeToString(bytes));
+        nuevo.setPassword(passwordEncoder.encode(Base64.getEncoder().encodeToString(bytes)));
         nuevo.setPuntos(0);
         nuevo.setRole(Role.ROLE_USER);
         nuevo.setTelefono(tel);
