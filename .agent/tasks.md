@@ -71,9 +71,29 @@
 - [x] **`tokenInterceptor`: regresión real tras el merge del "modo invitado" — dejaba de cerrar sesión cuando el token desaparecía entre el envío y la respuesta de error (AGT-055, renumerada desde AGT-054 al chocar con la sesión concurrente de abajo, que llegó de forma independiente a otro hallazgo real distinto en el mismo lote de features — fuga de `top-fans` a invitados)** — 2026-11-19: la rama estaba 19 commits por detrás de `main` (le faltaban las 8 features del lote de mejoras del 18/11, incluido "modo invitado"); `git merge origin/main` con 4 conflictos (`.agent/memory.jsonl`, `DEPLOYMENT.md`, `frontend/package.json`/`package-lock.json` — este último regenerado con `npm install` tras fijar `@capacitor/android`/`@capacitor/ios` a `8.5.3` exacto, único modo de resolver un conflicto real de peer-dependencies con `@capacitor/core`). El merge rompió la compilación de `RestauranteControllerTest`/`PuntosControllerTest` (constructores cambiados en `main` por las features de insights/SSE); corregido añadiendo los mocks nuevos. Al correr `ng test` tras el merge, 2 de 143 tests fallaron de verdad: el "modo invitado" de `main` decidía si un 401/403 cerraba sesión/redirigía mirando el `localStorage` **actual**, no el token con el que se envió la petición — rompía el caso real (de esta rama) de "el token desaparece mientras la respuesta está en vuelo = sesión terminada, hay que llamar a `logout()`". Corregido usando la variable `token` ya capturada al enviar la petición en vez de releer `localStorage` dentro del `catchError`. 2 tests nuevos cierran el hueco de cobertura que "modo invitado" trajo sin ningún test propio. **Verificado**: `ng test --watch=false` → 145/145 (143+2, reproducido el fallo real antes del fix); `tsc --noEmit`/`ng build --configuration production`/`playwright test --list` (27/27) sin regresiones; `mvn test` → 243 (1 nuevo), 242 passed, mismo único fallo de siempre (`contextLoads`, sin MySQL real); re-verificado a 249/248 tras fusionar también la sesión concurrente de AGT-054. Detalle completo en `AGENT_TASKS.md` (AGT-055, estado `REVIEW`) y `SECURITY.md` (#33).
 - [x] **Bypass completo de autenticación en el login SMS/OTP si Twilio no está configurado (AGT-053, renumerada desde AGT-052 al chocar con la sesión concurrente de arriba)** — 2026-11-18: `agent/fidelyfood-autonomous` estaba 19 commits por detrás de `main` (le faltaban login social Google/Apple, acceso por SMS/OTP, canje por QR temporal, reservas y Apple Wallet, fusionados directamente a `main`); `git merge origin/main` con 2 conflictos reales (una sección añadida solo en `main` en `perfil.component.ts`, y dos bloques de tests nuevos insertados en el mismo punto de `UsuarioServiceTest.java` por ambas ramas) — resueltos conservando el contenido de las dos partes, sin descartar nada. El merge rompió además la compilación de `CanjeControllerTest.java` (`CanjeController` cambió de constructor en `main`); corregido actualizando el test. Auditado el código nuevo de login (nunca revisado hasta ahora, mismo criterio que FID-017/018/022): `SocialAuthService` (Google/Apple) verifica de verdad la firma RS256 contra el JWKS del proveedor, el emisor y la audiencia — sólido (el hallazgo de `email_verified` de arriba lo encontró la sesión concurrente, no esta). El login por SMS/OTP no: `SmsSender.enviar()` decidía si el código viajaba en claro en la respuesta de `POST /api/auth/otp/send` (endpoint público, parte del propio flujo de login) mirando solo si `app.sms.provider == "twilio"`. `render.yaml` no define ninguna variable de Twilio, así que si Render no las tiene puestas a mano en el dashboard (no se puede comprobar desde este sandbox), producción ejecuta hoy la rama "sin proveedor" — cualquiera, sin autenticarse, podía pedir un código para el teléfono de cualquier persona, leerlo en su propia respuesta y entrar con el JWT de esa cuenta (o crear una nueva). Mismo patrón que la contraseña de admin por defecto ya corregida (AGT-008). Corregido con una propiedad explícita nueva (`app.sms.dev-expose-code`, por defecto `false`, independiente de si hay proveedor configurado): solo expone el código cuando no hay proveedor **y** esta propiedad se activó a propósito en local. `SmsSenderTest` nuevo (3 tests). **Verificado**: `mvn test -Dtest=SmsSenderTest,OtpServiceTest` → 8/8; `mvn test` completo tras el merge de ambas sesiones → 239/240 (mismo único fallo de siempre, `contextLoads`, sin MySQL real). Detalle completo en `AGENT_TASKS.md` (AGT-053, estado `REVIEW`) y `SECURITY.md` (#31).
 
-## Pendiente (por prioridad) — actualizado 2026-11-19
+## Pendiente (por prioridad) — actualizado 2026-11-23
 
-**🚨 Aviso de esta sesión (2026-11-19): el PR #51 sigue sin revisarse (más de un mes abierto, ahora 55 tareas) y dos sesiones concurrentes encontraron dos hallazgos reales más en el mismo lote de features.**
+**🚨 Aviso de esta sesión (2026-11-23): el PR #51 sigue sin revisarse (más de un mes y medio abierto, ya 56 tareas).**
+Rama ya al día con `main` (sin commits nuevos que fusionar desde el aviso del 19/11). Desde entonces, otra
+sesión de esta rutina (2026-11-22) encontró y corrigió **AGT-056**: `SocialAuthService`/`OtpAuthService`
+guardaban la contraseña aleatoria de las cuentas sin login local (login social y SMS/OTP) sin pasarla por
+el `BCryptPasswordEncoder` que usa el resto de la app — verificado como no explotable hoy
+(`passwordEncoder.matches()` falla de forma segura ante un valor no BCrypt), pero inconsistente con el
+patrón ya usado en `UsuarioService`. Corregido con 7 tests nuevos (`OtpAuthServiceTest`) + una aserción de
+regresión en `SocialAuthServiceTest`; ver `SECURITY.md` (#34) y `AGENT_TASKS.md` (AGT-056). Esta sesión
+solo sincronizó esta nota y la descripción del PR #51 (que todavía no mencionaba AGT-056) — no buscó ningún
+hallazgo nuevo, siguiendo el propio aviso del PR de no añadir más código salvo un hallazgo igual de acotado.
+
+Esta sesión también revalidó la salud completa de la rama en este sandbox (sin MySQL/backend/frontend
+reales, igual que siempre): `mvn test` → **255/255** (excluyendo `contextLoads`, que requiere MySQL real);
+`npm --prefix agent test` → **105 tests, 87 passed, 18 skipped, 0 failed** (igual que documenta
+`CLAUDE.md`); `npm ci` (frontend) → **0 vulnerabilidades en producción** (`--omit=dev`), 5 moderadas solo en
+dependencias de build de Angular (mismo tipo ya documentado, arreglo exige un salto de major); `npx tsc
+--noEmit` sin errores; `ng build --configuration production` limpio (mismos warnings preexistentes de Sass
+y presupuesto); `npx playwright test --list` → **27/27 tests en 14 ficheros**. Todo coincide con lo que ya
+afirmaba la descripción del PR #51 — sin regresiones.
+
+**Aviso anterior (2026-11-19): el PR #51 sigue sin revisarse (más de un mes abierto, ahora 55 tareas) y dos sesiones concurrentes encontraron dos hallazgos reales más en el mismo lote de features.**
 La rama estaba 19 commits por detrás de `main` otra vez (lote de mejoras de producto del 18/11: canje
 QR, reservas, gamificación, favoritos, insights, deep links, biometría, modo invitado, landing pública +
 descarga de APK, fix de CORS para el WebView de Android). `git merge origin/main` tuvo 4 conflictos
@@ -105,12 +125,12 @@ tests de controlador de arriba:
 Ambas ya corregidas en esta rama, igual que el resto de vulnerabilidades reales que siguen esperando desde
 hace más de un mes: mass assignment de puntos (AGT-028), cambio de contraseña sin pedir la actual
 (AGT-032/AGT-038), CSRF en `POST /api/jarvis/run` (AGT-015), fuga del token XSRF (AGT-023), la
-vulnerabilidad crítica de Capacitor (AGT-011), `email_verified` ausente en login social (AGT-052) y el
-bypass de OTP por SMS (AGT-053). El PR ya acumula 55 tareas. Lo que hace falta ahora es que una persona lo
-revise y fusione (o rechace), no más código — ninguno de los dos hallazgos de hoy se buscó a propósito:
-uno lo encontró una auditoría del código nuevo recién fusionado, el otro la propia suite de tests al
-fallar. Las dos tareas en `TODO` real (AGT-007, AGT-016) siguen bloqueadas por la misma decisión humana de
-siempre, sin cambios.
+vulnerabilidad crítica de Capacitor (AGT-011), `email_verified` ausente en login social (AGT-052), el
+bypass de OTP por SMS (AGT-053) y, desde el 2026-11-22, la contraseña aleatoria sin hashear de cuentas
+social/SMS (AGT-056). El PR ya acumula 56 tareas. Lo que hace falta ahora es que una persona lo
+revise y fusione (o rechace), no más código — ninguno de los hallazgos recientes se buscó a propósito:
+auditorías del código nuevo recién fusionado o la propia suite de tests al fallar. Las dos tareas en
+`TODO` real (AGT-007, AGT-016) siguen bloqueadas por la misma decisión humana de siempre, sin cambios.
 
 **Fuente de verdad del backlog técnico: el bloque `AGT-xxx` de `AGENT_TASKS.md`** (estado, dependencias,
 criterios de aceptación, verificación real y lo que falta por verificar de cada tarea). Esta lista solo
