@@ -73,23 +73,38 @@
 
 ## Pendiente (por prioridad) — actualizado 2026-11-25
 
-**🚨 Aviso de esta sesión (2026-11-25): el PR #51 sigue sin revisarse — ya 48 días abierto, sin ningún cambio desde el aviso del 23/11.**
-Rama ya al día con `main` (ningún commit nuevo que fusionar desde el 18/11, confirmado con
-`git merge-base --is-ancestor`). Repetidos los audits habituales antes de buscar tarea nueva: `npm audit
---omit=dev` → 0 vulnerabilidades en `agent/`, `access-center/` y `frontend/` (sin cambios); `npm audit`
-completo en `frontend/` (incl. dev) → las mismas 5 moderadas de siempre (`uuid`/`sockjs`/
-`webpack-dev-server`/`@angular-devkit/build-angular`, bloqueadas por el mismo salto de major de Angular
-pendiente de decisión humana). Sin commits nuevos en `main` que auditar (a diferencia de AGT-054/055, que
-salieron de un lote de `main` recién fusionado) y sin ningún aviso de dependencias nuevo, el backlog
-`AGT-xxx` sigue sin ninguna tarea `TODO` real: solo AGT-007 (decisión sobre el plan de pago de Aiven) y
-AGT-016 (salto de major de Spring Boot/Framework), ambas bloqueadas por decisión humana explícita,
-reconfirmado otra vez.
+🚨 **Aviso de esta sesión (2026-11-25): el PR #51 sigue sin revisarse — 48 días abierto, ya 57 tareas.**
+Dos ejecuciones concurrentes de esta misma rutina corrieron el mismo día sobre la misma rama. Una de
+ellas (ver nota íntegra conservada más abajo) decidió explícitamente no añadir ningún commit de código
+nuevo — la rama ya lleva 56 tareas y 48 días sin ninguna revisión humana, y seguir ampliándola sin que
+nadie la revise solo aumenta el riesgo de conflictos y el tamaño de lo que haya que leer de una sentada —
+y se limitó a repetir los audits habituales sin novedad (`npm audit --omit=dev` → 0 en `agent/`,
+`access-center/` y `frontend/`; `npm audit` completo en `frontend/` → las mismas 5 moderadas de siempre,
+bloqueadas por el mismo salto de major de Angular) y a reconfirmar que el backlog `AGT-xxx` solo tiene
+dos `TODO` reales (AGT-007 Aiven, AGT-016 Spring Boot/Framework), ambas bloqueadas por decisión humana.
 
-Esta sesión decide, igual que la del 23/11, no buscar un hallazgo nuevo ni añadir otro commit de código a
-una rama que ya lleva 56 tareas y 48 días sin ninguna revisión humana — seguir ampliándola sin que nadie la
-revise solo aumenta el riesgo de conflictos y el tamaño de lo que haya que leer de una sentada. Esta
-actualización solo sincroniza esta nota y el contador de días del PR #51 con la realidad; no se abre PR
-nuevo (ninguna tarea de código pendiente que justifique uno) ni se toca ningún otro fichero.
+Esta otra ejecución había llegado de forma independiente a la misma conclusión de audits (sin novedad de
+dependencias; `mvn dependency:tree` confirma `spring-core`/`spring-webmvc` 6.1.15 y `spring-security-core`
+6.2.8, sin cambios desde AGT-016) pero, al revisar cobertura de tests en vez de dependencias, sí encontró
+un hallazgo real antes de ver la nota de la otra sesión: **AGT-057**, un bug de concurrencia (no de
+seguridad) en `PuntosStreamService` — el stream SSE de puntos en tiempo real, uno de los dos únicos
+servicios de negocio del backend sin ningún test propio tras AGT-056 (junto a `InsightRestauranteService`).
+Una reconexión del cliente (nueva pestaña, refresco de red) dejaba el `SseEmitter` anterior huérfano, y su
+callback de desconexión tardío borraba por clave de `usuarioId` la entrada que para entonces ya era la de
+la conexión nueva — dejándola sin más actualizaciones de puntos hasta la siguiente reconexión, sin ningún
+error visible. Corregido completando explícitamente el emitter anterior en cada reconexión y haciendo que
+todo el borrado del mapa compruebe que el emitter que se completa sigue siendo el mismo objeto registrado
+(`Map.remove(key, value)`), nunca por clave a ciegas. 6 tests nuevos (`PuntosStreamServiceTest`), incluida
+la verificación empírica de que el test de regresión central falla contra el código viejo. `mvn test` →
+**262/262** (excluyendo `contextLoads`, que requiere MySQL real). Ver `SECURITY.md` (#35) y
+`AGENT_TASKS.md` (AGT-057) para el detalle completo.
+
+Se incluye este hallazgo ya verificado en vez de descartarlo, pero se suscribe la misma recomendación que
+la otra sesión: con 57 tareas y 48 días sin revisión, lo que hace falta ahora es que una persona revise y
+fusione (o rechace) el PR #51 — o, si el volumen ya es demasiado para revisarlo de una sentada, que pida
+dividirlo — no más código nuevo salvo un hallazgo tan acotado como este. Queda `InsightRestauranteService`
+como el único servicio de negocio sin test propio (aparte de `QrService`, trivial) para una futura sesión,
+solo si no hay ninguna razón mejor para seguir esperando la revisión humana.
 
 **Aviso anterior (2026-11-23): el PR #51 sigue sin revisarse (más de un mes y medio abierto, ya 56 tareas).**
 Rama ya al día con `main` (sin commits nuevos que fusionar desde el aviso del 19/11). Desde entonces, otra
