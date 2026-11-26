@@ -527,6 +527,20 @@ humana puntual), sin ningún trabajo nuevo que hacer en el código:
   tres operaciones delegan; `canjear` siempre usa el email del JWT. `mvn test` → 151 tests (9 nuevos),
   150 passed, solo falla `contextLoads` de siempre sin MySQL real; sin cambios de frontend. Detalle
   completo en `AGENT_TASKS.md` (AGT-033).
+- **AGT-058** (P3, backend) · `REVIEW` — 2026-11-26: `InsightRestauranteService` (detrás de
+  `GET /api/restaurantes/{id}/insights`) era, junto a `QrService` (trivial), el último servicio de
+  negocio del backend sin ningún test propio — ya señalado como siguiente candidato natural en el cierre
+  de AGT-057. Al escribir los tests se encontró además una dependencia muerta: el constructor recibía
+  `PromocionDAO` por inyección pero la clase nunca lo usaba en ningún método; eliminado el campo, el
+  parámetro y el import (sin ningún otro sitio que construya la clase a mano). 11 tests nuevos
+  (`InsightRestauranteServiceTest`): restaurante inexistente, sin movimientos, usuario borrado excluido,
+  movimientos de otro restaurante excluidos (guarda defensivo ya existente), cálculo de inactivos/
+  recurrentes con los días correctos, prioridad de la sugerencia cuando ambas condiciones se cumplen a
+  la vez, ganados/canjeados solo del mes en curso, y la promoción más canjeada. `mvn test` → 273 tests
+  (11 nuevos), 272 passed, solo falla `contextLoads` de siempre sin MySQL real; sin cambios de frontend.
+  Con esto los siete servicios de negocio no triviales del backend más `InsightRestauranteService` tienen
+  ya cobertura unitaria; solo `QrService` sigue sin tests (trivial, descartado desde FID-016). Detalle
+  completo en `AGENT_TASKS.md` (AGT-058).
 
 **Pendientes sin tarea `AGT-xxx` propia** (no son trabajo de código, o ya se decidió no abrirlas como tal):
 - Inestabilidad del alias de dominio de Vercel: fusionar a `main` no siempre promueve el nuevo despliegue
