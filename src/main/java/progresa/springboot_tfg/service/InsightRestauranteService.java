@@ -3,7 +3,6 @@ package progresa.springboot_tfg.service;
 import org.springframework.stereotype.Service;
 
 import progresa.springboot_tfg.dao.MovimientoPuntosDAO;
-import progresa.springboot_tfg.dao.PromocionDAO;
 import progresa.springboot_tfg.dao.RestauranteDAO;
 import progresa.springboot_tfg.dao.UsuarioDAO;
 import progresa.springboot_tfg.entity.MovimientoPuntos;
@@ -35,16 +34,13 @@ public class InsightRestauranteService {
     private final RestauranteDAO restauranteDAO;
     private final MovimientoPuntosDAO movimientoPuntosDAO;
     private final UsuarioDAO usuarioDAO;
-    private final PromocionDAO promocionDAO;
 
     public InsightRestauranteService(RestauranteDAO restauranteDAO,
                                      MovimientoPuntosDAO movimientoPuntosDAO,
-                                     UsuarioDAO usuarioDAO,
-                                     PromocionDAO promocionDAO) {
+                                     UsuarioDAO usuarioDAO) {
         this.restauranteDAO = restauranteDAO;
         this.movimientoPuntosDAO = movimientoPuntosDAO;
         this.usuarioDAO = usuarioDAO;
-        this.promocionDAO = promocionDAO;
     }
 
     public Map<String, Object> insights(Long restauranteId) {

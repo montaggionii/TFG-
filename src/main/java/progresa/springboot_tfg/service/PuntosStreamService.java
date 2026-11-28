@@ -38,22 +38,37 @@ public class PuntosStreamService {
     }
 
     public SseEmitter suscribir(Long usuarioId) {
-        SseEmitter emitter = new SseEmitter(TIMEOUT_MS);
-        emisores.put(usuarioId, emitter);
-        ultimoEmitido.remove(usuarioId); // sin saldo previo enviado
+        SseEmitter emitter = crearEmitter();
+        SseEmitter anterior = emisores.put(usuarioId, emitter);
+        ultimoEmitido.remove(usuarioId); // sin saldo previo enviado para este emisor
 
-        emitter.onCompletion(() -> {
-            emisores.remove(usuarioId);
-            ultimoEmitido.remove(usuarioId);
-        });
-        emitter.onTimeout(() -> {
-            emisores.remove(usuarioId);
-            ultimoEmitido.remove(usuarioId);
-        });
+        emitter.onCompletion(() -> limpiar(usuarioId, emitter));
+        emitter.onTimeout(() -> limpiar(usuarioId, emitter));
+
+        // Si el mismo usuario ya tenía una conexión abierta (reconexión del cliente),
+        // se cierra la anterior explícitamente en vez de dejarla huérfana: antes, su
+        // callback de completion/timeout llegaba más tarde y borraba por clave de
+        // usuarioId la entrada que para entonces ya era la de ESTA conexión nueva,
+        // dejándola sin más actualizaciones hasta la siguiente reconexión. `limpiar`
+        // solo borra si el emisor que se completó sigue siendo el que está registrado.
+        if (anterior != null) {
+            anterior.complete();
+        }
 
         // El saldo inicial lo manda el barrido (a más tardar 2s): enviar aquí,
         // antes de devolver el emitter, rompería la respuesta.
         return emitter;
+    }
+
+    /** Punto de extensión para tests: sustituir la creación del emitter real por un mock. */
+    protected SseEmitter crearEmitter() {
+        return new SseEmitter(TIMEOUT_MS);
+    }
+
+    private void limpiar(Long usuarioId, SseEmitter emitter) {
+        if (emisores.remove(usuarioId, emitter)) {
+            ultimoEmitido.remove(usuarioId);
+        }
     }
 
     @Scheduled(fixedRate = 2000)
@@ -74,8 +89,7 @@ public class PuntosStreamService {
             emitter.send(SseEmitter.event().name("puntos").data(Map.of("puntos", puntos)));
             ultimoEmitido.put(usuarioId, puntos);
         } catch (IOException | IllegalStateException e) {
-            emisores.remove(usuarioId);
-            ultimoEmitido.remove(usuarioId);
+            limpiar(usuarioId, emitter);
             log.debug("Suscriptor de puntos desconectado: usuario {}", usuarioId);
         }
     }

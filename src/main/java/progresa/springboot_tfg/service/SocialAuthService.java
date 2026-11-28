@@ -15,6 +15,7 @@ import com.nimbusds.jwt.SignedJWT;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import progresa.springboot_tfg.dao.UsuarioDAO;
 import progresa.springboot_tfg.dto.LoginResponseDTO;
@@ -51,6 +52,7 @@ public class SocialAuthService {
 
     private final UsuarioDAO usuarioDAO;
     private final JwtUtil jwtUtil;
+    private final BCryptPasswordEncoder passwordEncoder;
 
     @Value("${app.oauth.google.client-id:}")
     private String googleClientId;
@@ -59,9 +61,10 @@ public class SocialAuthService {
     @Value("${app.oauth.apple.client-ids:}")
     private String appleClientIds;
 
-    public SocialAuthService(UsuarioDAO usuarioDAO, JwtUtil jwtUtil) {
+    public SocialAuthService(UsuarioDAO usuarioDAO, JwtUtil jwtUtil, BCryptPasswordEncoder passwordEncoder) {
         this.usuarioDAO = usuarioDAO;
         this.jwtUtil = jwtUtil;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public LoginResponseDTO loginGoogle(String idToken, String nombreEnviado) {
@@ -142,6 +145,13 @@ public class SocialAuthService {
         if (email == null || email.isBlank()) {
             throw new SecurityException("El proveedor no devolvió un email verificable");
         }
+        if (!emailVerificado(claims)) {
+            // Sin esta comprobación, cualquiera que controle una cuenta de Google/Apple con un
+            // email_verified=false que coincida con el email de un cliente ya existente en
+            // FidelyFood entraría directamente en SU cuenta (puntos, historial, etc.) solo con
+            // "confirmar" ese email sin que el proveedor lo haya verificado de verdad.
+            throw new SecurityException("El proveedor no ha verificado este email");
+        }
         String emailFinal = email.trim().toLowerCase();
 
         // Apple entrega el nombre fuera del id_token y solo en el primer
@@ -180,9 +190,29 @@ public class SocialAuthService {
         );
     }
 
+    /**
+     * Google manda {@code email_verified} como booleano JSON; algunas versiones del SDK de
+     * Apple lo mandan como el string "true"/"false". Cualquier otra forma (o ausencia del
+     * claim) se trata como no verificado: mejor rechazar un login legítimo por error de
+     * formato que confiar un email sin que el proveedor lo garantice.
+     */
+    private static boolean emailVerificado(JWTClaimsSet claims) {
+        Object valor = claims.getClaim("email_verified");
+        if (valor instanceof Boolean b) {
+            return b;
+        }
+        if (valor instanceof String s) {
+            return "true".equalsIgnoreCase(s);
+        }
+        return false;
+    }
+
     private String hashAleatorio() {
         byte[] bytes = new byte[24];
         new SecureRandom().nextBytes(bytes);
-        return Base64.getEncoder().encodeToString(bytes);
+        // Mismo patrón que UsuarioService.eliminarPropio: el valor aleatorio se
+        // pasa por el mismo BCryptPasswordEncoder que usa el login por contraseña,
+        // nunca se guarda en claro en la columna "password".
+        return passwordEncoder.encode(Base64.getEncoder().encodeToString(bytes));
     }
 }

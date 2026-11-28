@@ -68,11 +68,21 @@ public class SecurityConfig {
 
                         .requestMatchers("/api/movimientos/**").hasAuthority("ROLE_USER")
                         .requestMatchers(HttpMethod.GET, "/api/puntos/**").hasAuthority("ROLE_USER")
+                        .requestMatchers(HttpMethod.POST, "/api/puntos/sorpresa", "/api/puntos/*/pasaporte/reclamar").hasAuthority("ROLE_USER")
                         .requestMatchers(HttpMethod.POST, "/api/puntos").hasAuthority("ROLE_RESTAURANT")
+
+                        .requestMatchers("/api/reservas/mias", "/api/reservas/*/cancelar").hasAuthority("ROLE_USER")
+                        .requestMatchers(HttpMethod.POST, "/api/reservas").hasAuthority("ROLE_USER")
+                        .requestMatchers("/api/reservas/restaurante", "/api/reservas/*/estado").hasAuthority("ROLE_RESTAURANT")
+                        .requestMatchers("/api/favoritos/**").hasAuthority("ROLE_USER")
 
                         .requestMatchers(HttpMethod.GET, "/api/recompensas/**").hasAuthority("ROLE_USER")
                         .requestMatchers(HttpMethod.POST, "/api/recompensas/*/canjear").hasAuthority("ROLE_USER")
                         .requestMatchers("/api/recompensas/**").hasAuthority("ROLE_ADMIN")
+
+                        // Top fans muestra nombres/visitas de clientes reales: requiere sesión
+                        // aunque el resto de /api/restaurantes/** sea público (modo invitado).
+                        .requestMatchers(HttpMethod.GET, "/api/restaurantes/*/top-fans").authenticated()
 
                         // Ver catálogo de locales y promos: público (modo invitado).
                         // Es información de catálogo, sin datos personales.

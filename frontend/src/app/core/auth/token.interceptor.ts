@@ -62,8 +62,12 @@ export const tokenInterceptor: HttpInterceptorFn = (req, next) => {
         }
 
         // Modo invitado: sin token una petición de datos personales da 401;
-        // no hay sesión que cerrar ni a dónde redirigir.
-        if (!localStorage.getItem('token')) {
+        // no hay sesión que cerrar ni a dónde redirigir. Usamos `token`
+        // (capturado al enviar la petición), no una lectura fresca de
+        // localStorage aquí: si la petición SÍ llevaba token y ha
+        // desaparecido mientras la respuesta estaba en vuelo, es la sesión
+        // real terminando (ver comprobación de abajo), no modo invitado.
+        if (!token) {
           return throwError(() => error);
         }
 
@@ -81,7 +85,9 @@ export const tokenInterceptor: HttpInterceptorFn = (req, next) => {
       if (error.status === 403) {
         console.error(`[AUTH ERROR] 403 detectado en ${req.url}`);
         // Invitado: 403 solo significa "esto requiere cuenta", sin redirección.
-        if (localStorage.getItem('token')) {
+        // Igual que en el 401 de arriba: `token` es el capturado al enviar
+        // la petición, no una lectura fresca de localStorage.
+        if (token) {
           const role = authService.getRoleSync();
           if (role === 'ROLE_ADMIN') router.navigate(['/admin/dashboard']);
           else if (role === 'ROLE_RESTAURANT') router.navigate(['/r/dashboard']);
